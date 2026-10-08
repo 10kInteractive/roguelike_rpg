@@ -1,0 +1,26 @@
+---
+description: Project stack, layout, and working agreements for the Three.js roguelike
+alwaysApply: true
+---
+
+# Roguelike RPG
+
+Read `@.cursor/config.json` for stack and path defaults. Treat `docs/game_design.md` as the source of truth for mechanics.
+
+## Stack
+
+- Local Node app with Three.js. Prefer npm. Do not add Next, Nuxt, or other app frameworks unless asked.
+- Keep the first playable loop small: run locally, reload in the browser, no backend unless the design requires it.
+- Prefer plain JavaScript until the design doc says otherwise.
+
+## Layout
+
+- Design docs live under `docs/`.
+- Application source will live under `src/` once the Node app is initialized.
+- Do not invent folder conventions beyond what the current repo already uses.
+
+## Working style
+
+- Capture mechanics in the design doc before implementing them.
+- Do not commit `.env` files, credentials, or generated `dist/` / `node_modules/`.
+- Do not create git commits or push unless Josh asks.

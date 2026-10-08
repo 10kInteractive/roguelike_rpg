@@ -1,0 +1,16 @@
+{
+  "project": "roguelike_rpg",
+  "description": "Procedural roguelike in a simple Three.js + Node stack, developed and run locally.",
+  "stack": {
+    "runtime": "node",
+    "renderer": "three",
+    "language": "javascript",
+    "packageManager": "npm",
+    "devServer": "local"
+  },
+  "paths": {
+    "docs": "docs",
+    "gameDesign": "docs/game_design.md",
+    "source": "src"
+  }
+}
