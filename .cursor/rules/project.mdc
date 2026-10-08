@@ -9,15 +9,16 @@ Read `@.cursor/config.json` for stack and path defaults. Treat `docs/game_design
 
 ## Stack
 
-- Local Node app with Three.js. Prefer npm. Do not add Next, Nuxt, or other app frameworks unless asked.
-- Keep the first playable loop small: run locally, reload in the browser, no backend unless the design requires it.
-- Prefer plain JavaScript until the design doc says otherwise.
+- Stack and tooling decisions live in `docs/techstack.md`. Follow it.
+- TypeScript, Vite, Biome, npm. Three.js with `WebGPURenderer`. Static deploy to Josh's private server at `joshbosworth.com/foo`; no backend unless the design requires it. Never commit server credentials.
+- React is for the DOM UI overlay only. The 3D scene and render loop are plain Three.js classes. Do not add Next, Nuxt, or other app frameworks unless asked.
+- The simulation in `src/sim` is pure and seeded: no DOM, Three.js, React, or `Math.random`. It decides all game outcomes; view and UI only render and animate.
+- Nothing that changes every frame goes through React state.
 
 ## Layout
 
 - Design docs live under `docs/`.
-- Application source will live under `src/` once the Node app is initialized.
-- Do not invent folder conventions beyond what the current repo already uses.
+- Follow the layout in `docs/techstack.md`. Do not invent folder conventions beyond it.
 
 ## Working style
 

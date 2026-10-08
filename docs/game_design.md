@@ -1,6 +1,291 @@
 # Game Design Document
 
-Test write: file is writable and ready for planning.
+Source of truth for mechanics. Ideas start in `docs/brainstorm.md`; build details live in `docs/techstack.md` and the prototype plans under `docs/prototypes/`.
 
-Working title: TBD  
-Stack: Three.js, Node, local-first
+Working title: TBD
+
+## How to read this doc
+
+Every mechanic has two phases:
+
+- **Prototype** — the smallest version that proves the idea. Concrete rules and formulas. Numbers live in each prototype's content bundle, not here.
+- **North star** — where the mechanic is headed. Direction and ideas, not commitments.
+
+Prototype rules can change once we play them. North star ideas move into the prototype column only when a prototype needs them.
+
+## Pitch
+
+A light sci-fi / fantasy RPG in NES clothes. One hero walks a lush 3/4 procedural world and falls into turn-based fights, Final Fantasy style. Each run pushes three stages deeper into a zone. You bring in a loadout from your home stash, build a kit from eager drops, and pick up run boons along the way. At every inn you choose: push in or opt out. Opt out and you keep everything you carry. Die and you lose everything outside your anchored slots.
+
+## Pillars
+
+1. **NES RPG heart.** Command menus, a character sheet, named loot, the first slime in the grass.
+2. **Turn-based, never twitch.** Combat waits for you. Speed matters through the haste stat, not reflexes.
+3. **Push in or opt out.** Extraction tension at every inn: one more stage for better loot, or cash out.
+4. **Build a kit, spice the run.** Gear is the long-term character; boons are this run's personality.
+5. **Swords and lasers.** Fantasy with a tech undercurrent everywhere. A cyborg hunter in a world that still has slimes.
+
+## Scope by prototype
+
+| Mechanic | Prototype one | Later prototypes | North star |
+| --- | --- | --- | --- |
+| Field: procedural map, analog movement | yes | yes | yes |
+| Random encounters | yes | yes | yes |
+| Visible miniboss | yes, ends the run | yes | farmable packs |
+| Combat: haste turns, command window | yes | yes | yes |
+| Elements | fire and ice | wheel | full wheel |
+| Levels and XP | yes | yes | yes |
+| Gear and slots | no | yes | yes |
+| Boons | no | yes | yes |
+| Run stages, inns, stage bosses | no | yes | yes |
+| Extraction, stash, anchored slots | no | yes | yes |
+| Durability | no | yes | yes |
+| Town, skill tree | no | stub | yes |
+| Races | no | stub | yes |
+| Guests and pets | no | no | yes |
+| Day / night, global illumination | no | yes | yes |
+| Music | no | yes | yes |
+
+## Core loop
+
+### Prototype
+
+Spawn on a fresh map. Walk. Random fights start as you walk. A miniboss stands visible somewhere on the map; you can walk around it or bump into it. Win fights for XP and levels. Beating the miniboss ends the run with a victory screen and run stats. Dying ends it with a game over screen and the same stats. Either way, start again on a new seed.
+
+Target length: **10–15 minutes**, about **10 fights** before the hero is ready for the miniboss.
+
+### North star
+
+1. Town: pick race and class, spend on the skill tree, choose a loadout from the home stash (or take the free loadout), repair gear.
+2. Stage one: walk a procedural map, fight random encounters, choose whether to engage miniboss packs.
+3. Gear drops eagerly; class-colored boon drafts arrive on a cadence.
+4. Stage boss, then an inn: rest, heal, shop, repair. Push in or opt out.
+5. Stages two and three go deeper into the zone: harder, richer, biomes reroll.
+6. Opt out or kill the final boss: everything you carry goes home. Die: lose everything outside anchored slots.
+
+Target for a ready, full clear: about 40–60 minutes.
+
+## Hero
+
+### Prototype
+
+- One hero, class **Strider**: general purpose, good general stats, nothing exceptional.
+- One race. No race choice.
+- Stats:
+
+| Stat | Short | Does |
+| --- | --- | --- |
+| Hit points | HP | Damage you can take. Zero means death. |
+| Magic points | MP | Spent to cast spells. |
+| Strength | STR | Physical damage. |
+| Defense | DEF | Reduces physical damage taken. |
+| Magic | MAG | Spell damage. |
+| Haste | HST | How often you act. See combat. |
+
+- Starts at level 1 knowing two spells: one fire, one ice.
+
+### North star
+
+- More classes; class colors the boon drafts.
+- **Races** (human, reptilian, cybernetic, more) are art plus stat boosts, and they change augment and trinket slot counts.
+- Added stats as needed: luck (crits, drops), resistance (magic defense), accuracy and evasion.
+- One avatar on the field always. Combat can grow guest slots later (strangers, pets) as extra haste actors.
+
+## Leveling
+
+### Prototype
+
+- Every defeated enemy gives XP. Enough XP raises the level, which raises stats by a fixed amount per stat.
+- Level-ups fully restore HP and MP. A small reward that makes grinding feel good.
+- Level cap set by the bundle (low, around 10).
+
+### North star
+
+- Levels are per run in hardcore mode; persistent power comes from gear and the skill tree.
+- XP gain bonuses come from the skill tree.
+- Whether levels persist in a future bosskill mode is undecided.
+
+## Field
+
+### Prototype
+
+- **One procedural biome** generated from the run seed: a grid of tiles with height, rendered as 3D low-poly terrain with pixel textures.
+- Terrain types: grass, forest, path (walkable); water, mountain (blocked). Each walkable type has its own encounter rate.
+- **Free analog movement.** The hero moves continuously in any direction: full analog on a gamepad stick, eight directions on a keyboard. The map is still a tile grid underneath (for generation, terrain type, and collision), but the hero's position is continuous and collides with blocked tiles.
+- The simulation advances movement in **fixed time steps** so it stays deterministic and replayable; the view smooths between steps.
+- **3/4 camera** that follows the hero.
+- **Random encounters by distance:** every tile's worth of distance walked rolls against the current terrain's rate. A minimum distance between fights prevents back-to-back encounters. The bundle's encounter table picks a pack of 1–3 mobs.
+- **Visible miniboss:** placed far from the spawn on reachable ground. It stands still. Touch it to fight. Walk around it to avoid it.
+- The generator guarantees the miniboss is reachable from the spawn.
+
+### North star
+
+- **Miniboss packs** that wander or patrol, respawn, and carry loot tables worth farming for specific drops.
+- Several biomes per level on a **meta-map**. Biomes roll across the three stages; depth sets difficulty, biome sets look and mob families.
+- Lush detail close to the camera, day / night, approximate global illumination.
+- Landmarks, treasure, and trinket-driven overworld verbs ("find treasure").
+
+## Combat
+
+### Prototype
+
+- A fight opens a **combat screen over the field**. The field pauses. The combat stage is its own simple 3D scene matching the biome.
+- Hero on one side, 1–3 enemies on the other, Final Fantasy style.
+- **Command window:** Fight, Magic, Item, Defend, Run.
+
+#### Turn order: haste
+
+- Every actor has a **next-turn time**. The actor with the lowest time acts next.
+- After acting, an actor's time increases by a fixed base amount divided by its haste. Twice the haste means twice the turns.
+- Ties go to the higher haste, then to the hero.
+- This interleaves hero and enemy turns; nobody waits for a whole team to finish.
+- The UI shows the **upcoming turn order** (the next several actors), so haste is visible and planning is possible.
+
+#### Actions
+
+| Command | Effect |
+| --- | --- |
+| Fight | Physical attack on one enemy. |
+| Magic | Cast a known spell on one enemy. Costs MP. |
+| Item | Use a consumable (potions in prototype one). |
+| Defend | Halve damage taken until your next turn. |
+| Run | Try to flee. Chance rises with your haste versus the enemies'. A failed attempt costs the turn. You can't run from a miniboss. |
+
+#### Damage
+
+- **Physical:** attack power (STR) minus half the target's DEF, times a small random spread. Minimum 1.
+- **Magic:** spell power plus MAG, times the element multiplier, times a small random spread. Ignores DEF in prototype one.
+- **Critical hits:** small flat chance on physical attacks, extra damage.
+- All randomness comes from the run's seeded RNG.
+
+#### Enemies
+
+- Each mob has stats, an element, weaknesses and resistances, and a short list of actions with weights. The AI picks by weight; no deep tactics yet.
+
+#### Outcomes
+
+- **Win:** all enemies at zero HP. Gain XP and any drops, return to the field. Beating the miniboss ends the run in victory.
+- **Flee:** return to the field, no rewards.
+- **Lose:** hero at zero HP. Game over.
+
+#### Run stats
+
+Shown on both the victory and game over screens: play time, fights won, fights fled, level reached, damage dealt and taken, potions used, distance walked, the seed, and (on game over) what killed you.
+
+### North star
+
+- Special attacks and on-hit effects come from **boons**, not a baked skill list. Pure melee stays a valid build.
+- Status effects (poison, stun, burn, freeze, shock).
+- Guests and pets as extra haste actors.
+- Multi-target attacks and spells.
+- Stage bosses with phases.
+- Biome-specific 3D combat backdrops with NES staging.
+
+## Elements and tech
+
+### Prototype
+
+- Two elements: **fire** and **ice**.
+- Each mob may be aligned to an element, be weak to one, and resist one.
+- Hitting a weakness multiplies damage up; hitting a resistance multiplies it down. Multipliers live in the bundle.
+- The hero's two spells cover both elements, so reading a mob and choosing the right spell is the first combat decision.
+
+### North star
+
+- A **wheel of 4–5 elements**, each strong against the next and weak to the previous. Working example: fire → ice → electricity → water → fire. A fifth element needs a name.
+- **Tech is a material, not an element.** It is a family of weapons and augments that can deal any element: a plasma staff deals fire, a cryo rifle deals ice, a blaster could be electric.
+- Tech is open to every class. Vampire Hunter D is the touchstone: a cybernetic hunter with a blade and a gun. FF3 / FF6 machina for enemies and set pieces.
+
+## Items
+
+### Prototype
+
+- Consumables only: potions that restore HP. Mobs can drop them.
+- A small carried stack, no inventory screen beyond the Item command.
+
+### North star
+
+Equipment slots:
+
+| Group | Slots |
+| --- | --- |
+| Armor | head, shoulders, chest, belt, legs, feet, wrists, gloves (room for 10) |
+| Weapon | main hand, off hand, ranged |
+| Augment | 3 to start; tech installed into the body; count varies by race |
+| Trinket | 2 to start; tech or element attached to the body; count varies by race |
+
+- Gear drops eagerly. Named, slightly silly loot.
+- **Durability** wears down in normal play. Repairs cost currency (a deliberate currency sink). A piece that breaks in the field becomes unusable, or is lost; which one is undecided.
+
+## Boons
+
+### Prototype
+
+Not in prototype one.
+
+### North star
+
+- Arrive on a regular cadence during a run, as **class-colored drafts** (pick one of several).
+- They are skills, spells, effects, elemental bonuses, magic affixes, and tech effects. Not armor.
+- Last for the current run only; gone on death and on extract.
+- Boon reroll at the inn is undecided.
+
+## Runs, inns, and extraction
+
+### Prototype
+
+Not in prototype one. A run is one map; it ends at the miniboss win or at death.
+
+### North star
+
+- **Hardcore mode first.** A run is one session: leave town, then death, opting out, or the final boss.
+- **Three stages**, each ending in a stage boss, each deeper into the zone.
+- **Inn at each stage cusp:** rest, heal, shop, repair. The inn is the extract point: **push in or opt out**.
+- **Loadout:** bring whatever you are willing to risk from the home stash. A **free loadout** is always available so a bad death never locks you out.
+- **Opt out or kill the final boss:** everything equipped and in the backpack goes to the home stash.
+- **Die:** lose everything except what sits in **anchored slots** (Arc Raiders' safe pocket). Anchored gear still wears out.
+- Storage: equipped slots, anchored slots, backpack (this run), home stash (starts at 20 slots, grows to hundreds).
+- **Bosskill mode** (several deaths allowed, multi-session runs, in-run save) is parked for later.
+
+## Meta progression
+
+### Prototype
+
+Not in prototype one.
+
+### North star
+
+- **Town / home base:** home stash, loadout screen, skill tree, shops.
+- **Skill tree:** permanent numeric growth: XP gain, stat bumps. Might unlock extra anchored slots.
+- **Home stash:** the long-term gear collection, filled by extraction.
+
+## Presentation
+
+### Prototype
+
+- Low-poly 3D with **pixel textures** (nearest-neighbor filtering). No low-resolution render target.
+- Placeholder art is fine: colored shapes with simple pixel textures.
+- Menus are a DOM overlay in an NES style: bordered windows, pixel font.
+- Simple lighting: a sun and a sky light. No day / night.
+- Sound: optional placeholder blips. No music.
+- Input: keyboard and gamepad, default bindings only.
+
+### North star
+
+- Lush, close detail; day / night; approximate global illumination.
+- Biome music as layered stems that crossfade (calm, danger, combat, boss), authored by Josh.
+- Every asset can start generated and be swapped for a hand-built one.
+- Rebindable controls in an options screen.
+- Tone: earnest, a little camp. Death can be jokey without making the world a joke.
+
+## Open questions
+
+- Fifth element name.
+- Broken gear: unusable until repaired, or lost?
+- Number of anchored slots, and how to earn more.
+- Whether anchored slots accept any item or only certain groups.
+- Boon reroll at the inn.
+- Backpack size.
+- Whether day / night changes encounter tables or is only visual.
+- Meta-map shape: one continent, or town portals into biomes.
+- Working title.
