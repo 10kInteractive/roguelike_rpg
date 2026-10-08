@@ -1,0 +1,8 @@
+# Secrets and local env — keep out of agent context even if gitignore changes
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+secrets.json
