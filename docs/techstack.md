@@ -175,6 +175,25 @@ Every generated asset gets a sidecar file recording how it was made: generator s
 6. One loader service owns all fetches: progress events, caching, retry, and disposal of GPU resources when a pack unloads.
 7. Later: a service worker caches packs for repeat visits.
 
+## Observability
+
+Every change should be easy to see. Two tools, both in `src/debug`:
+
+**Namespaced logger**
+
+- `const log = createLogger("view:field"); log("hero entered forest", pos);`
+- Namespaces follow the folder: `boot`, `assets`, `input`, `view:field`, `view:combat`, `ui`, `sim:events`.
+- Off by default. Enable with a URL parameter, `?debug=view:*,sim:events`, or `localStorage.debug` for a sticky setting. `?debug=*` turns everything on.
+- Log calls stay in production builds but do nothing unless enabled, so they're safe to leave in.
+
+**Dev panel**
+
+- A small React overlay, only in dev builds, toggled with the backtick key.
+- Shows the seed, sim mode, hero position and stats, FPS, renderer backend (WebGPU or WebGL2), and the last few sim events.
+- Any module can add a live value: `watch("encounter distance", () => value)`.
+
+**The sim never logs.** It has no `console` (its tsconfig has no DOM or Node types). Its events and snapshots are logged at the boundary: by the browser under `sim:events`, and by the sim CLI, which prints events as readable lines with `--log`.
+
 ## Build, tooling, and deploy
 
 - **[Vite](https://vite.dev/)**. As of Vite 8 it builds with Rolldown (a Rust bundler): fast dev reloads, fast production builds, code splitting and asset hashing without config. Replaces our hand-written `server.js`.
@@ -232,6 +251,7 @@ Proposed starting set:
 
 | Skill | Does |
 | --- | --- |
+| `staged-delivery` | **In place.** Small, testable stages: each one observable (logs, dev panel, CLI, test), verified, reported, and committed separately when Josh says. |
 | `design-to-spec` | Turns brainstorm decisions into a `game_design.md` section and a prototype checklist. |
 | `add-content` | Adds a mob, item, boon, or biome as data, validates it, adds a unit test if it has new rules. |
 | `generate-asset` | Generates an asset with a tool or model, writes the sidecar, registers the logical ID. |
@@ -259,6 +279,7 @@ src/                shared engine
   input/            device to action mapping
   audio/            Web Audio mixer and music stems
   assets/           manifest resolver and loader service
+  debug/            namespaced logger and dev panel
 prototypes/
   <name>/           entry page, config, bundle/
 assets/

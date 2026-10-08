@@ -23,5 +23,6 @@ Read `@.cursor/config.json` for stack and path defaults. Treat `docs/game_design
 ## Working style
 
 - Capture mechanics in the design doc before implementing them.
+- Build in small, observable stages with one commit each. Follow `.cursor/skills/staged-delivery/SKILL.md`.
 - Do not commit `.env` files, credentials, or generated `dist/` / `node_modules/`.
 - Do not create git commits or push unless Josh asks.

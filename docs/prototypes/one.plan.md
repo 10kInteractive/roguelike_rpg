@@ -61,6 +61,7 @@ src/                        shared engine
   ui/                       React DOM overlay and zustand store
   input/                    keyboard and gamepad to actions
   assets/                   manifest resolver and loader service
+  debug/                    namespaced logger and dev panel
 prototypes/
   one/
     index.html              entry page
@@ -409,7 +410,9 @@ End-to-end (Playwright):
 
 ## Milestones
 
-1. **Tooling.** Vite, TypeScript, Biome, React, launcher, prototype one entry, CI. Remove `server.js`.
+Each milestone is built as a series of small stages, one commit each, following the `staged-delivery` skill.
+
+1. **Tooling.** Vite, TypeScript, Biome, React, launcher, prototype one entry, CI. Remove `server.js`. Add the namespaced logger and the dev panel early, so every later stage has somewhere to show its output.
 2. **Sim core.** RNG, bundle schemas and loader, the prototype one bundle, combat engine, unit tests.
 3. **Harness.** Sim CLI, combat policies, sweep, replay. Combat is tunable before anything renders.
 4. **Field sim.** Map generation, fixed-step analog movement and collision, encounters by distance, miniboss, run stats. Walking policies.
