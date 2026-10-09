@@ -135,9 +135,9 @@ Target for a ready, full clear: about 40–60 minutes.
 
 #### Turn order: haste
 
-- Every actor has a **next-turn time**. The actor with the lowest time acts next.
+- Every actor has a **next-turn time**. The actor with the lowest time acts next. A fight starts with every time at 0, so the first turn is a tie.
 - After acting, an actor's time increases by a fixed base amount divided by its haste. Twice the haste means twice the turns.
-- Ties go to the higher haste, then to the hero.
+- Ties go to the higher haste, then to the hero, then to whoever is earlier in the fight's actor list.
 - This interleaves hero and enemy turns; nobody waits for a whole team to finish.
 - The UI shows the **upcoming turn order** (the next several actors), so haste is visible and planning is possible.
 
