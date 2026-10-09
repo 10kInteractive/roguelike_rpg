@@ -56,6 +56,7 @@ Exempt from the class rule:
 
 - `src/sim/utils/`: used by more than one sim area. The seeded generator and weighted picks.
 - `src/sim/combat/utils/`: combat rule formulas.
+- `src/view/art/`: used by more than one scene. Placeholder models, lighting, terrain textures. It is named for what it holds instead of `utils/`.
 
 Add a `utils/` folder when shared code appears, and record it in the layout in `docs/techstack.md`.
 

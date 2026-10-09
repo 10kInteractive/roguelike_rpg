@@ -1,0 +1,45 @@
+{
+  "id": "terrain.path.texture",
+  "generator": "tools/gen-placeholders.ts",
+  "seed": 3,
+  "size": 16,
+  "recipe": {
+    "id": "terrain.path.texture",
+    "seed": 3,
+    "palette": [
+      {
+        "color": [
+          184,
+          155,
+          98
+        ],
+        "weight": 6
+      },
+      {
+        "color": [
+          160,
+          132,
+          82
+        ],
+        "weight": 3
+      },
+      {
+        "color": [
+          206,
+          182,
+          128
+        ],
+        "weight": 2
+      },
+      {
+        "color": [
+          130,
+          110,
+          80
+        ],
+        "weight": 0.5
+      }
+    ]
+  },
+  "generatedAt": "2026-10-09T19:26:28.637Z"
+}

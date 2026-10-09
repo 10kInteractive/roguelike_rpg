@@ -1,0 +1,45 @@
+{
+  "id": "terrain.grass.texture",
+  "generator": "tools/gen-placeholders.ts",
+  "seed": 1,
+  "size": 16,
+  "recipe": {
+    "id": "terrain.grass.texture",
+    "seed": 1,
+    "palette": [
+      {
+        "color": [
+          74,
+          143,
+          58
+        ],
+        "weight": 6
+      },
+      {
+        "color": [
+          62,
+          122,
+          48
+        ],
+        "weight": 3
+      },
+      {
+        "color": [
+          98,
+          168,
+          72
+        ],
+        "weight": 2
+      },
+      {
+        "color": [
+          128,
+          184,
+          84
+        ],
+        "weight": 0.5
+      }
+    ]
+  },
+  "generatedAt": "2026-10-09T19:26:28.633Z"
+}

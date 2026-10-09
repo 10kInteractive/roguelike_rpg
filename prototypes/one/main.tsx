@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
+import { GameRuntimeController } from "../../src/runtime/runtime.controller";
 import { Overlay } from "../../src/ui/Overlay";
-import { mountRenderer } from "../../src/view/renderer";
+import { bundleSource } from "./bundle-source";
 
 const view = document.getElementById("view");
 const overlay = document.getElementById("overlay");
@@ -15,12 +16,9 @@ if (import.meta.env.DEV) {
 }
 
 const root = createRoot(overlay);
-root.render(<Overlay status="Starting renderer…" />);
-
-try {
-  const backend = await mountRenderer(view);
-  root.render(<Overlay status={`Renderer backend: ${backend}`} />);
-} catch (error) {
-  const message = error instanceof Error ? error.message : "Unknown renderer error";
-  root.render(<Overlay status={`Renderer failed: ${message}`} />);
-}
+const runtime = new GameRuntimeController({
+  view,
+  bundleSource,
+  onStatus: (status) => root.render(<Overlay status={status} />),
+});
+await runtime.start();

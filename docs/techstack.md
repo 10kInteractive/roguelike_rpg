@@ -277,7 +277,11 @@ src/                shared engine
     combat/utils/   combat formulas: damage, flee chance, leveling
   harness/          headless play of the sim: replay, combat and field sweeps
   content/          zod schemas and bundle loader
-  view/             Three.js classes, render loop, combat sequencer
+  runtime/          starts the game on a page: launch options, bundle, renderer, field or fight
+  view/             Three.js classes and the one render loop
+    art/            shared by every scene: placeholder models, lighting, textures
+    field/          field scene, follow camera, fixed sim step, interpolation
+    combat/         combat scene and sequencer
   ui/               React DOM menus, HUD, zustand store
   input/            device to action mapping
   audio/            Web Audio mixer and music stems
@@ -292,6 +296,7 @@ tools/              asset generators, sim CLI, content and purity checks
 tests/              Playwright end-to-end
 docs/
   prototypes/       one plan per prototype
+  references/       explanations of how existing systems work
 .github/workflows/  CI
 ```
 

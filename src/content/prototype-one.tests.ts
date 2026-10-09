@@ -10,6 +10,12 @@ import rules from "../../prototypes/one/bundle/rules.json" with { type: "json" }
 import spells from "../../prototypes/one/bundle/spells.json" with { type: "json" };
 import { enemyFighterFromMob, heroFighterFromBundle } from "./fighters";
 import { loadBundle } from "./load";
+import {
+  combatRulesFromBundle,
+  knownSpellsFromBundle,
+  levelRulesFromBundle,
+  runMobsFromBundle,
+} from "./rules";
 
 test("prototype one loads Strider, the spells, the potion, the mobs, and the meadow", () => {
   const bundle = loadBundle({
@@ -83,4 +89,39 @@ test("bundle actions become the actions a fight can run", () => {
     { type: "fight", weight: 70 },
     { type: "grind", multiplier: 1.5, weight: 30 },
   ]);
+});
+
+test("bundle rules become the numbers every fight and run takes", () => {
+  const bundle = loadBundle({
+    manifest,
+    rules,
+    hero,
+    spells,
+    items,
+    mobs,
+    encounters,
+    biomes: [biome],
+    assets,
+  });
+
+  expect(combatRulesFromBundle(bundle)).toMatchObject({
+    turnBase: 100,
+    critChance: 0.05,
+    potionHeal: 25,
+    fleeBase: 0.5,
+  });
+  expect(levelRulesFromBundle(bundle)).toMatchObject({ xpPerLevel: 6, levelCap: 10 });
+  expect(knownSpellsFromBundle(bundle).map((spell) => spell.id)).toEqual([
+    "spell.ember",
+    "spell.frost",
+  ]);
+  const table = runMobsFromBundle(bundle);
+  expect([...table.keys()]).toEqual([
+    "mob.slime",
+    "mob.ember_imp",
+    "mob.frost_moth",
+    "mob.rust_sentinel",
+  ]);
+  expect(table.get("mob.slime")).toMatchObject({ potionDrop: 0.15, fighter: { hp: 12 } });
+  expect(table.get("mob.rust_sentinel")?.potionDrop).toBeUndefined();
 });

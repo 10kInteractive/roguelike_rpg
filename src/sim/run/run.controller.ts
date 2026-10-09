@@ -1,5 +1,4 @@
-import { OneOnOneFightController } from "../combat/fight.controller";
-import type { FightEvent, Fighter } from "../combat/fight.types";
+import type { FightEvent } from "../combat/fight.types";
 import { CombatActionPolicy } from "../combat/policy.controller";
 import { EncounterWalkController } from "../field/encounters.controller";
 import type { EncounterEvent } from "../field/encounters.types";
@@ -7,13 +6,14 @@ import { tilesPerSecond } from "../field/movement.constants";
 import { FieldWalkPolicy } from "../field/policy.controller";
 import { SeededRandomGenerator } from "../utils/rng.controller";
 import type { Rng } from "../utils/rng.types";
+import { PackFightController } from "./pack.controller";
 import {
   enemyActionSeconds,
   fightTransitionSeconds,
   heroDecisionSeconds,
   maxStickHolds,
 } from "./run.constants";
-import type { FieldRunResult, GrinderRunInput, HeroState } from "./run.types";
+import type { FieldRunResult, GrinderRunInput } from "./run.types";
 
 /**
  * Plays one grinder run on a meadow.
@@ -22,11 +22,8 @@ import type { FieldRunResult, GrinderRunInput, HeroState } from "./run.types";
  * fought one mob at a time. The run ends when the miniboss falls or the hero does.
  */
 export class GrinderFieldRunController {
-  /** The meadow, mobs, hero, and bundle numbers for this run. */
-  private readonly input: GrinderRunInput;
-
-  /** The hero carried from one fight to the next. */
-  private readonly hero: HeroState;
+  /** Fights each pack and carries the hero from one fight to the next. */
+  private readonly pack: PackFightController;
 
   /** Encounter rates, pack picks, counts, and potion drops. */
   private readonly fieldRng: Rng;
@@ -34,17 +31,11 @@ export class GrinderFieldRunController {
   /** Wander directions and enemy action picks. */
   private readonly choiceRng: Rng;
 
-  /** Damage, crits, and flee rolls. */
-  private readonly combatRng: Rng;
-
   /** Where the hero walks, and when a fight starts. */
   private readonly encounter: EncounterWalkController;
 
   /** Which way the grinder pushes the stick. */
   private readonly walkPolicy: FieldWalkPolicy;
-
-  /** The fighter's turn choices: Fight, or a potion below 30% HP. */
-  private readonly combatPolicy: CombatActionPolicy;
 
   /** Tiles the hero actually walked. */
   private distance = 0;
@@ -68,11 +59,21 @@ export class GrinderFieldRunController {
    * @param input The meadow, mobs, hero, and bundle numbers for this run.
    */
   constructor(input: GrinderRunInput) {
-    this.input = input;
-    this.hero = this.copyHero(input.hero);
     this.fieldRng = input.rngs?.field ?? new SeededRandomGenerator(input.seed);
     this.choiceRng = input.rngs?.choice ?? new SeededRandomGenerator(input.seed);
-    this.combatRng = input.rngs?.combat ?? new SeededRandomGenerator(input.seed);
+    const combatPolicy = new CombatActionPolicy([], this.choiceRng);
+    this.pack = new PackFightController({
+      hero: input.hero,
+      mobs: input.mobs,
+      combat: input.combat,
+      leveling: input.leveling,
+      heroPolicy: (hero) => combatPolicy.chooseFighter(hero),
+      rngs: {
+        drops: this.fieldRng,
+        choice: this.choiceRng,
+        combat: input.rngs?.combat ?? new SeededRandomGenerator(input.seed),
+      },
+    });
     this.encounter = new EncounterWalkController({
       position: { x: input.map.spawn.x + 0.5, y: input.map.spawn.y + 0.5 },
       field: input.map,
@@ -86,20 +87,19 @@ export class GrinderFieldRunController {
       miniboss: input.miniboss.tile,
       rng: this.choiceRng,
     });
-    this.combatPolicy = new CombatActionPolicy([], this.choiceRng);
   }
 
   /** Walks and fights until the miniboss falls, the hero falls, or the safety cap runs out. */
   play(): FieldRunResult {
-    for (let hold = 0; hold < maxStickHolds && this.hero.hp > 0; hold++) {
+    for (let hold = 0; hold < maxStickHolds && this.pack.hero().hp > 0; hold++) {
       // Hold the grinder's stick, and stop early when a fight starts.
-      const choice = this.walkPolicy.chooseGrinder(this.encounter.position, this.hero.level);
+      const choice = this.walkPolicy.chooseGrinder(this.encounter.position, this.pack.hero().level);
       const stepped = this.encounter.holdStick(choice.stick, choice.ticks);
       this.distance += stepped.distance;
       const started = stepped.events[0];
       if (!started) continue;
 
-      if (started.miniboss) this.bossLevel = this.hero.level;
+      if (started.miniboss) this.bossLevel = this.pack.hero().level;
 
       const result = this.fightPack(started);
       if (result) return result;
@@ -108,34 +108,16 @@ export class GrinderFieldRunController {
     return this.toFieldResult("lose");
   }
 
-  /** One mob at a time. A flee or a defeat ends the pack. Returns a result when the run is over. */
+  /** Fights the pack and tallies it. Returns a result when the run is over. */
   private fightPack(started: EncounterEvent): FieldRunResult | undefined {
-    for (const group of started.groups) {
-      for (let count = 0; count < group.count; count++) {
-        const mob = this.input.mobs.get(group.id);
-        if (!mob) throw new Error(`Unknown mob "${group.id}"`);
-        const events = new OneOnOneFightController({
-          hero: { ...this.hero, hero: true },
-          enemy: mob.fighter,
-          rng: this.combatRng,
-          choiceRng: this.choiceRng,
-          ...this.input.combat,
-          leveling: this.input.leveling,
-          heroPolicy: (hero) => this.combatPolicy.chooseFighter(hero),
-        }).resolve();
-        this.fights += 1;
-        this.countActions(events);
-        const outcome = this.outcomeOf(events);
-        this.applyFight(events);
-
-        if (outcome === "lose") return this.toFieldResult("lose", group.id);
-        if (outcome === "flee") return undefined;
-        if (mob.potionDrop !== undefined && this.fieldRng.next() < mob.potionDrop) {
-          this.hero.potions += 1;
-        }
-        if (started.miniboss) return this.toFieldResult("win");
-      }
+    const result = this.pack.fight(started.groups, started.miniboss);
+    for (const fight of result.fights) {
+      this.fights += 1;
+      this.countActions(fight.events);
     }
+
+    if (result.outcome === "lose") return this.toFieldResult("lose", result.fights.at(-1)?.mobId);
+    if (result.outcome === "win" && started.miniboss) return this.toFieldResult("win");
     return undefined;
   }
 
@@ -157,57 +139,9 @@ export class GrinderFieldRunController {
     };
   }
 
-  /** The hero at the start of the run, with the defaults filled in. */
-  private copyHero(hero: Fighter): HeroState {
-    const mp = hero.mp ?? 0;
-    return {
-      id: hero.id,
-      hp: hero.hp,
-      maxHp: hero.maxHp ?? hero.hp,
-      mp,
-      maxMp: hero.maxMp ?? mp,
-      str: hero.str,
-      def: hero.def,
-      mag: hero.mag ?? 0,
-      haste: hero.haste,
-      potions: hero.potions ?? 0,
-      level: hero.level ?? 1,
-      xp: hero.xp ?? 0,
-    };
-  }
-
-  /** Writes the fight's last HP, MP, potions, and level back onto the hero. */
-  private applyFight(events: readonly FightEvent[]): void {
-    const hero = this.hero;
-    for (const event of events) {
-      if (event.type === "damaged" && event.targetId === hero.id) hero.hp = event.targetHp;
-      if (event.type === "itemUsed" && event.actorId === hero.id) {
-        hero.hp = event.hp;
-        hero.potions = event.remaining;
-      }
-      if (event.type === "spellCast" && event.actorId === hero.id) hero.mp = event.mp;
-      if (event.type === "xpGained") {
-        hero.xp = event.xp;
-        hero.level = event.level;
-      }
-      if (event.type === "levelUp") {
-        hero.xp -= this.input.leveling.xpPerLevel * (event.level - 1);
-        hero.level = event.level;
-        hero.hp = event.hp;
-        hero.maxHp = event.maxHp;
-        hero.mp = event.mp;
-        hero.maxMp = event.maxMp;
-        hero.str = event.str;
-        hero.def = event.def;
-        hero.mag = event.mag;
-        hero.haste = event.haste;
-      }
-    }
-  }
-
   /** Adds this fight's hero decisions, enemy actions, and potions drunk to the run. */
   private countActions(events: readonly FightEvent[]): void {
-    const heroId = this.hero.id;
+    const heroId = this.pack.hero().id;
     for (const event of events) {
       if (event.type === "itemUsed" && event.actorId === heroId) this.potionsUsed += 1;
       if (!("actorId" in event)) continue;
@@ -224,14 +158,5 @@ export class GrinderFieldRunController {
       if (event.actorId === heroId) this.heroActions += 1;
       else this.enemyActions += 1;
     }
-  }
-
-  /** Win when an enemy falls, flee when the hero escapes, lose when the hero falls. */
-  private outcomeOf(events: readonly FightEvent[]): "win" | "lose" | "flee" {
-    for (const event of events) {
-      if (event.type === "fleeAttempted" && event.success) return "flee";
-      if (event.type === "actorDefeated") return event.actorId === this.hero.id ? "lose" : "win";
-    }
-    return "lose";
   }
 }

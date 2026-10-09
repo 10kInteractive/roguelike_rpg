@@ -1,0 +1,38 @@
+{
+  "id": "terrain.water.texture",
+  "generator": "tools/gen-placeholders.ts",
+  "seed": 4,
+  "size": 16,
+  "recipe": {
+    "id": "terrain.water.texture",
+    "seed": 4,
+    "palette": [
+      {
+        "color": [
+          52,
+          104,
+          170
+        ],
+        "weight": 6
+      },
+      {
+        "color": [
+          44,
+          90,
+          150
+        ],
+        "weight": 3
+      }
+    ],
+    "streaks": {
+      "color": [
+        120,
+        170,
+        220
+      ],
+      "everyRows": 4,
+      "length": 3
+    }
+  },
+  "generatedAt": "2026-10-09T19:26:28.638Z"
+}
