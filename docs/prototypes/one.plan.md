@@ -40,7 +40,7 @@ Out: deploying to the server, gear and slots, boons, stages, inns, extraction, s
 
 ## Directory structure
 
-Shared engine code lives in `src/` and grows across prototypes. Each prototype is a thin folder: an entry page, a config that turns engine features on, and its content bundle.
+Shared engine code lives in `src/` and grows across prototypes. Each prototype is a thin folder: an entry page, a config that turns engine features on, and its content bundle. Entries marked *planned* do not exist yet. Add a directory when the code needs one, and record it here and in `docs/techstack.md`.
 
 ```
 index.html                  launcher page linking to each prototype
@@ -50,42 +50,70 @@ tsconfig.sim.json           src/sim only, no DOM library
 biome.json
 package.json
 src/                        shared engine
-  boot/                     loader screen, dynamic import of the game
-  sim/                      pure, seeded game rules
-    utils/                  seeded random number generator, weighted picks
-    combat/                 turn queue, fight, combat policy
-      utils/                damage, flee chance, leveling
-    field/                  meadow generation, movement and collision, encounters, walk policy
-    run/                    grinder run and run statistics
-    sim.ts                  createSim, observe, legalActions, act
-  harness/                  replay and seed sweeps. Drives the sim. Not a rule.
-  content/                  zod schemas and the bundle loader
-  view/                     Three.js: renderer, field scene, combat scene, sequencer
-  ui/                       React DOM overlay and zustand store
-  input/                    keyboard and gamepad to actions
-  assets/                   manifest resolver and loader service
-  debug/                    namespaced logger and dev panel
+  boot/                     planned: loader screen, dynamic import of the game
+  sim/                      pure, seeded game rules. The only folder that decides outcomes.
+    utils/                  seeded generator, hashToUnit, weighted picks
+    combat/                 HasteTurnQueue, OneOnOneFightController, CombatActionPolicy
+      utils/                damage, flee chance, leveling formulas
+    field/                  meadow generation, movement and collision, EncounterWalkController, FieldWalkPolicy
+    run/                    GrinderFieldRunController, RunStatistics
+    index.ts                planned: createSim, observe, legalActions, act
+  harness/                  headless play of the sim: replay, combat sweep, field sweep
+  content/                  zod schemas, the bundle loader, bundle rows into fighters
+  view/                     Three.js: renderer. Planned: field scene, combat scene, sequencer
+  ui/                       React DOM overlay. Planned: zustand store
+  input/                    planned: keyboard and gamepad to actions
+  assets/                   planned: manifest resolver and loader service
+  debug/                    DebugLogController, DebugWatchController, dev panel
 prototypes/
   one/
     index.html              entry page
-    main.tsx                boots the engine with this config and bundle
-    config.ts               engine features this prototype uses
+    main.tsx                boots the engine with this bundle
+    config.ts               planned: engine features this prototype uses
     bundle/                 content bundle (see below)
-assets/
+assets/                     planned
   authored/                 hand-built, wins over generated
   generated/                tool output plus provenance sidecars
 tools/
-  sim.ts                    headless sim CLI
-  content-check.ts          validates every bundle
+  sim.ts                    headless sim CLI. The only place that prints.
+  sim-commands.txt          copyable CLI lines
+  read-bundle.ts            reads a bundle folder from disk for the CLI and checks
+  check-content.ts          validates every bundle
   check-sim-purity.ts       fails if src/sim uses Math.random
-  gen-placeholders.ts       writes placeholder pixel textures
+  gen-placeholders.ts       planned: writes placeholder pixel textures
 tests/
-  e2e/                      Playwright
+  e2e/                      planned: Playwright
 docs/
   prototypes/
     one.plan.md             this file
 .github/workflows/          CI
 ```
+
+The harness may import the sim. The sim never imports the harness, the view, the UI, or input. `src/sim` stays on `tsconfig.sim.json` with no DOM library, and the purity check covers that folder.
+
+### Code conventions
+
+`.cursor/skills/controller-classes/SKILL.md` holds the full rule. In short:
+
+- Logic that keeps state between calls is a class in `{area}.controller.ts`. Callers construct it, then ask it to advance: `new OneOnOneFightController(input).resolve()`, `encounter.holdStick(stick, ticks)`.
+- Choices that share fixed inputs are a policy class, built once and asked per choice: `CombatActionPolicy`, `FieldWalkPolicy`.
+- A helper for one class is a private method. A loose helper must need no state and be used by more than one class.
+- Rule formulas (damage, flee chance, leveling, movement, meadow generation) stay in their own tested `{area}.ts` files, because their tests pin the numbers in `docs/game_design.md`.
+- A page-wide owner is a singleton: the class plus one exported instance, such as `debugLog` and `debugWatches`. `src/sim` has no singletons.
+- Each area keeps its types, tuning numbers, and tests in `{area}.types.ts`, `{area}.constants.ts`, and `{area}.tests.ts`. Callers import types from `.types.ts` directly.
+- Area names are kebab-case and leave out the folder, so the field walk policy is `field/policy.controller.ts`.
+- Exported formulas say the action and what it acts on, such as `calculatePhysicalDamage` and `moveHeroAlongStick`. Controller methods are short verbs, because the class already names the thing.
+
+| Class | Owns | Methods |
+| --- | --- | --- |
+| `SeededRandomGenerator` | The mulberry32 counter for one seed. | `next()` |
+| `HasteTurnQueue` | Who is waiting, and when each actor may act again. | `act()`, `upcoming(count)` |
+| `OneOnOneFightController` | The hero and enemy copies, who is defending, turns taken, and the event list. | `resolve()` |
+| `EncounterWalkController` | Hero position, distance walked per terrain, and distance since the last fight. | `holdStick(stick, ticks)` |
+| `RunStatistics` | The end-screen scoreboard for one run. | `addWalk`, `addFight`, `snapshot()` |
+| `GrinderFieldRunController` | The hero carried between fights, the three generators, and the meadow. | `play()` |
+| `CombatActionPolicy` | Known spells and the roll for random choices. | `chooseFighter`, `chooseCaster`, `chooseRandom` |
+| `FieldWalkPolicy` | The meadow, the miniboss tile, and the direction roll. | `chooseFighter`, `chooseCaster`, `chooseGrinder` |
 
 Conventions for future prototypes:
 
@@ -126,14 +154,14 @@ Dev dependencies:
 | `build` | Type-check, then Vite production build to `dist/` |
 | `preview` | Serve the built `dist/` locally |
 | `typecheck` | `tsc --noEmit` for both tsconfigs |
-| `lint` | `biome check .` |
+| `lint` | `biome lint .` |
 | `format` | `biome format --write .` |
 | `test` | Vitest |
 | `test:e2e` | Playwright |
 | `content:check` | Validate all bundles |
 | `sim:purity` | Purity check on `src/sim` |
 | `sim` | Headless sim CLI |
-| `check` | Everything CI runs: typecheck, lint, test, content:check, sim:purity, a short sim smoke run |
+| `check` | Everything CI runs: typecheck, `biome check .`, test, sim:purity, content:check |
 
 ### Config notes
 
@@ -417,9 +445,11 @@ End-to-end (Playwright):
 
 Each milestone is a series of small stages, one commit each, following the `staged-delivery` skill. The stage name is the commit summary. A stage is done when that commit is on the branch and its check (a test, a log line, the dev panel, or the running game) shows the change.
 
-### 1. Tooling
+Each milestone merges as one squashed pull request. A finished milestone's heading shows `(done, hash)`, the squash commit on `main`. These milestones are the work items until they move to GitHub issues.
 
-Done. The logger and the dev panel landed here so later stages have somewhere to show their output.
+### 1. Tooling (done, b9889d5)
+
+Merged in [#3](https://github.com/10kInteractive/roguelike_rpg/pull/3). The logger and the dev panel landed here so later stages have somewhere to show their output.
 
 - `chore: add vite build tooling`
 - `chore: add typescript with strict config`
@@ -432,11 +462,11 @@ Done. The logger and the dev panel landed here so later stages have somewhere to
 - `chore: add vitest and sim purity checks`
 - `chore: run checks on pull requests`
 
-### 2. Sim core
+### 2. Sim core (done, 1673805)
 
-Combat rules, then the data that feeds them. Tests are the check until the sim CLI exists.
+Merged in [#4](https://github.com/10kInteractive/roguelike_rpg/pull/4). Combat rules, then the data that feeds them. Tests are the check until the sim CLI exists.
 
-- `feat: seeded rng`. The same seed produces the same sequence. Done.
+- `feat: seeded rng`. The same seed produces the same sequence.
 - `feat: haste turn queue`. A faster actor takes more turns. Ties go to haste, then the hero, then list order.
 - `feat: fight action and damage`. A hero and one enemy trade hits until one reaches zero HP. The test lists every hit.
 - `feat: critical hits`. A physical attack can roll the crit chance and deal ×1.5.
@@ -449,9 +479,9 @@ Combat rules, then the data that feeds them. Tests are the check until the sim C
 - `feat: bundle schema`. A valid bundle loads. A broken reference fails.
 - `feat: prototype one bundle`. Strider, the spells, the potion, the four mobs, and the meadow numbers.
 
-### 3. Harness
+### 3. Harness (done, 1e0cfe8)
 
-The CLI plays combat before anything walks. Field policies wait for the field sim.
+Merged in [#5](https://github.com/10kInteractive/roguelike_rpg/pull/5). The CLI plays combat before anything walks. Field policies wait for the field sim.
 
 - `feat: sim cli`. `npm run sim -- --seed 42` prints a fight's events.
 - `feat: fighter policy`. Always Fight. Drink a potion below 30% HP.
@@ -460,7 +490,9 @@ The CLI plays combat before anything walks. Field policies wait for the field si
 - `feat: replay`. The same seed and action list produce the same event hash.
 - `feat: seed sweep`. Many seeds print one summary: win rate, fights, and deaths by mob.
 
-### 4. Field sim
+### 4. Field sim (done, 1b465f2)
+
+Merged in [#6](https://github.com/10kInteractive/roguelike_rpg/pull/6).
 
 - `feat: meadow map`. Spawn and the miniboss are reachable on many seeds.
 - `feat: field movement`. The same inputs end at the same position. Diagonals are not faster.
@@ -471,7 +503,20 @@ The CLI plays combat before anything walks. Field policies wait for the field si
 - `feat: walking policies`. Fighter and caster wander. Grinder walks until the target level, then paths to the miniboss.
 - `feat: field sweep`. A 1000-seed grinder run prints the balance summary, including estimated play time.
 
-### 5. View
+### 5. Housekeeping (done, 3ee277e, 492ccc3)
+
+Merged in [#7](https://github.com/10kInteractive/roguelike_rpg/pull/7) and [#8](https://github.com/10kInteractive/roguelike_rpg/pull/8). Structure only, before the view builds on it. Every sweep and replay printed the same output before and after, except the noise fix at the end.
+
+- `refactor: name sim values in game words`. Names and doc comments say what each value means in play.
+- `refactor: seeded generator is a class`, then the turn queue, the fight, the encounter walk, run statistics, and the grinder run, one commit each.
+- `refactor: policies are classes, controller helpers are private, rng moves to sim/utils`. Every class is in `{area}.controller.ts`.
+- `refactor: harness moves out of the sim to src/harness`.
+- `refactor: combat formulas move to combat/utils with sibling types`, then weighted picks to `sim/utils`.
+- `refactor: map, movement, and harness types and constants move to sibling files`.
+- `refactor: noise hash, formula renames, debug singletons, and README`.
+- `fix: map noise blends east–west on both rows`. The second blend used the north–south weight, so noise jumped every eighth column. Every meadow changed. The 1000-run grinder sweep moved from a 0.735 win rate and 19.4 fights to 0.755 and 20.0.
+
+### 6. View
 
 The canvas, the WebGPU renderer, and the React overlay already exist from tooling.
 
@@ -483,7 +528,7 @@ The canvas, the WebGPU renderer, and the React overlay already exist from toolin
 - `feat: combat sequencer`. Events play in order (lunge, flash, damage number, defeat fade), then input unlocks.
 - `feat: lazy meadow pack`. The loader shows progress. The field appears when the pack is ready.
 
-### 6. UI and input
+### 7. UI and input
 
 - `feat: ui store`. A zustand store holds the latest snapshot and the events still waiting to play.
 - `feat: field hud`. Level, HP, and MP.
@@ -493,7 +538,7 @@ The canvas, the WebGPU renderer, and the React overlay already exist from toolin
 - `feat: victory and game over`. Run stats and a restart. Restart creates a new sim with a new seed.
 - `feat: gamepad`. The same actions from a standard-mapping pad.
 
-### 7. Polish
+### 8. Polish
 
 - `feat: boot end-to-end test`. The launcher opens prototype one and the loader finishes.
 - `feat: walk and fight end-to-end test`. An arrow key moves the hero. A forced encounter ends when Fight beats a weak enemy.
@@ -505,185 +550,12 @@ The canvas, the WebGPU renderer, and the React overlay already exist from toolin
 
 - [ ] Prototype one runs locally with `npm run dev`, and the production build works with `npm run preview`.
 - [ ] A full run is playable start to finish with keyboard or gamepad, in about 10–15 minutes.
-- [ ] `npm run check` passes and runs in CI.
-- [ ] A 1000-seed sweep with the `grinder` policy completes and reports a summary.
-- [ ] A recorded run replays to the same result.
+- [x] `npm run check` passes and runs in CI.
+- [x] A 1000-seed sweep with the `grinder` policy completes and reports a summary.
+- [x] A recorded run replays to the same result.
 - [ ] Replacing a placeholder by dropping a same-ID file into `assets/authored/` changes it in game with no code change.
 
 ## Open questions
 
 - Do the balance targets feel right once we play it, especially the 70% win rate at level 5?
 - Is 4 tiles per second the right walk speed for the map size?
-
-## Addendum: housekeeping before the view
-
-Done on branch `bozmak/housekeeping`: file moves, controller classes, renames, and a root `README.md`. No mechanic changed, and every sweep and replay prints what it did before.
-
-The two tables below describe the code before the housekeeping. The sim, the content bundle, and the headless harness were in good enough shape to build on. The view, UI, and input folders are still thin, and their split (Three.js classes, React overlay, debug tools) should stay. The problem is inside `src/sim`: related rules share a file with their types and tuning numbers, the processes that keep state are loose functions, several public names are too short to say what they do, and the test harness lives in the same tree as the game rules.
-
-### What each directory was before
-
-| Path | Role |
-| --- | --- |
-| `src/sim` | Pure, seeded game rules. No DOM, React, or Three.js. |
-| `src/sim/combat` | Damage, haste queue, weighted picks, flee, leveling, combat policies, and `OneOnOneFightController`. |
-| `src/sim/field` | Meadow generation, stick movement, collision, `EncounterWalkController`, and walking policies. |
-| `src/sim/run` | `GrinderFieldRunController`, one grinder playthrough, and `RunStatistics`, the end-screen scoreboard. |
-| `src/sim/harness` | Replay hashing, combat seed sweeps, and the grinder field sweep. This drives the sim. It is not a rule. |
-| `src/content` | Zod schemas, bundle loading, and turning bundle rows into fighters. |
-| `src/view` | The Three.js canvas. One renderer file so far. |
-| `src/ui` | The React overlay. One component so far. |
-| `src/debug` | Namespaced logger and the dev panel. |
-| `tools` | The sim CLI, content check, purity check, and `tools/sim-commands.txt`. |
-| `prototypes/one/bundle` | The numbers the sim reads. |
-
-`src/input`, `src/audio`, `src/boot`, and `src/assets` are in the layout and do not exist yet. Leave those names for when those features start.
-
-### Where the files pile up
-
-Combat rules are already in the right folder. The awkward files are the ones that own several jobs:
-
-| File | What it actually contains |
-| --- | --- |
-| `fight.ts` | Fighter, action, and event types, plus the whole turn loop. |
-| `map.ts` | Terrain types, noise thresholds, and meadow generation. |
-| `movement.ts` | Stick and position types, speed constants, and collision. |
-| `encounters.ts` | Table types, the walk that rolls fights, and miniboss contact. |
-| `policy.ts` (field) | Hold-time constants, the three walks, and pathfinding. |
-| `run.ts` | Play-time constants, the score of one run, and the loop that walks, fights, and levels. |
-| `replay.ts` | Log types and hash, action extraction, and replay scripting. |
-
-`run.ts` is the sharpest case. A finished run is not a field rule. It calls the meadow, the encounter walk, the combat policies, and `fight`, then estimates play time. It belongs beside combat and field, not inside field.
-
-### Directories now
-
-```
-src/sim                 game rules only
-  utils/                shared by more than one sim area: SeededRandomGenerator, hashToUnit, pickWeightedListEntry
-  combat/               HasteTurnQueue, CombatActionPolicy, OneOnOneFightController
-    utils/              damage, flee chance, and leveling formulas
-  field/                meadow, movement, EncounterWalkController, FieldWalkPolicy
-  run/                  GrinderFieldRunController and RunStatistics
-src/harness             headless play of the sim
-  replay.ts             event hash, logged actions, outcome, replay script
-  combat-sweep.ts       many one-off fights, win rate, deaths by mob
-  field-sweep.ts        many grinder runs, including estimated play time
-src/content             schemas, bundle loading, bundle rows into fighters
-src/view                unchanged
-src/ui                  unchanged
-src/debug               DebugLogController and DebugWatchController, one instance each
-tools/sim.ts            CLI only. Imports harness and sim. Does not own rules.
-```
-
-`src/sim` stays on `tsconfig.sim.json` with no DOM library, and the purity check stays on that folder. The harness may import the sim. The sim does not import the harness. `tools/sim.ts` is the only place that prints.
-
-Content keeps its Zod schemas in `schema.ts`. The schemas are the content types, so splitting them into `schema.types.ts` would duplicate the source of truth. `load.types.ts` and `fighters.types.ts` hold only the types that are not schemas.
-
-### File convention
-
-For each rule file `{area}.ts`:
-
-- `{area}.types.ts` holds the exported types and their member comments.
-- `{area}.constants.ts` holds the tuning numbers for that rule, when it has any.
-- `{area}.tests.ts` holds the tests for that file.
-- `{area}.controller.ts` holds a class: a controller, a policy, the generator, or the turn queue.
-- `{area}.ts` holds formulas and shared helpers only.
-- A `utils/` folder holds code shared across areas: `sim/utils/` for the generator and weighted picks, `sim/combat/utils/` for the combat formulas.
-- Area names are kebab-case and leave out the folder, so the field walk policy is `field/policy.controller.ts`.
-- Callers import types from `{area}.types.ts` directly. A controller file does not re-export them.
-
-Constants that move:
-
-| New file | Numbers |
-| --- | --- |
-| `field/map.constants.ts` | Height period, water line, mountain line, forest line. |
-| `field/movement.constants.ts` | Tick rate, tiles per second, stick limit, hero radius. |
-| `field/policy.constants.ts` | How long a stick is held, the level at which the grinder paths to the miniboss, the eight wander directions, and the four path steps. |
-| `run/run.constants.ts` | Seconds per hero decision, per enemy action, and per fight transition. The safety cap on how many walks one run may take. |
-
-### Controller classes
-
-A controller owns one process and the state that process threads from call to call. Callers construct it, then ask it to advance. The class file is `{area}.controller.ts`. Types and tuning numbers stay in `{area}.types.ts` and `{area}.constants.ts`. Tests stay in `{area}.tests.ts`.
-
-The class name is the noun, so the method can be a short verb. `OneOnOneFightController.resolve()` replaces a free function named `resolveOneOnOneFight`.
-
-| Controller | Owns | Replaces | Methods |
-| --- | --- | --- | --- |
-| `SeededRandomGenerator` | The mulberry32 state for one seed. | `createRng` and the `Rng` object. | `next()` |
-| `HasteTurnQueue` | Who is waiting, and when each actor may act again. | `createTurnQueue` and the `TurnQueue` object. | `act()`, `upcoming(count)` |
-| `OneOnOneFightController` | The hero and enemy copies, who is defending, turns already taken, and the event list. | `fight`. | `resolve()` |
-| `EncounterWalkController` | Hero position, distance walked on each terrain, and distance since the last fight. | `createEncounterState` and `walk`. | `holdStick(stick, ticks)` |
-| `RunStatistics` | The scoreboard for one run: fights, damage, potions, distance, level, killer. | `createRunStats`, `recordWalk`, `recordFight`. | `addWalk(distance)`, `addFight(events, enemyId)`, `snapshot()` |
-| `GrinderFieldRunController` | The hero carried between fights, the three generators, and the meadow. | `runField`. | `play()` |
-| `DebugWatchController` | The dev panel's live readers. One instance, `debugWatches`. | `watch` and `readWatches`. | `watch(label, read)`, `rows()` |
-| `DebugLogController` | Which log namespaces are on. One instance, `debugLog`. | `createLogger`. | `create(namespace)` |
-
-`SeededRandomGenerator` and `HasteTurnQueue` are classes. Each owns the state the old factory closed over.
-
-Two policy classes group the choices a controller asks for. Each is built once with what does not change between choices, and the fight or run calls it each turn or each stick hold.
-
-| Class | Built with | Methods | Replaces |
-| --- | --- | --- | --- |
-| `CombatActionPolicy` | Known spells, and the roll for the random choice. | `chooseFighter`, `chooseCaster`, `chooseRandom` | `fighterAction`, `casterAction`, `randomAction` |
-| `FieldWalkPolicy` | The meadow, the miniboss tile, and the direction roll. | `chooseFighter`, `chooseCaster`, `chooseGrinder` | `fighterWalk`, `casterWalk`, `grinderWalk` |
-
-These stay single functions. None of them keeps state between calls, and each rule formula has its own tests that pin the numbers in the design doc:
-
-- Damage, critical hits, defending, element multipliers, and magic damage.
-- Flee chance.
-- Weighted list picks.
-- Experience grants and level-ups.
-- Meadow generation, walkable terrain, and distance between tiles.
-- One noise value from a seed, `hashToUnit`. Map noise used to build a throwaway generator per sample. It now hashes, and the generator steps through the same hash.
-- One stick step and its collision slide. The encounter controller owns where the hero is standing and calls this for each tick.
-- Fight-log reads in the harness: hash, logged actions, outcome, and the replay script.
-- The two sweep summaries. Each one formats a list into text.
-
-`.cursor/skills/controller-classes/SKILL.md` holds the rule: logic that needs state is a class, a helper for one class is a private method, and rule formulas keep their own tested files.
-
-### Public names
-
-Exported formulas should say the action and the thing they act on. Private helpers such as `clamp` and `lerp` stay short. Controller and policy methods use the short verbs in the tables above, so those old free functions are not also renamed. These formulas were renamed in the housekeeping:
-
-| Before | After |
-| --- | --- |
-| `physicalDamage` | `calculatePhysicalDamage` |
-| `applyCritical` | `applyCriticalHitDamage` |
-| `applyDefend` | `applyDefendingDamageReduction` |
-| `elementMultiplier` | `calculateElementDamageMultiplier` |
-| `magicDamage` | `calculateMagicDamage` |
-| `pickWeighted` | `pickWeightedListEntry` |
-| `fleeChance` | `calculateFleeChance` |
-| `gainXp` | `grantExperienceAndRaiseLevels` |
-| `createMeadow` | `createSeededMeadow` |
-| `isWalkable` | `isTerrainWalkable` |
-| `tileDistance` | `distanceBetweenTiles` |
-| `move` | `moveHeroAlongStick` |
-| `eventHash` | `hashFightEventList` |
-| `actionsFrom` | `readLoggedActionsFromFightEvents` |
-| `outcomeFrom` | `readFightOutcomeFromEvents` |
-| `toScriptedActions` | `expandLoggedActionsIntoFightScript` |
-| `sweepSummary` | `formatCombatSeedSweepSummary` |
-| `fieldSweepSummary` | `formatGrinderFieldSweepSummary` |
-| `toHero` | `heroFighterFromBundle` |
-| `toEnemy` | `enemyFighterFromMob` |
-
-Type names that already say what they are (`Fighter`, `Stick`, `Position`, `MeadowMap`, `RunStats`) stay. `Stick` keeps its name. It is the quantized left-stick push, not a position, and the type file comment says so.
-
-### Root README
-
-Replace the one-line `README.md` with a short map of the repo:
-
-- What prototype one is.
-- The four layers: content, sim, harness, and view plus UI.
-- Which folder is allowed to decide an outcome.
-- The `{area}.types.ts`, `{area}.constants.ts`, and `{area}.tests.ts` convention.
-- `npm run check`, `npm run dev`, and a pointer to `tools/sim-commands.txt`.
-
-Mechanics stay in `docs/game_design.md`. This plan stays the build spec. The README only tells a reader where to look.
-
-### Housekeeping pull request
-
-- Branch `bozmak/housekeeping`, one commit per stage.
-- `npm run check` passes. The caster replay at seed 42, the 200-fight random sweep, and the 1000-run grinder sweep print exactly what they did before.
-- Found along the way and fixed in its own commit after the housekeeping: the second blend in map noise used the vertical weight `ty` where the horizontal weight `tx` belongs, so noise jumped at every eighth column. Every meadow changed. The 1000-run grinder sweep moved from a 0.735 win rate and 19.4 fights to 0.755 and 20.0, still near the 70% target.
