@@ -119,10 +119,9 @@ export type FightInput = {
  * the turn. Run emits `fleeAttempted`. Success ends the fight. Failure spends
  * the turn. A miniboss attempt fails without a roll. An enemy with an action
  * list picks one by weight when that turn is not scripted. A spell it cannot
- * afford is Fight instead. The fight also stops when
- * either HP reaches zero. Each hit rolls the spread, then the crit chance. A
- * crit multiplies that damage and rounds down again, and Defend applies after
- * that.
+ * afford is Fight instead. The fight stops when either HP reaches zero. Each
+ * hit rolls the spread, then the crit chance. A crit multiplies that damage
+ * and rounds down again, and Defend applies after that.
  */
 export function fight(input: FightInput): FightEvent[] {
   const hero = prepare(input.hero);
@@ -135,6 +134,8 @@ export function fight(input: FightInput): FightEvent[] {
     input.turnBase,
   );
   const events: FightEvent[] = [];
+
+  // Who is guarding, and how many turns each actor has already taken.
   const defending = new Set<string>();
   const taken = new Map<string, number>([
     [hero.id, 0],
@@ -142,17 +143,23 @@ export function fight(input: FightInput): FightEvent[] {
   ]);
 
   while (hero.hp > 0 && enemy.hp > 0) {
+    // The haste queue names the actor, and their guard ends as the turn starts.
     const actorId = queue.act();
     const actor = actorId === hero.id ? hero : enemy;
     const target = actor === hero ? enemy : hero;
     defending.delete(actor.id);
+
+    // A scripted action wins. Otherwise an enemy with a list rolls it, and anything left is Fight.
     const turn = taken.get(actor.id) ?? 0;
     taken.set(actor.id, turn + 1);
     const script = actor === hero ? input.heroActions : input.enemyActions;
     const scripted = script?.[turn];
     let action: TurnAction = scripted ?? "fight";
+
     if (scripted === undefined && actor === enemy && enemy.actions && enemy.actions.length > 0) {
       const picked = pickWeighted(enemy.actions, input.rng.next());
+
+      // Pay for the spell and resolve it now. An unpaid spell falls through to Fight.
       if (picked.type === "spell" && actor.mp >= picked.cost) {
         actor.mp -= picked.cost;
         const spread = input.spreadMin + input.rng.next() * (input.spreadMax - input.spreadMin);
@@ -165,6 +172,7 @@ export function fight(input: FightInput): FightEvent[] {
         );
         const amount = magicDamage(picked.power, actor.mag, multiplier, spread);
         target.hp = Math.max(0, target.hp - amount);
+
         events.push({
           type: "spellCast",
           actorId: actor.id,
@@ -182,13 +190,18 @@ export function fight(input: FightInput): FightEvent[] {
         });
         continue;
       }
+
       action = picked.type === "spell" ? "fight" : picked.type;
     }
+
+    // Guard until this actor's next turn.
     if (action === "defend") {
       defending.add(actor.id);
       events.push({ type: "defended", actorId: actor.id });
       continue;
     }
+
+    // Drink one potion. An empty stack still spends the turn.
     if (action === "potion") {
       const before = actor.hp;
       if (actor.potions > 0) {
@@ -205,6 +218,8 @@ export function fight(input: FightInput): FightEvent[] {
       });
       continue;
     }
+
+    // A miniboss attempt fails without a roll. Success ends the fight.
     if (action === "flee" && actor === hero) {
       const chance = enemy.miniboss
         ? 0
@@ -221,6 +236,8 @@ export function fight(input: FightInput): FightEvent[] {
       if (success) return events;
       continue;
     }
+
+    // Physical hit: spread, then a crit, then halve it when the target is guarding.
     const spread = input.spreadMin + input.rng.next() * (input.spreadMax - input.spreadMin);
     const critical = input.rng.next() < input.critChance;
     const hit = physicalDamage(actor.str, target.def, spread);
