@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 import { type FightEvent, fight } from "./fight";
+import { fighterAction } from "./policy";
 import type { Rng } from "./rng";
 import { createRng } from "./rng";
 
@@ -572,4 +573,27 @@ test("grind multiplies the hit by 1.5 after a crit", () => {
     },
   ]);
   expect(crit[1]).toMatchObject({ amount: 9, critical: true });
+});
+
+test("the fighter drinks below 30% HP, then fights once healed", () => {
+  const events = fight({
+    ...fleeRules,
+    hero: { ...hero, hp: 8, maxHp: 30, potions: 1 },
+    enemy: slime,
+    rng: scripted([]),
+    heroPolicy: fighterAction,
+  });
+  expect(events.slice(0, 4)).toEqual([
+    { type: "itemUsed", actorId: "hero", itemId: "item.potion", amount: 22, hp: 30, remaining: 0 },
+    { type: "attacked", actorId: "slime", targetId: "hero" },
+    {
+      type: "damaged",
+      actorId: "slime",
+      targetId: "hero",
+      amount: 4,
+      targetHp: 26,
+      critical: false,
+    },
+    { type: "attacked", actorId: "hero", targetId: "slime" },
+  ]);
 });

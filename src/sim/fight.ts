@@ -8,6 +8,7 @@ import {
 } from "./damage";
 import { fleeChance } from "./flee";
 import { gainXp, type HeroProgress, type LevelEvent, type LevelRules } from "./level";
+import type { HeroVitals } from "./policy";
 import type { Rng } from "./rng";
 import { createTurnQueue } from "./turn-queue";
 import { pickWeighted, type Weighted } from "./weighted";
@@ -119,6 +120,8 @@ export type FightInput = {
   resistanceMultiplier: number;
   /** When set, a defeated enemy grants XP and may level the hero. */
   leveling?: LevelRules;
+  /** Chooses an unscripted hero turn from current HP and potions. */
+  heroPolicy?: (hero: HeroVitals) => TurnAction;
   /** One entry per hero turn. Turns past the end Fight. */
   heroActions?: TurnAction[];
   /** One entry per enemy turn. Turns past the end Fight. */
@@ -176,6 +179,11 @@ export function fight(input: FightInput): FightEvent[] {
     const script = actor === hero ? input.heroActions : input.enemyActions;
     const scripted = script?.[turn];
     let action: TurnAction = scripted ?? "fight";
+
+    // A scripted turn wins. Otherwise the fighter drinks below 30% HP.
+    if (scripted === undefined && actor === hero && input.heroPolicy) {
+      action = input.heroPolicy(actor);
+    }
 
     if (scripted === undefined && actor === enemy && enemy.actions && enemy.actions.length > 0) {
       const picked = pickWeighted(enemy.actions, input.rng.next());

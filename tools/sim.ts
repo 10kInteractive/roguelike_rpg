@@ -2,6 +2,7 @@ import path from "node:path";
 import { toEnemy, toHero } from "../src/content/fighters.ts";
 import { loadBundle } from "../src/content/load.ts";
 import { fight } from "../src/sim/fight.ts";
+import { fighterAction } from "../src/sim/policy.ts";
 import { createRng } from "../src/sim/rng.ts";
 import { readBundle } from "./read-bundle.ts";
 
@@ -42,6 +43,7 @@ const events = fight({
     levelCap: bundle.rules.levelCap,
     growth: bundle.hero.growth,
   },
+  heroPolicy: fighterAction,
 });
 
 for (const event of events) console.log(JSON.stringify(event));
