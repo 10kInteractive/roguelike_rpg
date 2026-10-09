@@ -1,5 +1,7 @@
+html,
 body {
   margin: 0;
+  height: 100%;
   background: #111;
   color: #eee;
   font-family: sans-serif;
@@ -10,9 +12,20 @@ a {
 }
 
 #stage {
-  position: relative;
-  height: 70vh;
+  position: fixed;
+  inset: 0;
   background: #1d3a2a;
+}
+
+.page-note {
+  position: fixed;
+  z-index: 2;
+  margin: 8px 12px;
+  font-size: 12px;
+}
+
+.page-note-base {
+  top: 22px;
 }
 
 #view,

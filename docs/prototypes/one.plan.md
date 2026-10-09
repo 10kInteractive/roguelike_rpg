@@ -79,7 +79,7 @@ src/                        shared engine
 prototypes/
   one/
     index.html              entry page
-    index.css               page shell: the stage, the view, and the overlay layer
+    index.css               page shell: the stage fills the window, and the view and overlay sit in it
     main.tsx                mounts the overlay and starts GameRuntimeController with this bundle
     bundle-source.ts        gathers the bundle's JSON files through bundle.json for the browser
     config.ts               planned: engine features this prototype uses
