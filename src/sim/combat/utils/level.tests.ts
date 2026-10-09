@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
-import { gainXp, type HeroProgress, type LevelRules } from "./level";
+import { gainXp } from "./level";
+import type { HeroProgress, LevelRules } from "./level.types";
 
 const rules: LevelRules = {
   xpPerLevel: 6,

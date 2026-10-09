@@ -1,6 +1,6 @@
 import type { Rng } from "../utils/rng.types";
-import type { Element } from "./damage";
 import type { HeroVitals, KnownSpell, SpellChoice } from "./policy.types";
+import type { Element } from "./utils/damage.types";
 
 /** How a robot hero chooses each combat turn: the fighter, the caster, or random. */
 export class CombatActionPolicy {

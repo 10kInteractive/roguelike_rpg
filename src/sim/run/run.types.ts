@@ -1,5 +1,5 @@
 import type { Fighter } from "../combat/fight.types";
-import type { LevelRules } from "../combat/level";
+import type { LevelRules } from "../combat/utils/level.types";
 import type { EncounterTables, Miniboss } from "../field/encounters.types";
 import type { MeadowMap } from "../field/map";
 import type { Rng } from "../utils/rng.types";

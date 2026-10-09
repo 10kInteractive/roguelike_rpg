@@ -1,4 +1,4 @@
-import type { Element } from "./damage";
+import type { Element } from "./utils/damage.types";
 
 /** What the fighter looks at before choosing Fight or a potion. */
 export type HeroVitals = {

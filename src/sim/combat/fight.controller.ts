@@ -1,15 +1,16 @@
+import type { FightEvent, Fighter, FightInput, PreparedFighter, TurnAction } from "./fight.types";
+import type { SpellChoice } from "./policy.types";
+import { HasteTurnQueue } from "./turn-queue.controller";
 import {
   applyCritical,
   applyDefend,
   elementMultiplier,
   magicDamage,
   physicalDamage,
-} from "./damage";
-import type { FightEvent, Fighter, FightInput, PreparedFighter, TurnAction } from "./fight.types";
-import { fleeChance } from "./flee";
-import { gainXp, type HeroProgress } from "./level";
-import type { SpellChoice } from "./policy.types";
-import { HasteTurnQueue } from "./turn-queue.controller";
+} from "./utils/damage";
+import { fleeChance } from "./utils/flee";
+import { gainXp } from "./utils/level";
+import type { HeroProgress } from "./utils/level.types";
 import { pickWeighted } from "./weighted";
 
 /**

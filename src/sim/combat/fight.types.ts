@@ -1,7 +1,7 @@
 import type { Rng } from "../utils/rng.types";
-import type { Element } from "./damage";
-import type { LevelEvent, LevelRules } from "./level";
 import type { HeroVitals, SpellChoice } from "./policy.types";
+import type { Element } from "./utils/damage.types";
+import type { LevelEvent, LevelRules } from "./utils/level.types";
 import type { Weighted } from "./weighted";
 
 /** One combatant, the hero or a mob, as a fight sees them. */
