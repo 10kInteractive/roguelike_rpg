@@ -527,9 +527,9 @@ Merged in [#7](https://github.com/10kInteractive/roguelike_rpg/pull/7) and [#8](
 - `refactor: noise hash, formula renames, debug singletons, and README`.
 - `fix: map noise blends east–west on both rows`. The second blend used the north–south weight, so noise jumped every eighth column. Every meadow changed. The 1000-run grinder sweep moved from a 0.735 win rate and 19.4 fights to 0.755 and 20.0.
 
-### 6. View
+### 6. View (done, d884fce)
 
-The canvas, the WebGPU renderer, and the React overlay already exist from tooling.
+On the `bozmak/view` branch, not merged yet. The canvas, the WebGPU renderer, and the React overlay already exist from tooling. Three refactors came up along the way: the bundle rules, the pack fight, and the page startup each had a second user, so each moved to one shared place. The sweep and replay output stayed identical through all three.
 
 - `feat: fixed timestep`. The sim steps at 30 Hz. The view interpolates between the last two positions.
 - `feat: placeholder textures`. Generated pixel textures, with a sidecar for each file.
@@ -537,11 +537,16 @@ The canvas, the WebGPU renderer, and the React overlay already exist from toolin
 - `feat: follow camera`. A 3/4 camera stays with the hero.
 - `refactor: view directories`. `view/` splits into `field/`, `combat/`, and `art/`, which both scenes share.
 - `feat: combat scene`. Hero on one side, enemies on the other, meadow backdrop.
+- `refactor: bundle rule helpers`. Bundle rules into fight and level rules, known spells, and the mob table, in `src/content/rules.ts`.
+- `refactor: pack fights out of the run`. `PackFightController` fights a pack mob by mob and carries the hero. The run and the view both use it.
 - `feat: combat sequencer`. Events play in order (lunge, flash, damage number, defeat fade), then input unlocks.
-- `feat: lazy meadow pack`. The loader shows progress. The field appears when the pack is ready.
+- `refactor: game runtime controller`. `GameRuntimeController` reads the launch options and opens the field or a fight. The page only starts it.
+- `feat: lazy meadow pack`. The loader shows progress. The field appears when the pack is ready. Production builds ship the asset files.
 
 ### 7. UI and input
 
+- `feat: field encounters on screen`. The stand-in walk rolls encounters. A fight swaps to the combat scene, plays the pack, and returns to the field where the hero stood. Touching the miniboss starts its fight. A defeat ends the run with a status line until the game over screen exists.
+- `feat: sim api`. `createSim`, `observe`, `legalActions`, and `act` in `src/sim/index.ts`. One hero action in, every consequence out, so fights stop being resolved whole by a policy. The stand-in policy acts through `act()` until the command window replaces it.
 - `feat: ui store`. A zustand store holds the latest snapshot and the events still waiting to play.
 - `feat: field hud`. Level, HP, and MP.
 - `feat: command window`. Fight, Magic, Item, Defend, Run, using keyboard actions only.
