@@ -1,5 +1,8 @@
 import type { BundleSource } from "../content/load.types";
 import type { FieldCameraMode } from "../view/field/view.types";
+import type { GameLoopMode } from "./game-loop.types";
+
+export type { GameLoopMode };
 
 /** How the page was asked to start, read from the URL. */
 export type LaunchOptions = {
@@ -12,6 +15,8 @@ export type LaunchOptions = {
    * An empty list, from `?combat` alone, means the biome's miniboss. Null opens the field.
    */
   combat: readonly string[] | null;
+  /** `?gameloop=ai` lets the stand-in walk and fight. Otherwise the player does. */
+  gameloop: GameLoopMode;
   /** `?webgl` draws with WebGL2 even when the browser has WebGPU. */
   forceWebGL: boolean;
   /** `?assetDelay=150` slows each asset by that many milliseconds, so progress shows. Dev only. */

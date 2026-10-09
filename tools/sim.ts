@@ -4,6 +4,7 @@ import { enemyFighterFromMob, heroFighterFromBundle } from "../src/content/fight
 import { loadBundle } from "../src/content/load.ts";
 import {
   combatRulesFromBundle,
+  encounterTablesFromBundle,
   knownSpellsFromBundle,
   levelRulesFromBundle,
   runMobsFromBundle,
@@ -24,7 +25,6 @@ import { OneOnOneFightController } from "../src/sim/combat/fight.controller.ts";
 import type { FightEvent } from "../src/sim/combat/fight.types.ts";
 import { CombatActionPolicy } from "../src/sim/combat/policy.controller.ts";
 import type { KnownSpell } from "../src/sim/combat/policy.types.ts";
-import type { EncounterTables } from "../src/sim/field/encounters.types.ts";
 import { createSeededMeadow } from "../src/sim/field/map.ts";
 import { GrinderFieldRunController } from "../src/sim/run/run.controller.ts";
 import { SeededRandomGenerator } from "../src/sim/utils/rng.controller.ts";
@@ -203,7 +203,7 @@ function sweepGrinder(bundle: Bundle, runs: number): string {
   const mobs = runMobsFromBundle(bundle);
   const combat = combatRulesFromBundle(bundle);
   const leveling = levelRulesFromBundle(bundle);
-  const tables = encounterTables(bundle);
+  const tables = encounterTablesFromBundle(bundle);
   const results = [];
   for (let next = 1; next <= runs; next++) {
     const map = createSeededMeadow({
@@ -227,26 +227,6 @@ function sweepGrinder(bundle: Bundle, runs: number): string {
     );
   }
   return formatGrinderFieldSweepSummary(results);
-}
-
-function encounterTables(bundle: Bundle): EncounterTables {
-  const tables: EncounterTables = {};
-  for (const terrain of bundle.encounters.terrains) {
-    const name = terrain.id.slice("terrain.".length);
-    if (name !== "grass" && name !== "forest" && name !== "path") continue;
-    tables[name] = {
-      rate: terrain.rate,
-      packs: terrain.packs.map((pack) => ({
-        weight: pack.weight,
-        groups: pack.groups.map((group) => ({
-          id: group.id,
-          min: group.min,
-          max: group.max,
-        })),
-      })),
-    };
-  }
-  return tables;
 }
 
 function flag(name: string): string | undefined {

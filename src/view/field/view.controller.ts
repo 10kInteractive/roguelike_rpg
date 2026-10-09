@@ -4,13 +4,13 @@ import { debugWatches } from "../../debug/watch.controller";
 import type { MeadowMap, Terrain } from "../../sim/field/map.types";
 import { tickRate } from "../../sim/field/movement.constants";
 import type { Position } from "../../sim/field/movement.types";
-import type { Rng } from "../../sim/utils/rng.types";
+import type { SimEvent } from "../../sim/game.types";
 import type { RenderLoopController } from "../renderer.controller";
 import { FixedStepClock } from "./fixed-step.controller";
 import { FollowCameraController } from "./follow-camera.controller";
 import { PositionInterpolator } from "./interpolation.controller";
 import { FieldSceneController } from "./scene.controller";
-import { StandInWalkController } from "./stand-in-walk.controller";
+import type { FieldWalker } from "./stand-in-walk.types";
 import { heroTurnRate, overviewOffset } from "./view.constants";
 import type { FieldCameraMode } from "./view.types";
 
@@ -21,7 +21,8 @@ const log = debugLog.create("view:field");
  *
  * Each display frame runs the sim steps that are due, then draws the hero
  * between its last two sim positions, turned toward the way it walks, and
- * lets the camera catch up.
+ * lets the camera catch up. The field steps only while it waits for a
+ * fight, and stops on the tick one starts.
  */
 export class FieldViewController {
   /** The meadow's Three.js objects. */
@@ -30,8 +31,8 @@ export class FieldViewController {
   /** Whole sim steps from uneven display frames. */
   private readonly clock = new FixedStepClock(tickRate);
 
-  /** Moves the hero until input exists. */
-  private readonly walk: StandInWalkController;
+  /** Moves the hero and rolls encounters. */
+  private readonly walk: FieldWalker;
 
   /** The hero's last two sim positions. */
   private readonly motion: PositionInterpolator;
@@ -44,6 +45,9 @@ export class FieldViewController {
 
   /** Trails the hero. Null when the camera is fixed over the whole meadow. */
   private readonly follow: FollowCameraController | null;
+
+  /** Hands the fight's events to the caller. Null while no walk is running. */
+  private waiting: ((events: readonly SimEvent[]) => void) | null = null;
 
   /** Which way the hero faces now, in radians. 0 faces south. */
   private facing = 0;
@@ -65,26 +69,21 @@ export class FieldViewController {
     minibossId: string;
     /** The run seed, shown on the dev panel. */
     seed: number;
-    /** Direction rolls for the stand-in walk. */
-    rng: Rng;
+    /** Moves the hero and rolls encounters. */
+    walk: FieldWalker;
     /** Follow the hero, or show the whole meadow. */
     cameraMode: FieldCameraMode;
   }) {
     this.loop = input.loop;
     this.map = input.map;
     this.field = new FieldSceneController(input.map, input.textures, input.minibossId);
-    this.walk = new StandInWalkController(input.map, input.rng);
+    this.walk = input.walk;
     this.motion = new PositionInterpolator(this.walk.start());
     this.drawn = this.walk.start();
     this.field.placeHero(this.drawn, this.facing);
 
-    if (input.cameraMode === "follow") {
-      this.follow = new FollowCameraController(this.loop.camera);
-      this.follow.snapTo(this.field.heroFeet());
-    } else {
-      this.follow = null;
-      this.aimOverview();
-    }
+    this.follow =
+      input.cameraMode === "follow" ? new FollowCameraController(this.loop.camera) : null;
     log(
       `meadow ${input.map.width}×${input.map.height}, seed ${input.seed}, ${input.cameraMode} camera`,
     );
@@ -109,17 +108,38 @@ export class FieldViewController {
     }
   }
 
-  /** Starts drawing the field every frame. */
-  async start(): Promise<void> {
-    await this.loop.run(this.field.scene, (elapsed) => this.frame(elapsed));
+  /**
+   * Draws the field every frame and walks until a fight starts.
+   * The hero stays where the walk left them, so the next call carries on from there.
+   *
+   * @returns The events of the move that started the fight, through the hero's first decision.
+   */
+  walkUntilFight(): Promise<readonly SimEvent[]> {
+    return new Promise((resolve) => {
+      this.waiting = resolve;
+      this.aim();
+      void this.loop.run(this.field.scene, (elapsed) => this.frame(elapsed));
+    });
   }
 
   /** One display frame: due sim steps, then the blended hero. */
   private frame(elapsedSeconds: number): void {
     const steps = this.clock.advance(elapsedSeconds);
-    for (let i = 0; i < steps; i++) {
-      this.motion.push(this.walk.step());
+    for (let i = 0; i < steps && this.waiting; i++) {
+      const step = this.walk.step();
+      this.motion.push(step.position);
       this.simTick += 1;
+
+      // The fight starts on this tick. Later steps wait for the next walk.
+      const resolve = this.waiting;
+      if (resolve && step.events.length > 0) {
+        this.waiting = null;
+        const started = step.events.find((event) => event.type === "encounterStarted");
+        if (started?.type === "encounterStarted") {
+          log(`fight on ${started.terrain}, tick ${this.simTick}`, started.groups);
+        }
+        resolve(step.events);
+      }
     }
 
     this.drawn = this.motion.at(this.clock.blend);
@@ -138,6 +158,12 @@ export class FieldViewController {
     const turn = Math.atan2(Math.sin(target - this.facing), Math.cos(target - this.facing));
     const limit = heroTurnRate * elapsedSeconds;
     this.facing += Math.max(-limit, Math.min(limit, turn));
+  }
+
+  /** Puts the camera back on the field: on the hero, or over the whole meadow. */
+  private aim(): void {
+    if (this.follow) this.follow.snapTo(this.field.heroFeet());
+    else this.aimOverview();
   }
 
   /** A fixed camera that shows the whole meadow from the south. */

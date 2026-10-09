@@ -272,23 +272,24 @@ tsconfig.sim.json   src/sim only, no DOM library
 biome.json
 src/                shared engine
   boot/             loader screen, dynamic import of the game
-  sim/              rules, combat, procgen, RNG (pure TS)
+  sim/              rules, combat, procgen, RNG (pure TS). createSim plays one action at a time
     utils/          shared by more than one sim area: the seeded RNG, weighted picks
     combat/utils/   combat formulas: damage, flee chance, leveling
   harness/          headless play of the sim: replay, combat and field sweeps
   content/          zod schemas and bundle loader
-  runtime/          starts the game on a page: launch options, bundle, renderer, field or fight
+  runtime/          starts the game on a page: launch options, bundle, renderer, field or fight; the game loop
   view/             Three.js classes and the one render loop
     art/            shared by every scene: placeholder models, lighting, textures
     field/          field scene, follow camera, fixed sim step, interpolation
     combat/         combat scene and sequencer
-  ui/               React DOM menus, HUD, zustand store
-  input/            device to action mapping
+  ui/               React DOM overlay and the zustand store
+    components/     command window, field HUD, message log, run ending
+  input/            keyboard and gamepad to a stick and menu presses
   audio/            Web Audio mixer and music stems
   assets/           manifest resolver and loader service
   debug/            namespaced logger and dev panel
 prototypes/
-  <name>/           entry page, config, bundle/
+  <name>/           entry page, stylesheet, config, bundle/
 assets/
   authored/         hand-built, wins over generated
   generated/        tool / LLM output plus sidecars

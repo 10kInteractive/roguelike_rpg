@@ -112,7 +112,7 @@ Target for a ready, full clear: about 40–60 minutes.
 - **One procedural biome** generated from the run seed: a grid of tiles with height, rendered as 3D low-poly terrain with pixel textures.
 - Terrain types: grass, forest, path (walkable); water, mountain (blocked). Each walkable type has its own encounter rate.
 - **Free analog movement.** The hero moves continuously in any direction: full analog on a gamepad stick, eight directions on a keyboard. The map is still a tile grid underneath (for generation, terrain type, and collision), but the hero's position is continuous and collides with blocked tiles.
-- The simulation advances movement in **fixed time steps** so it stays deterministic and replayable; the view smooths between steps. The field steps at 30 ticks per second. A full stick moves the hero 4 tiles per second. The stick is an integer pair from −64 to 64. A vector longer than 1 is normalized, so a diagonal step covers the same distance as a step along an axis.
+- The simulation advances movement in **fixed time steps** so it stays deterministic and replayable; the view smooths between steps. The field steps at 30 ticks per second. A full stick moves the hero 4 tiles per second. The stick is an integer pair from −64 to 64. A vector longer than 1 is normalized, so a diagonal step covers the same distance as a step along an axis. On a gamepad, the left stick ignores the inner 20% of an axis and the rest scales up so the outer edge is a full press. The d-pad is a full press on that axis and overrides the stick there.
 - The hero is a circle of radius 0.3 tiles. Water, mountain, and the ground outside the map are blocked. A step that would enter blocked ground is taken along the free axis, so the hero slides along the edge.
 - **3/4 camera** that follows the hero.
 - **Random encounters by distance:** every tile's worth of distance walked rolls against the current terrain's rate. The roll succeeds when it is below the rate. A roll equal to the rate does not. Prototype one leaves 4 tiles between fights, and tiles inside that gap do not roll. A success picks a pack by weight, then each group rolls a count from its minimum through its maximum. A move of several ticks stops on the tick the fight starts.
@@ -143,7 +143,6 @@ Target for a ready, full clear: about 40–60 minutes.
 - After acting, an actor's time increases by a fixed base amount divided by its haste. Twice the haste means twice the turns.
 - Ties go to the higher haste, then to the hero, then to whoever is earlier in the fight's actor list.
 - This interleaves hero and enemy turns; nobody waits for a whole team to finish.
-- The UI shows the **upcoming turn order** (the next several actors), so haste is visible and planning is possible.
 
 #### Actions
 

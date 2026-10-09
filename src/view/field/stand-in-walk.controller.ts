@@ -1,56 +1,63 @@
-import type { MeadowMap } from "../../sim/field/map.types";
-import { moveHeroAlongStick } from "../../sim/field/movement";
 import type { Position, Stick } from "../../sim/field/movement.types";
 import { FieldWalkPolicy } from "../../sim/field/policy.controller";
+import type { GameSimController } from "../../sim/game.controller";
 import type { Rng } from "../../sim/utils/rng.types";
+import type { WalkStep } from "./stand-in-walk.types";
 
 /**
  * Walks the hero around the meadow until real input exists.
  *
- * The sim's fighter wander picks a stick and how long to hold it. Each step
- * moves one sim tick with the meadow's collision, so the hero slides along
- * water and mountains. Fights are not started yet.
+ * The grinder picks a stick and how long to hold it: a wander below level 5,
+ * then the shortest walk to the miniboss. Each step is one move sent to the
+ * sim, so the encounter rolls and the fight that stops the walk belong to
+ * the same run as the combat commands.
  */
 export class StandInWalkController {
-  /** Where the hero is standing, in sim tiles. */
-  private position: Position;
+  /** The run. A move goes through its `act`. */
+  private readonly sim: GameSimController;
+
+  /** The grinder's walk. */
+  private readonly policy: FieldWalkPolicy;
 
   /** The stick being held. */
   private stick: Stick = { x: 0, y: 0 };
 
-  /** Ticks left before the wander picks again. */
+  /** Ticks left before the grinder picks again. */
   private ticksLeft = 0;
 
-  /** The fighter's wander. */
-  private readonly policy: FieldWalkPolicy;
-
-  /** The meadow the hero collides with. */
-  private readonly map: MeadowMap;
-
   /**
-   * @param map The seeded meadow. The hero starts in the middle of its spawn tile.
-   * @param rng Direction rolls for the wander.
+   * @param sim The run being played. The hero starts where the sim placed them.
+   * @param choiceRng Wander rolls. The sim's enemy picks spend from this same generator.
    */
-  constructor(map: MeadowMap, rng: Rng) {
-    this.map = map;
-    this.position = { x: map.spawn.x + 0.5, y: map.spawn.y + 0.5 };
-    this.policy = new FieldWalkPolicy({ field: map, miniboss: map.miniboss, rng });
+  constructor(sim: GameSimController, choiceRng: Rng) {
+    const field = sim.observe().field;
+    this.sim = sim;
+    this.policy = new FieldWalkPolicy({
+      field: field.map,
+      miniboss: field.miniboss.tile,
+      rng: choiceRng,
+    });
   }
 
   /** Where the hero stands before the first step. */
   start(): Position {
-    return { ...this.position };
+    return { ...this.sim.observe().field.position };
   }
 
-  /** One sim tick. Returns where the hero ends up. */
-  step(): Position {
+  /** One sim tick. Returns where the hero ends up, and the events if a fight started. */
+  step(): WalkStep {
     if (this.ticksLeft <= 0) {
-      const choice = this.policy.chooseFighter();
+      const snapshot = this.sim.observe();
+      const choice = this.policy.chooseGrinder(snapshot.field.position, snapshot.hero.level);
       this.stick = choice.stick;
       this.ticksLeft = choice.ticks;
     }
-    this.position = moveHeroAlongStick(this.position, this.stick, 1, this.map);
+
+    const events = this.sim.act({ type: "move", x: this.stick.x, y: this.stick.y, ticks: 1 });
     this.ticksLeft -= 1;
-    return { ...this.position };
+
+    // A fight ends the hold. The grinder picks a new stick after it.
+    if (events.length > 0) this.ticksLeft = 0;
+    return { position: { ...this.sim.observe().field.position }, events };
   }
 }

@@ -19,7 +19,7 @@ In:
 - One procedural meadow map with grass, forest, path, water, mountain.
 - Free analog movement with tile collision, 3/4 follow camera, random encounters by distance walked.
 - Three mobs and one visible miniboss. Beating it ends the run.
-- Combat: Fight, Magic, Item, Defend, Run; turn-order display; message log.
+- Combat: Fight, Magic, Item, Defend, Run; a message log at the base of the view.
 - Victory and game over screens with run stats; restart on a new seed.
 - Keyboard and gamepad with default bindings.
 - Loader screen and one lazily loaded asset pack.
@@ -32,7 +32,7 @@ Out: deploying to the server, gear and slots, boons, stages, inns, extraction, s
 
 1. The loader shows progress, then the hero appears on a meadow.
 2. The hero walks freely with the stick or keys, sliding along water and mountain edges. Walking through grass and forest occasionally triggers a fight. The combat screen opens over the field.
-3. The turn-order strip shows who acts next. The player picks commands; enemies act on their turns; the log narrates.
+3. The player picks commands; enemies act on their turns; the log at the base of the view narrates, and clears when the fight ends.
 4. An Ember Imp resists fire but melts to ice. A Frost Moth is fast and fragile and hates fire. Slimes are just slimes.
 5. Wins give XP. Level-ups restore HP and MP. Potions drop now and then.
 6. A Rust Sentinel stands on the far side of the map. Walking around it is safe. Touching it starts a fight you can't run from. After about 10 fights the hero should be ready for it.
@@ -57,25 +57,29 @@ src/                        shared engine
       utils/                damage, flee chance, leveling formulas
     field/                  meadow generation, movement and collision, EncounterWalkController, FieldWalkPolicy
     run/                    GrinderFieldRunController, PackFightController, RunStatistics
-    index.ts                planned: createSim, observe, legalActions, act
+    game.controller.ts      GameSimController: one run, one action at a time
+    index.ts                createSim, observe, legalActions, act
   harness/                  headless play of the sim: replay, combat sweep, field sweep
   content/                  zod schemas, the bundle loader, bundle rows into fighters and fight rules
   runtime/                  GameRuntimeController: reads `?seed`, `?camera`, `?combat`, `?webgl`, loads the
-                            bundle, starts the renderer, and opens the field or a fight
+                            bundle, starts the renderer, and opens the field or a fight.
+                            GameLoopController: walks the field and plays each fight until the run ends
   view/                     Three.js. RenderLoopController owns the canvas, the camera, and the one render loop.
     art/                    shared by both scenes: placeholder models, sun and sky, terrain texture ids
     field/                  FieldViewController, FieldSceneController, FollowCameraController,
                             FixedStepClock, PositionInterpolator, StandInWalkController
     combat/                 CombatViewController, CombatSceneController, CombatSequencerController,
                             TweenController, FloatingTextController
-  ui/                       React DOM overlay. Planned: zustand store
-  input/                    planned: keyboard and gamepad to actions
+  ui/                       React DOM overlay. UiStoreController: the latest snapshot and the events waiting to play
+    components/             CommandWindow, FieldHud, MessageLog, RunEndScreen
+  input/                    KeyboardController and GamepadController: held keys or the pad as a stick, and menu presses
   assets/                   AssetLoaderController: loads a manifest pack with progress. Built URLs for
                             every file under /assets, so production builds ship them
   debug/                    DebugLogController, DebugWatchController, dev panel
 prototypes/
   one/
     index.html              entry page
+    index.css               page and overlay styles
     main.tsx                mounts the overlay and starts GameRuntimeController with this bundle
     bundle-source.ts        gathers the bundle's JSON files through bundle.json for the browser
     config.ts               planned: engine features this prototype uses
@@ -329,11 +333,13 @@ Starts with spells Ember and Frost, and 3 potions.
 | ID | HP | STR | DEF | MAG | HST | Element | Weak | Resists | XP | Actions |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `mob.slime` | 12 | 6 | 2 | 0 | 5 | — | — | — | 3 | attack |
-| `mob.ember_imp` | 14 | 6 | 3 | 6 | 9 | fire | ice | fire | 5 | attack 60, Ember 40 |
-| `mob.frost_moth` | 10 | 5 | 2 | 5 | 12 | ice | fire | ice | 5 | attack 60, Frost 40 |
+| `mob.ember_imp` | 14 | 6 | 3 | 0 | 9 | fire | ice | fire | 5 | attack 60, Ember 40 |
+| `mob.frost_moth` | 10 | 5 | 2 | 0 | 12 | ice | fire | ice | 5 | attack 60, Frost 40 |
 | `mob.rust_sentinel` (miniboss) | 90 | 13 | 8 | 0 | 6 | — | ice | fire | 40 | attack 70, Grind (×1.5) 30 |
 
 Every regular mob has a 15% potion drop. The Rust Sentinel is a machina, a small first hint of the tech undercurrent. Beating it ends the run, so it has no drops.
+
+The imp and the moth have no magic, so their Ember and Frost hit for the spell's power alone, 7 or 8. A punch is 3 or 4. Strider's own spells still add his magic.
 
 **Encounters (weights per terrain)**
 
@@ -390,7 +396,7 @@ React DOM overlay over the canvas, NES-style bordered windows and a pixel font. 
 
 - Loader screen with progress.
 - Field HUD: level, HP, MP.
-- Combat: command window, spell and item submenus, target selection, enemy names and hero status, turn-order strip, message log.
+- Combat: command window, spell and item submenus, target selection, enemy names and hero status, message log.
 - Victory and game over screens showing run stats (play time, fights won and fled, level, damage dealt and taken, potions used, distance walked, seed, and on game over what killed you), with a restart option. The sim counts everything except play time, which the UI clocks.
 - Menus are fully navigable with actions only.
 
@@ -403,7 +409,7 @@ React DOM overlay over the canvas, NES-style bordered windows and a pixel font. 
 | Confirm | Enter, Space, Z | A |
 | Cancel | Escape, Backspace, X | B |
 
-The input layer turns devices into one quantized move vector per tick plus discrete menu actions. Default bindings only. Rebinding comes later.
+The input layer turns devices into one quantized move vector per tick plus discrete menu actions. Default bindings only. Rebinding comes later. A menu direction from the stick registers at half deflection, once, until the stick comes back. A direction already held when a menu opens does not count until it is released.
 
 ## Harness
 
@@ -545,13 +551,13 @@ On the `bozmak/view` branch, not merged yet. The canvas, the WebGPU renderer, an
 
 ### 7. UI and input
 
-- `feat: field encounters on screen`. The stand-in walk rolls encounters. A fight swaps to the combat scene, plays the pack, and returns to the field where the hero stood. Touching the miniboss starts its fight. A defeat ends the run with a status line until the game over screen exists.
-- `feat: sim api`. `createSim`, `observe`, `legalActions`, and `act` in `src/sim/index.ts`. One hero action in, every consequence out, so fights stop being resolved whole by a policy. The stand-in policy acts through `act()` until the command window replaces it.
+- `feat: field encounters on screen`. The stand-in walk rolls encounters. A fight swaps to the combat scene, plays the pack, and returns to the field where the hero stood. Touching the miniboss starts its fight. A defeat ends the run with a status line until the game over screen exists. The run plays itself on the grinder's policies and generators, so a seed plays the same run on screen as in the sweep.
+- `feat: sim api`. `createSim`, `observe`, `legalActions`, and `act` in `src/sim/index.ts`. One hero action in, every consequence out, so fights stop being resolved whole by a policy. The stand-in policy acts through `act()` until the command window replaces it. Three stages: `refactor: steppable fight` (the fight pauses at each hero turn), `feat: sim api`, and `refactor: stand-in plays through act()`.
 - `feat: ui store`. A zustand store holds the latest snapshot and the events still waiting to play.
 - `feat: field hud`. Level, HP, and MP.
-- `feat: command window`. Fight, Magic, Item, Defend, Run, using keyboard actions only.
+- `feat: command window`. Fight, Magic, Item, Defend, Run, using keyboard actions only. The player drives the run by default. `?gameloop=ai` keeps the stand-in policies playing it.
 - `feat: spell item and target menus`. Submenus for spells, potions, and which enemy.
-- `feat: turn order and message log`. The next actors, and a line for each event.
+- `feat: message log`. A line for each event, along the base of the view. It clears when the fight ends.
 - `feat: victory and game over`. Run stats and a restart. Restart creates a new sim with a new seed.
 - `feat: gamepad`. The same actions from a standard-mapping pad.
 

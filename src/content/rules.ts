@@ -1,5 +1,6 @@
 import type { KnownSpell } from "../sim/combat/policy.types";
 import type { LevelRules } from "../sim/combat/utils/level.types";
+import type { EncounterTables } from "../sim/field/encounters.types";
 import type { CombatRules, RunMob } from "../sim/run/run.types";
 import { enemyFighterFromMob } from "./fighters";
 import type { Bundle } from "./schema";
@@ -40,6 +41,27 @@ export function knownSpellsFromBundle(bundle: Bundle): KnownSpell[] {
     if (!spell || (spell.id !== "spell.ember" && spell.id !== "spell.frost")) return [];
     return [{ id: spell.id, element: spell.element, power: spell.power, cost: spell.cost }];
   });
+}
+
+/** Each walkable terrain's encounter rate and packs. Water and mountain never roll. */
+export function encounterTablesFromBundle(bundle: Bundle): EncounterTables {
+  const tables: EncounterTables = {};
+  for (const terrain of bundle.encounters.terrains) {
+    const name = terrain.id.slice("terrain.".length);
+    if (name !== "grass" && name !== "forest" && name !== "path") continue;
+    tables[name] = {
+      rate: terrain.rate,
+      packs: terrain.packs.map((pack) => ({
+        weight: pack.weight,
+        groups: pack.groups.map((group) => ({
+          id: group.id,
+          min: group.min,
+          max: group.max,
+        })),
+      })),
+    };
+  }
+  return tables;
 }
 
 /** Every mob as a fight's enemy, with its potion drop, by mob id. */
