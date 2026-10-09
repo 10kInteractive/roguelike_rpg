@@ -70,7 +70,7 @@ src/                        shared engine
                             FixedStepClock, PositionInterpolator, StandInWalkController
     combat/                 CombatViewController, CombatSceneController, CombatSequencerController,
                             TweenController, FloatingTextController
-  ui/                       React DOM overlay. Planned: zustand store
+  ui/                       React DOM overlay. UiStoreController: the latest snapshot and the events waiting to play
   input/                    planned: keyboard and gamepad to actions
   assets/                   AssetLoaderController: loads a manifest pack with progress. Built URLs for
                             every file under /assets, so production builds ship them

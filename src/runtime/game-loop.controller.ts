@@ -10,6 +10,7 @@ import type { GameSimController } from "../sim/game.controller";
 import type { Action, SimEvent } from "../sim/game.types";
 import { SeededRandomGenerator } from "../sim/utils/rng.controller";
 import type { Rng } from "../sim/utils/rng.types";
+import { uiStore } from "../ui/store.controller";
 import { CombatViewController } from "../view/combat/view.controller";
 import { StandInWalkController } from "../view/field/stand-in-walk.controller";
 import { FieldViewController } from "../view/field/view.controller";
@@ -93,11 +94,13 @@ export class GameLoopController {
         return `${hero.hp}/${hero.maxHp}`;
       });
       debugWatches.watch("fights", () => this.fought());
+      debugWatches.watch("queue", () => uiStore.pending().length);
     }
   }
 
   /** Walks and fights until the run ends. Resolves with how it ended. */
   async play(): Promise<RunEnd> {
+    uiStore.present(this.sim.observe());
     for (;;) {
       this.phase = "walking";
       const started = await this.field.walkUntilFight();
@@ -125,11 +128,21 @@ export class GameLoopController {
       mobIds: this.mobIdsOf(started),
       textures: this.textures,
       heroId: this.sim.observe().hero.id,
+      onPlayed: () => uiStore.played(),
     });
+    this.hand(opening);
     await view.show(opening);
     while (this.sim.observe().mode === "combat") {
-      await view.show(this.sim.act(this.command()));
+      const events = this.sim.act(this.command());
+      this.hand(events);
+      await view.show(events);
     }
+  }
+
+  /** Queues the action's events and refreshes the snapshot behind them. */
+  private hand(events: readonly SimEvent[]): void {
+    uiStore.enqueue(events);
+    uiStore.present(this.sim.observe());
   }
 
   /** The grinder's command for the open turn. A potion when badly hurt, otherwise Fight. */
