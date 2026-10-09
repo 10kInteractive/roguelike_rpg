@@ -398,6 +398,7 @@ React DOM overlay over the canvas, NES-style bordered windows and a pixel font. 
 - Field HUD: level, HP, MP.
 - Combat: command window, spell and item submenus, target selection, enemy names and hero status, message log.
 - Victory and game over screens showing run stats (play time, fights won and fled, level, damage dealt and taken, potions used, distance walked, seed, and on game over what killed you), with a restart option. Confirm is A or Enter. The sim counts everything except play time, which the UI clocks. `?combat=` plays that pack, then the same ending screen, and confirm starts a new seed.
+- Pause, from Escape or Start. The screen titles itself Roguelike RPG, with the line "if dragon warrior was a procedural roguelike", and offers Resume, Restart, and Launcher. The field and the fight do not step while it is open, and that time is left off the play clock. The page does not keep a launcher link up.
 - Menus are fully navigable with actions only.
 
 ## Input
@@ -407,9 +408,10 @@ React DOM overlay over the canvas, NES-style bordered windows and a pixel font. 
 | Move (field) | arrow keys, WASD (eight directions) | left stick (analog, with a dead zone), d-pad |
 | Menu up, down, left, right | arrow keys, WASD | d-pad, left stick |
 | Confirm | Enter, Space, Z | A |
-| Cancel | Escape, Backspace, X | B |
+| Cancel | Backspace, X | B |
+| Pause | Escape | Start |
 
-The input layer turns devices into one quantized move vector per tick plus discrete menu actions. Default bindings only. Rebinding comes later. A key owns its axis, and the pad still moves the other one. A menu direction from the stick registers at half deflection, once, until the stick comes back. A diagonal keeps the stronger axis, and a tie moves the cursor. A direction already held when a menu opens does not count until it is released.
+The input layer turns devices into one quantized move vector per tick plus discrete menu actions. Default bindings only. Rebinding comes later. A key owns its axis, and the pad still moves the other one. A menu direction from the stick registers at half deflection, once, until the stick comes back. A diagonal keeps the stronger axis, and a tie moves the cursor. A direction already held when a menu opens does not count until it is released. Escape pauses instead of canceling a menu. Left and A still cancel.
 
 ## Harness
 

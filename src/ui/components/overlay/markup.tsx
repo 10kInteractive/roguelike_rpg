@@ -2,6 +2,7 @@ import type { RuntimeStatus } from "../../../runtime/runtime.types";
 import { CommandWindow } from "../command-window/markup";
 import { FieldHud } from "../field-hud/markup";
 import { MessageLog } from "../message-log/markup";
+import { PauseScreen } from "../pause/markup";
 import { RunEndScreen } from "../run-end/markup";
 import { useOverlay } from "./controller";
 import "./styles.css";
@@ -24,6 +25,7 @@ export function Overlay({ status }: { status: RuntimeStatus }) {
           <CommandWindow />
         </>
       )}
+      <PauseScreen />
     </div>
   );
 }

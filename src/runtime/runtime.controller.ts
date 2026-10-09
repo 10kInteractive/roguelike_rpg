@@ -21,6 +21,7 @@ import type { HeroState } from "../sim/run/run.types";
 import { RunStatistics } from "../sim/run/stats.controller";
 import type { RunStats } from "../sim/run/stats.types";
 import { SeededRandomGenerator } from "../sim/utils/rng.controller";
+import { pause } from "../ui/components/pause/controller";
 import { uiStore } from "../ui/store.controller";
 import { terrainTextureIds } from "../view/art/terrain-textures.constants";
 import { CombatViewController } from "../view/combat/view.controller";
@@ -87,6 +88,10 @@ export class GameRuntimeController {
             seed,
             mobIds: options.combat,
           });
+          if (result === "restart") {
+            seed = Math.floor(Math.random() * 2 ** 32);
+            continue;
+          }
           this.input.onStatus({ text: `${status} · pack ${result.outcome}` });
           await uiStore.requestRestart();
           seed = Math.floor(Math.random() * 2 ** 32);
@@ -98,6 +103,10 @@ export class GameRuntimeController {
           const status = `Renderer backend: ${backend} · seed ${seed} · ${who}`;
           this.input.onStatus({ text: status });
           const end = await this.startField({ loop, bundle, textures, options, seed });
+          if (end.outcome === "restart") {
+            seed = Math.floor(Math.random() * 2 ** 32);
+            continue;
+          }
           this.input.onStatus({ text: `${status} · ${this.describeEnd(end)}` });
           await uiStore.requestRestart();
           seed = Math.floor(Math.random() * 2 ** 32);
@@ -165,7 +174,7 @@ export class GameRuntimeController {
     textures: Partial<Record<Terrain, Texture>>;
     seed: number;
     mobIds: readonly string[];
-  }): Promise<PackResult> {
+  }): Promise<PackResult | "restart"> {
     const { loop, bundle, biome, textures, seed } = input;
     const mobIds = input.mobIds.length === 0 ? [biome.miniboss] : input.mobIds;
     const known = new Set(bundle.mobs.mobs.map((mob) => mob.id));
@@ -194,7 +203,10 @@ export class GameRuntimeController {
       mobIds.map((id) => ({ id, count: 1 })),
       miniboss,
     );
-    await new CombatViewController({ loop, mobIds, textures, heroId: hero.id }).play(result);
+    const played = await pause.race(
+      new CombatViewController({ loop, mobIds, textures, heroId: hero.id }).play(result),
+    );
+    if (played === null) return "restart";
     const lost = result.outcome === "lose";
     uiStore.present(
       this.scoreSnapshot(

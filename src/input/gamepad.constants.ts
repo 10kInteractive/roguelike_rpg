@@ -21,3 +21,6 @@ export const leftButton = 14;
 
 /** Standard-mapping button index for d-pad right. */
 export const rightButton = 15;
+
+/** Standard-mapping button index for Start. */
+export const startButton = 9;

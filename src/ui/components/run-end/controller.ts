@@ -3,6 +3,7 @@ import { gamepad } from "../../../input/gamepad.controller";
 import type { Snapshot } from "../../../sim/game.types";
 import { nameFromId } from "../../names";
 import { uiStore, usePlayMs, useUiSnapshot } from "../../store.controller";
+import { pause } from "../pause/controller";
 import type { RunEndView } from "./types";
 
 /** Victory or game over: the run's stats, and a confirm that starts a new seed. */
@@ -20,12 +21,13 @@ export class RunEndController {
   /** Listens for confirm until the caller stops it. */
   listen(): () => void {
     const onKey = (event: KeyboardEvent) => {
-      if (event.repeat || !this.confirms(event.code)) return;
+      if (event.repeat || pause.isOpen() || !this.confirms(event.code)) return;
       event.preventDefault();
       uiStore.confirmRestart();
     };
     const stopPad = gamepad.onMenu((action) => {
-      if (action === "confirm") uiStore.confirmRestart();
+      if (pause.isOpen() || action !== "confirm") return;
+      uiStore.confirmRestart();
     });
     window.addEventListener("keydown", onKey);
     return () => {

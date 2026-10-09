@@ -5,6 +5,7 @@ import type { Action } from "../../../sim/game.types";
 import type { MenuRow } from "../../commands";
 import { rowUsable } from "../../commands";
 import { uiStore, useCommands } from "../../store.controller";
+import { pause } from "../pause/controller";
 import type { CommandWindowView, MenuFrame } from "./types";
 
 /**
@@ -62,7 +63,7 @@ export class CommandWindowController {
   /** Listens to the keyboard and the pad until the caller stops it. */
   listen(): () => void {
     const onKey = (event: KeyboardEvent) => {
-      if (event.repeat) return;
+      if (event.repeat || pause.isOpen()) return;
       const action = this.direction(event.code);
       if (!action) return;
       event.preventDefault();
@@ -70,6 +71,7 @@ export class CommandWindowController {
       if (chosen) uiStore.submit(chosen);
     };
     const stopPad = gamepad.onMenu((action) => {
+      if (pause.isOpen()) return;
       const chosen = this.apply(action);
       if (chosen) uiStore.submit(chosen);
     });
@@ -136,13 +138,7 @@ export class CommandWindowController {
   private direction(code: string): MenuDirection | null {
     if (code === "ArrowUp" || code === "KeyW") return "up";
     if (code === "ArrowDown" || code === "KeyS") return "down";
-    if (
-      code === "Escape" ||
-      code === "Backspace" ||
-      code === "KeyX" ||
-      code === "ArrowLeft" ||
-      code === "KeyA"
-    ) {
+    if (code === "Backspace" || code === "KeyX" || code === "ArrowLeft" || code === "KeyA") {
       return "cancel";
     }
     if (

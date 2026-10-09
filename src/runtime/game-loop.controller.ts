@@ -11,6 +11,7 @@ import type { GameSimController } from "../sim/game.controller";
 import type { Action, SimEvent } from "../sim/game.types";
 import { SeededRandomGenerator } from "../sim/utils/rng.controller";
 import type { Rng } from "../sim/utils/rng.types";
+import { pause } from "../ui/components/pause/controller";
 import { uiStore } from "../ui/store.controller";
 import { CombatViewController } from "../view/combat/view.controller";
 import { PlayerWalkController } from "../view/field/player-walk.controller";
@@ -113,10 +114,15 @@ export class GameLoopController {
       uiStore.present(this.sim.observe());
       for (;;) {
         this.phase = "walking";
-        const started = await this.field.walkUntilFight();
+        const started = await pause.race(this.field.walkUntilFight());
+        if (!started) {
+          this.field.abandon();
+          return this.left();
+        }
 
         this.phase = "fighting";
-        await this.playFight(started);
+        const fought = await pause.race(this.playFight(started));
+        if (fought === null) return this.left();
         const end = this.sim.observe();
         const hero = end.hero;
         log(`${end.mode}, level ${hero.level}, hp ${hero.hp}/${hero.maxHp}`);
@@ -170,6 +176,12 @@ export class GameLoopController {
     return Promise.resolve(
       choice === "potion" ? { type: "item", item: "item.potion" } : { type: "fight", target },
     );
+  }
+
+  /** Pause chose Restart. The meadow and the scoreboard stay where they were. */
+  private left(): RunEnd {
+    const snapshot = this.sim.observe();
+    return { outcome: "restart", level: snapshot.hero.level, fights: this.fought() };
   }
 
   /** How the run ended, from the sim's scoreboard. */

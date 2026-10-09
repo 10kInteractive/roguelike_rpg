@@ -122,6 +122,13 @@ export class FieldViewController {
     });
   }
 
+  /** Drops the walk. A restart uses this so the field does not stay waiting. */
+  abandon(): void {
+    const resolve = this.waiting;
+    this.waiting = null;
+    resolve?.([]);
+  }
+
   /** One display frame: due sim steps, then the blended hero. */
   private frame(elapsedSeconds: number): void {
     const steps = this.clock.advance(elapsedSeconds);
