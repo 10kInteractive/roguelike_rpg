@@ -58,7 +58,8 @@ export function createEncounterState(minDistance: number): EncounterState {
  * Each full tile of distance on grass, forest, or path rolls that terrain's
  * rate. The roll succeeds when it is below the rate. A success picks a pack
  * by weight, then a count in each group. Touching the miniboss starts its
- * fight instead. The walk stops on that tick.
+ * fight instead. The walk stops on that tick. The returned distance is the
+ * tiles actually moved.
  */
 export function walk(input: {
   position: Position;
@@ -71,24 +72,33 @@ export function walk(input: {
   state: EncounterState;
   /** When set, touching this circle starts its fight and ends the walk. */
   miniboss?: Miniboss;
-}): { position: Position; state: EncounterState; events: EncounterEvent[]; ticks: number } {
+}): {
+  position: Position;
+  state: EncounterState;
+  events: EncounterEvent[];
+  ticks: number;
+  /** Tiles the hero moved during this walk. */
+  distance: number;
+} {
   let position = input.position;
   const state = { ...input.state };
   const events: EncounterEvent[] = [];
+  let distance = 0;
 
   if (input.miniboss && touchesMiniboss(position, input.miniboss)) {
-    return contact(position, state, events, 0, input.field, input.miniboss);
+    return contact(position, state, events, 0, distance, input.field, input.miniboss);
   }
 
   for (let tick = 0; tick < input.ticks; tick++) {
     const next = move(position, input.stick, 1, input.field);
-    const distance = Math.hypot(next.x - position.x, next.y - position.y);
+    const step = Math.hypot(next.x - position.x, next.y - position.y);
     position = next;
-    state.sinceFight += distance;
+    distance += step;
+    state.sinceFight += step;
 
     // Touching the miniboss starts its fight and spends no encounter roll.
     if (input.miniboss && touchesMiniboss(position, input.miniboss)) {
-      return contact(position, state, events, tick + 1, input.field, input.miniboss);
+      return contact(position, state, events, tick + 1, distance, input.field, input.miniboss);
     }
 
     // The step counts toward the terrain under the hero.
@@ -96,7 +106,7 @@ export function walk(input: {
     if (terrain !== "grass" && terrain !== "forest" && terrain !== "path") {
       continue;
     }
-    state[terrain] += distance;
+    state[terrain] += step;
 
     // One roll per full tile. Tiles inside the gap after a fight do not roll.
     while (state[terrain] >= 1) {
@@ -115,11 +125,11 @@ export function walk(input: {
           count: groupCount(group, input.rng),
         })),
       });
-      return { position, state, events, ticks: tick + 1 };
+      return { position, state, events, ticks: tick + 1, distance };
     }
   }
 
-  return { position, state, events, ticks: input.ticks };
+  return { position, state, events, ticks: input.ticks, distance };
 }
 
 /** True when the hero's circle meets the miniboss circle. */
@@ -138,9 +148,16 @@ function contact(
   state: EncounterState,
   events: EncounterEvent[],
   ticks: number,
+  distance: number,
   field: FieldGrid,
   miniboss: Miniboss,
-): { position: Position; state: EncounterState; events: EncounterEvent[]; ticks: number } {
+): {
+  position: Position;
+  state: EncounterState;
+  events: EncounterEvent[];
+  ticks: number;
+  distance: number;
+} {
   state.sinceFight = 0;
   const terrain = terrainUnder(field, position);
   events.push({
@@ -149,7 +166,7 @@ function contact(
     groups: [{ id: miniboss.id, count: 1 }],
     miniboss: true,
   });
-  return { position, state, events, ticks };
+  return { position, state, events, ticks, distance };
 }
 
 function terrainUnder(field: FieldGrid, position: Position): Terrain | undefined {

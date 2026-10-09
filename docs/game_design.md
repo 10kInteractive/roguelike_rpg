@@ -177,6 +177,8 @@ The Run chance is 50% plus 5% per point of hero haste over the enemies' average 
 
 Shown on both the victory and game over screens: play time, fights won, fights fled, level reached, damage dealt and taken, potions used, distance walked, the seed, and (on game over) what killed you.
 
+The sim counts these as the run goes. Each walk adds the distance actually moved, including a walk that stops for a fight. Each finished fight adds the hero's damage dealt and taken, every potion the hero drank (a drink at full HP still counts), and whether the fight was a win or a flee. A defeat records the mob that landed it and leaves the level where it was. Play time is the one number the UI clocks.
+
 ### North star
 
 - Special attacks and on-hit effects come from **boons**, not a baked skill list. Pure melee stays a valid build.
