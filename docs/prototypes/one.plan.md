@@ -19,7 +19,7 @@ In:
 - One procedural meadow map with grass, forest, path, water, mountain.
 - Free analog movement with tile collision, 3/4 follow camera, random encounters by distance walked.
 - Three mobs and one visible miniboss. Beating it ends the run.
-- Combat: Fight, Magic, Item, Defend, Run; turn-order display; message log.
+- Combat: Fight, Magic, Item, Defend, Run; a message log at the base of the view.
 - Victory and game over screens with run stats; restart on a new seed.
 - Keyboard and gamepad with default bindings.
 - Loader screen and one lazily loaded asset pack.
@@ -32,7 +32,7 @@ Out: deploying to the server, gear and slots, boons, stages, inns, extraction, s
 
 1. The loader shows progress, then the hero appears on a meadow.
 2. The hero walks freely with the stick or keys, sliding along water and mountain edges. Walking through grass and forest occasionally triggers a fight. The combat screen opens over the field.
-3. The turn-order strip shows who acts next. The player picks commands; enemies act on their turns; the log narrates.
+3. The player picks commands; enemies act on their turns; the log at the base of the view narrates, and clears when the fight ends.
 4. An Ember Imp resists fire but melts to ice. A Frost Moth is fast and fragile and hates fire. Slimes are just slimes.
 5. Wins give XP. Level-ups restore HP and MP. Potions drop now and then.
 6. A Rust Sentinel stands on the far side of the map. Walking around it is safe. Touching it starts a fight you can't run from. After about 10 fights the hero should be ready for it.
@@ -394,7 +394,7 @@ React DOM overlay over the canvas, NES-style bordered windows and a pixel font. 
 
 - Loader screen with progress.
 - Field HUD: level, HP, MP.
-- Combat: command window, spell and item submenus, target selection, enemy names and hero status, turn-order strip, message log.
+- Combat: command window, spell and item submenus, target selection, enemy names and hero status, message log.
 - Victory and game over screens showing run stats (play time, fights won and fled, level, damage dealt and taken, potions used, distance walked, seed, and on game over what killed you), with a restart option. The sim counts everything except play time, which the UI clocks.
 - Menus are fully navigable with actions only.
 
@@ -555,7 +555,7 @@ On the `bozmak/view` branch, not merged yet. The canvas, the WebGPU renderer, an
 - `feat: field hud`. Level, HP, and MP.
 - `feat: command window`. Fight, Magic, Item, Defend, Run, using keyboard actions only. The player drives the run by default. `?gameloop=ai` keeps the stand-in policies playing it.
 - `feat: spell item and target menus`. Submenus for spells, potions, and which enemy.
-- `feat: turn order and message log`. The next actors, and a line for each event.
+- `feat: message log`. A line for each event, along the base of the view. It clears when the fight ends.
 - `feat: victory and game over`. Run stats and a restart. Restart creates a new sim with a new seed.
 - `feat: gamepad`. The same actions from a standard-mapping pad.
 

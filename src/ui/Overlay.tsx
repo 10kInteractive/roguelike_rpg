@@ -2,7 +2,6 @@ import type { RuntimeStatus } from "../runtime/runtime.types";
 import { CommandWindow } from "./CommandWindow";
 import { FieldHud } from "./FieldHud";
 import { MessageLog } from "./MessageLog";
-import { TurnOrder } from "./TurnOrder";
 
 /** The status line over the view, the hero's stats, and a progress bar while a pack loads. */
 export function Overlay({ status }: { status: RuntimeStatus }) {
@@ -13,7 +12,6 @@ export function Overlay({ status }: { status: RuntimeStatus }) {
         <progress className="hud-progress" max={1} value={status.progress} />
       )}
       <FieldHud />
-      <TurnOrder />
       <MessageLog />
       <CommandWindow />
     </div>

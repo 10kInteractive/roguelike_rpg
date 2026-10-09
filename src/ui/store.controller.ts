@@ -32,9 +32,13 @@ export class UiStoreController {
     }));
   }
 
-  /** Replaces the snapshot with the sim's latest. */
+  /** Replaces the snapshot with the sim's latest. A fight's log clears once it is over. */
   present(snapshot: Snapshot): void {
-    this.store.setState({ snapshot });
+    const fighting = snapshot.mode === "combat";
+    this.store.setState((state) => ({
+      snapshot,
+      log: fighting ? state.log : [],
+    }));
   }
 
   /** Adds events to the end of the queue, in the order they happened. */

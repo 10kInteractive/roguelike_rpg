@@ -174,4 +174,10 @@ test("a played hit adds its line, and the log keeps the latest six", () => {
 
   expect(store.log()).toEqual(Array.from({ length: 6 }, () => "Ember Imp attacks"));
   expect(store.snapshot()?.hero.hp).toBe(30);
+
+  store.present(fighting);
+  expect(store.log()).toHaveLength(6);
+
+  store.present({ ...fighting, mode: "field", combat: undefined });
+  expect(store.log()).toEqual([]);
 });
