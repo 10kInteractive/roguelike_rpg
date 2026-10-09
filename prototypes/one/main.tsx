@@ -1,6 +1,6 @@
 import { createRoot } from "react-dom/client";
 import { GameRuntimeController } from "../../src/runtime/runtime.controller";
-import { Overlay } from "../../src/ui/Overlay";
+import { Overlay } from "../../src/ui/components/overlay/markup";
 import { bundleSource } from "./bundle-source";
 
 const view = document.getElementById("view");

@@ -71,7 +71,7 @@ src/                        shared engine
     combat/                 CombatViewController, CombatSceneController, CombatSequencerController,
                             TweenController, FloatingTextController
   ui/                       React DOM overlay. UiStoreController: the latest snapshot and the events waiting to play
-    components/             CommandWindow, FieldHud, MessageLog, RunEndScreen
+    components/             one folder per component: controller, markup, styles, types
   input/                    KeyboardController and GamepadController: held keys or the pad as a stick, and menu presses
   assets/                   AssetLoaderController: loads a manifest pack with progress. Built URLs for
                             every file under /assets, so production builds ship them
@@ -79,7 +79,7 @@ src/                        shared engine
 prototypes/
   one/
     index.html              entry page
-    index.css               page and overlay styles
+    index.css               page shell: the stage, the view, and the overlay layer
     main.tsx                mounts the overlay and starts GameRuntimeController with this bundle
     bundle-source.ts        gathers the bundle's JSON files through bundle.json for the browser
     config.ts               planned: engine features this prototype uses
