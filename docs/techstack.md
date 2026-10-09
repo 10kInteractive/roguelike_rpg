@@ -273,6 +273,7 @@ biome.json
 src/                shared engine
   boot/             loader screen, dynamic import of the game
   sim/              rules, combat, procgen, RNG (pure TS)
+    utils/          shared by more than one sim area, such as the seeded RNG
   content/          zod schemas and bundle loader
   view/             Three.js classes, render loop, combat sequencer
   ui/               React DOM menus, HUD, zustand store
