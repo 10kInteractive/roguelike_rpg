@@ -1,8 +1,14 @@
 import { expect, test } from "vitest";
+import type { MeadowMap } from "../field/map";
+import { tilesPerSecond } from "../field/movement";
 import type { Rng } from "../rng";
-import type { MeadowMap } from "./map";
-import { tilesPerSecond } from "./movement";
-import { enemyActionSeconds, fightTransitionSeconds, heroDecisionSeconds, runField } from "./run";
+import { enemyActionSeconds, fightTransitionSeconds, heroDecisionSeconds } from "./run.constants";
+import { GrinderFieldRunController } from "./run.controller";
+import type { GrinderRunInput } from "./run.types";
+
+function runField(input: GrinderRunInput) {
+  return new GrinderFieldRunController(input).play();
+}
 
 const combat = {
   turnBase: 100,

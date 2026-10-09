@@ -13,7 +13,6 @@ import {
 } from "../src/sim/combat/policy.ts";
 import type { EncounterTables } from "../src/sim/field/encounters.types.ts";
 import { createMeadow } from "../src/sim/field/map.ts";
-import { type RunMob, runField } from "../src/sim/field/run.ts";
 import { fieldSweepSummary } from "../src/sim/harness/field-sweep.ts";
 import {
   actionsFrom,
@@ -25,6 +24,8 @@ import {
 } from "../src/sim/harness/replay.ts";
 import { type SweepFight, sweepSummary } from "../src/sim/harness/sweep.ts";
 import { SeededRandomGenerator } from "../src/sim/rng.ts";
+import { GrinderFieldRunController } from "../src/sim/run/run.controller.ts";
+import type { RunMob } from "../src/sim/run/run.types.ts";
 import { readBundle } from "./read-bundle.ts";
 
 const replayPath = flag("replay");
@@ -257,7 +258,7 @@ function sweepGrinder(bundle: Bundle, runs: number): string {
       minibossDistance: biome.minibossDistance,
     });
     results.push(
-      runField({
+      new GrinderFieldRunController({
         seed: next,
         map,
         miniboss: { tile: map.miniboss, radius: biome.minibossRadius, id: biome.miniboss },
@@ -267,7 +268,7 @@ function sweepGrinder(bundle: Bundle, runs: number): string {
         mobs,
         combat,
         leveling,
-      }),
+      }).play(),
     );
   }
   return fieldSweepSummary(results);
