@@ -295,6 +295,7 @@ tools/              asset generators, sim CLI, content and purity checks
 tests/              Playwright end-to-end
 docs/
   prototypes/       one plan per prototype
+  references/       explanations of how existing systems work
 .github/workflows/  CI
 ```
 

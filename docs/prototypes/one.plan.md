@@ -92,6 +92,7 @@ tests/
 docs/
   prototypes/
     one.plan.md             this file
+  references/               how existing systems work, such as terrain generation
 .github/workflows/          CI
 ```
 
