@@ -8,6 +8,7 @@ import {
 } from "./damage";
 import { fleeChance } from "./flee";
 import { gainXp, type HeroProgress, type LevelEvent, type LevelRules } from "./level";
+import type { HeroVitals, SpellChoice } from "./policy";
 import type { Rng } from "./rng";
 import { createTurnQueue } from "./turn-queue";
 import { pickWeighted, type Weighted } from "./weighted";
@@ -47,6 +48,7 @@ export type TurnAction = "fight" | "defend" | "potion" | "flee";
 
 export type EnemyAction =
   | ({ type: "fight" | "defend" } & Weighted)
+  | ({ type: "grind"; multiplier: number } & Weighted)
   | ({
       type: "spell";
       spellId: "spell.ember" | "spell.frost";
@@ -74,6 +76,7 @@ export type FightEvent =
       targetId: string;
       mp: number;
     }
+  | { type: "grind"; actorId: string; targetId: string; multiplier: number }
   | {
       type: "damaged";
       actorId: string;
@@ -117,11 +120,20 @@ export type FightInput = {
   resistanceMultiplier: number;
   /** When set, a defeated enemy grants XP and may level the hero. */
   leveling?: LevelRules;
+  /** Chooses an unscripted hero turn from current HP, MP, and the target. */
+  heroPolicy?: (
+    hero: HeroVitals & { mp: number },
+    target: { weak?: Element },
+  ) => TurnAction | SpellChoice;
+  /** Enemy action picks. Defaults to the combat RNG. */
+  choiceRng?: Rng;
   /** One entry per hero turn. Turns past the end Fight. */
-  heroActions?: TurnAction[];
+  heroActions?: ScriptedAction[];
   /** One entry per enemy turn. Turns past the end Fight. */
-  enemyActions?: TurnAction[];
+  enemyActions?: ScriptedAction[];
 };
+
+export type ScriptedAction = TurnAction | SpellChoice | { type: "grind"; multiplier: number };
 
 /**
  * Runs a fight. Each turn is Fight, Defend, a potion, or Run; omitted actions Fight.
@@ -132,7 +144,8 @@ export type FightInput = {
  * the turn. Run emits `fleeAttempted`. Success ends the fight. Failure spends
  * the turn. A miniboss attempt fails without a roll. An enemy with an action
  * list picks one by weight when that turn is not scripted. A spell it cannot
- * afford is Fight instead. The fight stops when either HP reaches zero, and that
+ * afford is Fight instead. Grind multiplies a physical hit. Defend halves
+ * whatever damage gets through, including spells. The fight stops when either HP reaches zero, and that
  * actor is defeated. A fallen enemy grants its XP. Each
  * hit rolls the spread, then the crit chance. A crit multiplies that damage
  * and rounds down again, and Defend applies after that.
@@ -163,46 +176,107 @@ export function fight(input: FightInput): FightEvent[] {
     const target = actor === hero ? enemy : hero;
     defending.delete(actor.id);
 
+    // Defend halves whatever just landed, including a spell or a grind.
+    const guarded = (amount: number) =>
+      defending.has(target.id) ? applyDefend(amount, input.defendMultiplier) : amount;
+
+    // Pay for a spell and resolve it. The caller has already checked the MP.
+    const castSpell = (spell: SpellChoice) => {
+      actor.mp -= spell.cost;
+      const spread = input.spreadMin + input.rng.next() * (input.spreadMax - input.spreadMin);
+      const multiplier = elementMultiplier(
+        spell.element,
+        target.weak,
+        target.resists,
+        input.weaknessMultiplier,
+        input.resistanceMultiplier,
+      );
+      const amount = guarded(magicDamage(spell.power, actor.mag, multiplier, spread));
+      target.hp = Math.max(0, target.hp - amount);
+
+      events.push({
+        type: "spellCast",
+        actorId: actor.id,
+        spellId: spell.spellId,
+        targetId: target.id,
+        mp: actor.mp,
+      });
+      events.push({
+        type: "damaged",
+        actorId: actor.id,
+        targetId: target.id,
+        amount,
+        targetHp: target.hp,
+        critical: false,
+      });
+      defeatIfDown(events, hero, enemy, target, input.leveling);
+    };
+
+    // Spread, then a crit, then the grind multiplier.
+    const resolveGrind = (multiplier: number) => {
+      const spread = input.spreadMin + input.rng.next() * (input.spreadMax - input.spreadMin);
+      const critical = input.rng.next() < input.critChance;
+      const hit = physicalDamage(actor.str, target.def, spread);
+      const rolled = critical ? applyCritical(hit, input.critMultiplier) : hit;
+      const scaled = Math.max(1, Math.floor(rolled * multiplier));
+      const amount = guarded(scaled);
+      target.hp = Math.max(0, target.hp - amount);
+
+      events.push({
+        type: "grind",
+        actorId: actor.id,
+        targetId: target.id,
+        multiplier,
+      });
+      events.push({
+        type: "damaged",
+        actorId: actor.id,
+        targetId: target.id,
+        amount,
+        targetHp: target.hp,
+        critical,
+      });
+      defeatIfDown(events, hero, enemy, target, input.leveling);
+    };
+
     // A scripted action wins. Otherwise an enemy with a list rolls it, and anything left is Fight.
     const turn = taken.get(actor.id) ?? 0;
     taken.set(actor.id, turn + 1);
     const script = actor === hero ? input.heroActions : input.enemyActions;
     const scripted = script?.[turn];
-    let action: TurnAction = scripted ?? "fight";
+    let action: TurnAction = "fight";
 
-    if (scripted === undefined && actor === enemy && enemy.actions && enemy.actions.length > 0) {
-      const picked = pickWeighted(enemy.actions, input.rng.next());
+    // A recorded spell or grind plays out. An unpaid spell falls through to Fight.
+    if (typeof scripted === "object") {
+      if (scripted.type === "spell" && actor.mp >= scripted.cost) {
+        castSpell(scripted);
+        continue;
+      }
+      if (scripted.type === "grind") {
+        resolveGrind(scripted.multiplier);
+        continue;
+      }
+    } else if (typeof scripted === "string") {
+      action = scripted;
+    } else if (actor === hero && input.heroPolicy) {
+      const choice = input.heroPolicy(actor, target);
+      if (typeof choice === "string") {
+        action = choice;
+      } else if (actor.mp >= choice.cost) {
+        castSpell(choice);
+        continue;
+      }
+    } else if (actor === enemy && enemy.actions && enemy.actions.length > 0) {
+      const picked = pickWeighted(enemy.actions, (input.choiceRng ?? input.rng).next());
 
       // Pay for the spell and resolve it now. An unpaid spell falls through to Fight.
       if (picked.type === "spell" && actor.mp >= picked.cost) {
-        actor.mp -= picked.cost;
-        const spread = input.spreadMin + input.rng.next() * (input.spreadMax - input.spreadMin);
-        const multiplier = elementMultiplier(
-          picked.element,
-          target.weak,
-          target.resists,
-          input.weaknessMultiplier,
-          input.resistanceMultiplier,
-        );
-        const amount = magicDamage(picked.power, actor.mag, multiplier, spread);
-        target.hp = Math.max(0, target.hp - amount);
+        castSpell(picked);
+        continue;
+      }
 
-        events.push({
-          type: "spellCast",
-          actorId: actor.id,
-          spellId: picked.spellId,
-          targetId: target.id,
-          mp: actor.mp,
-        });
-        events.push({
-          type: "damaged",
-          actorId: actor.id,
-          targetId: target.id,
-          amount,
-          targetHp: target.hp,
-          critical: false,
-        });
-        defeatIfDown(events, hero, enemy, target, input.leveling);
+      if (picked.type === "grind") {
+        resolveGrind(picked.multiplier);
         continue;
       }
 
@@ -257,7 +331,7 @@ export function fight(input: FightInput): FightEvent[] {
     const critical = input.rng.next() < input.critChance;
     const hit = physicalDamage(actor.str, target.def, spread);
     const rolled = critical ? applyCritical(hit, input.critMultiplier) : hit;
-    const amount = defending.has(target.id) ? applyDefend(rolled, input.defendMultiplier) : rolled;
+    const amount = guarded(rolled);
     target.hp = Math.max(0, target.hp - amount);
     events.push({ type: "attacked", actorId: actor.id, targetId: target.id });
     events.push({

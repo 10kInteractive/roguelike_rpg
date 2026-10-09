@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 import { type FightEvent, fight } from "./fight";
+import { casterAction, fighterAction, type KnownSpell, randomAction } from "./policy";
 import type { Rng } from "./rng";
 import { createRng } from "./rng";
 
@@ -515,3 +516,159 @@ test("a hero's defeat ends the fight and grants no XP", () => {
     { type: "actorDefeated", actorId: "hero" },
   ]);
 });
+
+test("defend halves a spell", () => {
+  const events = fight({
+    ...fleeRules,
+    hero: { ...hero, haste: 12 },
+    enemy: imp,
+    rng: scripted([0.6]),
+    heroActions: ["defend"],
+  });
+  expect(events.slice(0, 3)).toEqual([
+    { type: "defended", actorId: "hero" },
+    { type: "spellCast", actorId: "imp", spellId: "spell.ember", targetId: "hero", mp: 0 },
+    {
+      type: "damaged",
+      actorId: "imp",
+      targetId: "hero",
+      amount: 7,
+      targetHp: 23,
+      critical: false,
+    },
+  ]);
+});
+
+test("grind multiplies the hit by 1.5 after a crit", () => {
+  const sentinel = {
+    id: "sentinel",
+    hp: 90,
+    str: 6,
+    def: 8,
+    haste: 20,
+    actions: [{ type: "grind" as const, multiplier: 1.5, weight: 1 }],
+  };
+  const plain = fight({
+    ...fleeRules,
+    hero,
+    enemy: sentinel,
+    rng: scripted([]),
+  });
+  const crit = fight({
+    ...fleeRules,
+    hero,
+    enemy: sentinel,
+    rng: scripted([]),
+    critChance: 1,
+  });
+  expect(plain.slice(0, 2)).toEqual([
+    { type: "grind", actorId: "sentinel", targetId: "hero", multiplier: 1.5 },
+    {
+      type: "damaged",
+      actorId: "sentinel",
+      targetId: "hero",
+      amount: 6,
+      targetHp: 24,
+      critical: false,
+    },
+  ]);
+  expect(crit[1]).toMatchObject({ amount: 9, critical: true });
+});
+
+test("the fighter drinks below 30% HP, then fights once healed", () => {
+  const events = fight({
+    ...fleeRules,
+    hero: { ...hero, hp: 8, maxHp: 30, potions: 1 },
+    enemy: slime,
+    rng: scripted([]),
+    heroPolicy: fighterAction,
+  });
+  expect(events.slice(0, 4)).toEqual([
+    { type: "itemUsed", actorId: "hero", itemId: "item.potion", amount: 22, hp: 30, remaining: 0 },
+    { type: "attacked", actorId: "slime", targetId: "hero" },
+    {
+      type: "damaged",
+      actorId: "slime",
+      targetId: "hero",
+      amount: 4,
+      targetHp: 26,
+      critical: false,
+    },
+    { type: "attacked", actorId: "hero", targetId: "slime" },
+  ]);
+});
+
+const spells: KnownSpell[] = [
+  { id: "spell.ember", element: "fire", power: 8, cost: 3 },
+  { id: "spell.frost", element: "ice", power: 8, cost: 3 },
+];
+
+test("the caster throws Frost at an ice weakness, then fights when MP is short", () => {
+  const events = fight({
+    ...fleeRules,
+    hero: { ...hero, mp: 4, mag: 6 },
+    enemy: { ...slime, hp: 40, weak: "ice" },
+    rng: scripted([]),
+    heroPolicy: (actor, target) => casterAction(actor, target, spells),
+  });
+  expect(events.slice(0, 6)).toEqual([
+    { type: "spellCast", actorId: "hero", spellId: "spell.frost", targetId: "slime", mp: 1 },
+    {
+      type: "damaged",
+      actorId: "hero",
+      targetId: "slime",
+      amount: 21,
+      targetHp: 19,
+      critical: false,
+    },
+    { type: "attacked", actorId: "slime", targetId: "hero" },
+    {
+      type: "damaged",
+      actorId: "slime",
+      targetId: "hero",
+      amount: 4,
+      targetHp: 26,
+      critical: false,
+    },
+    { type: "attacked", actorId: "hero", targetId: "slime" },
+    {
+      type: "damaged",
+      actorId: "hero",
+      targetId: "slime",
+      amount: 7,
+      targetHp: 12,
+      critical: false,
+    },
+  ]);
+});
+
+test("a random policy finishes a fight, including one it cannot flee", () => {
+  for (const seed of [1, 2, 42]) {
+    const rng = createRng(seed);
+    const events = fight({
+      ...fleeRules,
+      hero: { ...hero, mp: 10, mag: 6, potions: 3 },
+      enemy: slime,
+      rng,
+      heroPolicy: (actor) => randomAction(actor, spells, rng),
+    });
+    expect(fightEnded(events)).toBe(true);
+  }
+
+  const rng = createRng(7);
+  const events = fight({
+    ...fleeRules,
+    hero: { ...hero, mp: 10, mag: 6, potions: 1 },
+    enemy: { ...slime, hp: 30, miniboss: true },
+    rng,
+    heroPolicy: (actor) => randomAction(actor, spells, rng),
+  });
+  expect(events.some((event) => event.type === "fleeAttempted" && event.success)).toBe(false);
+  expect(fightEnded(events)).toBe(true);
+});
+
+function fightEnded(events: FightEvent[]): boolean {
+  return events.some(
+    (event) => event.type === "actorDefeated" || (event.type === "fleeAttempted" && event.success),
+  );
+}

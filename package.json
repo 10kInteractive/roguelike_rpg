@@ -13,6 +13,7 @@
     "test": "vitest run",
     "sim:purity": "tsx tools/check-sim-purity.ts",
     "content:check": "tsx tools/check-content.ts",
+    "sim": "tsx tools/sim.ts",
     "check": "npm run typecheck && biome check . && npm run test && npm run sim:purity && npm run content:check"
   },
   "engines": {
