@@ -1,0 +1,45 @@
+{
+  "id": "terrain.mountain.texture",
+  "generator": "tools/gen-placeholders.ts",
+  "seed": 5,
+  "size": 16,
+  "recipe": {
+    "id": "terrain.mountain.texture",
+    "seed": 5,
+    "palette": [
+      {
+        "color": [
+          122,
+          116,
+          112
+        ],
+        "weight": 5
+      },
+      {
+        "color": [
+          98,
+          92,
+          90
+        ],
+        "weight": 3
+      },
+      {
+        "color": [
+          150,
+          144,
+          138
+        ],
+        "weight": 2
+      },
+      {
+        "color": [
+          70,
+          66,
+          66
+        ],
+        "weight": 0.7
+      }
+    ]
+  },
+  "generatedAt": "2026-10-09T19:26:28.639Z"
+}

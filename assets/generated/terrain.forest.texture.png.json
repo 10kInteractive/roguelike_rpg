@@ -1,0 +1,37 @@
+{
+  "id": "terrain.forest.texture",
+  "generator": "tools/gen-placeholders.ts",
+  "seed": 2,
+  "size": 16,
+  "recipe": {
+    "id": "terrain.forest.texture",
+    "seed": 2,
+    "palette": [
+      {
+        "color": [
+          40,
+          92,
+          44
+        ],
+        "weight": 5
+      },
+      {
+        "color": [
+          30,
+          72,
+          36
+        ],
+        "weight": 4
+      },
+      {
+        "color": [
+          58,
+          112,
+          52
+        ],
+        "weight": 2
+      }
+    ]
+  },
+  "generatedAt": "2026-10-09T19:26:28.636Z"
+}

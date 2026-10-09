@@ -71,16 +71,17 @@ prototypes/
     main.tsx                boots the engine with this bundle
     config.ts               planned: engine features this prototype uses
     bundle/                 content bundle (see below)
-assets/                     planned
-  authored/                 hand-built, wins over generated
-  generated/                tool output plus provenance sidecars
-tools/
+assets/
+  authored/                 planned: hand-built, wins over generated
+  generated/                tool output, each file with a `.json` provenance sidecar
+tools/                      Node scripts. Their tests run with the rest under `npm run test`
   sim.ts                    headless sim CLI. The only place that prints.
   sim-commands.txt          copyable CLI lines
   read-bundle.ts            reads a bundle folder from disk for the CLI and checks
   check-content.ts          validates every bundle
   check-sim-purity.ts       fails if src/sim uses Math.random
-  gen-placeholders.ts       planned: writes placeholder pixel textures
+  gen-placeholders.ts       writes placeholder pixel textures: `npm run assets:placeholders`
+  placeholders/             PixelImage (a small PNG encoder) and the terrain texture recipes
 tests/
   e2e/                      planned: Playwright
 docs/
