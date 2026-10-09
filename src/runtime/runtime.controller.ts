@@ -17,6 +17,7 @@ import type { Terrain } from "../sim/field/map.types";
 import { PackFightController } from "../sim/run/pack.controller";
 import type { PackResult } from "../sim/run/pack.types";
 import { SeededRandomGenerator } from "../sim/utils/rng.controller";
+import { uiStore } from "../ui/store.controller";
 import { terrainTextureIds } from "../view/art/terrain-textures.constants";
 import { CombatViewController } from "../view/combat/view.controller";
 import { RenderLoopController } from "../view/renderer.controller";
@@ -82,10 +83,15 @@ export class GameRuntimeController {
         this.input.onStatus({ text: `${status} · pack ${result.outcome}` });
       } else {
         const who = options.gameloop === "ai" ? "ai" : "you";
-        const status = `Renderer backend: ${backend} · seed ${options.seed} · ${who}`;
-        this.input.onStatus({ text: status });
-        const end = await this.startField({ loop, bundle, textures, options });
-        this.input.onStatus({ text: `${status} · ${this.describeEnd(end)}` });
+        let seed = options.seed;
+        for (;;) {
+          const status = `Renderer backend: ${backend} · seed ${seed} · ${who}`;
+          this.input.onStatus({ text: status });
+          const end = await this.startField({ loop, bundle, textures, options, seed });
+          this.input.onStatus({ text: `${status} · ${this.describeEnd(end)}` });
+          await uiStore.requestRestart();
+          seed = Math.floor(Math.random() * 2 ** 32);
+        }
       }
     } catch (error) {
       console.error("[runtime] start failed", error);
@@ -112,20 +118,21 @@ export class GameRuntimeController {
     return textures;
   }
 
-  /** The seeded meadow, played by the stand-in until the run ends. */
+  /** The seeded meadow, played until the run ends. */
   private async startField(input: {
     loop: RenderLoopController;
     bundle: Bundle;
     textures: Partial<Record<Terrain, Texture>>;
     options: LaunchOptions;
+    seed: number;
   }): Promise<RunEnd> {
-    const { loop, bundle, textures, options } = input;
-    log(`field, seed ${options.seed}`);
+    const { loop, bundle, textures, options, seed } = input;
+    log(`field, seed ${seed}`);
     const end = await new GameLoopController({
       loop,
       bundle,
       textures,
-      seed: options.seed,
+      seed,
       cameraMode: options.camera,
       gameloop: options.gameloop,
     }).play();
@@ -133,7 +140,7 @@ export class GameRuntimeController {
     return end;
   }
 
-  /** The status line's ending, until the game over screen exists. */
+  /** The status line beside the ending screen: level, fights, and what killed you. */
   private describeEnd(end: RunEnd): string {
     const fights = end.fights === 1 ? "1 fight" : `${end.fights} fights`;
     if (end.outcome === "win") return `run won at level ${end.level} after ${fights}`;

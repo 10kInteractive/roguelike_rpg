@@ -11,4 +11,6 @@ export type UiState = {
   commands: MenuRow[] | null;
   /** Lines the log is showing, oldest first. */
   log: string[];
+  /** Milliseconds this run lasted. Null until the run ends, then frozen. */
+  playMs: number | null;
 };

@@ -283,7 +283,7 @@ src/                shared engine
     field/          field scene, follow camera, fixed sim step, interpolation
     combat/         combat scene and sequencer
   ui/               React DOM overlay and the zustand store
-    components/     command window, field HUD, message log
+    components/     command window, field HUD, message log, run ending
   input/            keyboard to a stick. Gamepad mapping is planned
   audio/            Web Audio mixer and music stems
   assets/           manifest resolver and loader service

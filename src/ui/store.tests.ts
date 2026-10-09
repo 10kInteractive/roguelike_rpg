@@ -181,3 +181,54 @@ test("a played hit adds its line, and the log keeps the latest six", () => {
   store.present({ ...fighting, mode: "field", combat: undefined });
   expect(store.log()).toEqual([]);
 });
+
+test("play time starts with the run and freezes when it ends", () => {
+  let now = 1_000;
+  const store = new UiStoreController(() => now);
+  store.present({ mode: "field" } as Snapshot);
+  now = 4_000;
+  store.present({ mode: "combat" } as Snapshot);
+  expect(store.playMs()).toBeNull();
+
+  now = 9_000;
+  store.present({ mode: "victory" } as Snapshot);
+  expect(store.playMs()).toBe(8_000);
+  now = 12_000;
+  store.present({ mode: "victory" } as Snapshot);
+  expect(store.playMs()).toBe(8_000);
+
+  store.present({ mode: "field" } as Snapshot);
+  expect(store.playMs()).toBeNull();
+  now = 13_500;
+  store.present({ mode: "gameOver" } as Snapshot);
+  expect(store.playMs()).toBe(1_500);
+});
+
+test("a confirm restarts, and one that arrives first still counts", async () => {
+  const store = new UiStoreController();
+  store.present({ mode: "victory" } as Snapshot);
+
+  let done = false;
+  const waiting = store.requestRestart().then(() => {
+    done = true;
+  });
+  expect(done).toBe(false);
+  store.confirmRestart();
+  await waiting;
+  expect(done).toBe(true);
+
+  store.confirmRestart();
+  await store.requestRestart();
+
+  store.present({ mode: "field" } as Snapshot);
+  store.confirmRestart();
+  let skipped = false;
+  const pending = store.requestRestart().then(() => {
+    skipped = true;
+  });
+  await Promise.resolve();
+  expect(skipped).toBe(false);
+  store.present({ mode: "gameOver" } as Snapshot);
+  store.confirmRestart();
+  await pending;
+});

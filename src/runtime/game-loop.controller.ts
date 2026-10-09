@@ -42,6 +42,9 @@ export class GameLoopController {
   /** The grinder's combat commands. Null when the player is choosing. */
   private readonly combat: CombatActionPolicy | null;
 
+  /** Keys for the player's walk. Null when the stand-in is walking. */
+  private readonly keys: KeyboardController | null;
+
   /** Terrain textures, shared by the field and every fight's backdrop. */
   private readonly textures: Partial<Record<Terrain, Texture>>;
 
@@ -77,6 +80,7 @@ export class GameLoopController {
       },
     });
     this.combat = input.gameloop === "ai" ? new CombatActionPolicy([], choiceRng) : null;
+    this.keys = input.gameloop === "ai" ? null : new KeyboardController();
 
     const snapshot = this.sim.observe();
     this.field = new FieldViewController({
@@ -85,10 +89,9 @@ export class GameLoopController {
       textures: this.textures,
       minibossId: snapshot.field.miniboss.id,
       seed: input.seed,
-      walk:
-        input.gameloop === "ai"
-          ? new StandInWalkController(this.sim, choiceRng)
-          : new PlayerWalkController(this.sim, new KeyboardController()),
+      walk: this.keys
+        ? new PlayerWalkController(this.sim, this.keys)
+        : new StandInWalkController(this.sim, choiceRng),
       cameraMode: input.cameraMode,
     });
 
@@ -106,20 +109,24 @@ export class GameLoopController {
 
   /** Walks and fights until the run ends. Resolves with how it ended. */
   async play(): Promise<RunEnd> {
-    uiStore.present(this.sim.observe());
-    for (;;) {
-      this.phase = "walking";
-      const started = await this.field.walkUntilFight();
+    try {
+      uiStore.present(this.sim.observe());
+      for (;;) {
+        this.phase = "walking";
+        const started = await this.field.walkUntilFight();
 
-      this.phase = "fighting";
-      await this.playFight(started);
-      const end = this.sim.observe();
-      const hero = end.hero;
-      log(`${end.mode}, level ${hero.level}, hp ${hero.hp}/${hero.maxHp}`);
-      if (end.mode === "victory" || end.mode === "gameOver") {
-        this.phase = end.mode === "victory" ? "won" : "lost";
-        return this.toRunEnd();
+        this.phase = "fighting";
+        await this.playFight(started);
+        const end = this.sim.observe();
+        const hero = end.hero;
+        log(`${end.mode}, level ${hero.level}, hp ${hero.hp}/${hero.maxHp}`);
+        if (end.mode === "victory" || end.mode === "gameOver") {
+          this.phase = end.mode === "victory" ? "won" : "lost";
+          return this.toRunEnd();
+        }
       }
+    } finally {
+      this.keys?.stop();
     }
   }
 

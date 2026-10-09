@@ -20,24 +20,52 @@ export class UiStoreController {
   /** The zustand store React subscribes to. */
   private readonly store: StoreApi<UiState>;
 
+  /** Wall clock in milliseconds. Tests pass their own. */
+  private readonly now: () => number;
+
+  /** When this run's clock started. Null before the first snapshot. */
+  private startedAt: number | null = null;
+
   /** Resolves the command the window is waiting on. */
   private resolver: ((action: Action) => void) | null = null;
 
-  constructor() {
+  /** Resolves the restart the runtime is waiting on. */
+  private restart: (() => void) | null = null;
+
+  /** A confirm arrived before the runtime asked to restart. */
+  private restartQueued = false;
+
+  /** @param now Wall clock in milliseconds. Tests pass their own. */
+  constructor(now: () => number = Date.now) {
+    this.now = now;
     this.store = createStore<UiState>(() => ({
       snapshot: null,
       pending: [],
       commands: null,
       log: [],
+      playMs: null,
     }));
   }
 
   /** Replaces the snapshot with the sim's latest. A fight's log clears once it is over. */
   present(snapshot: Snapshot): void {
-    const fighting = snapshot.mode === "combat";
+    const ended = this.ended(snapshot.mode);
+    const previous = this.store.getState();
+    const wasEnded = previous.snapshot !== null && this.ended(previous.snapshot.mode);
+
+    // A new run starts the clock. The next field after an ending is a new run.
+    if (!ended && (this.startedAt === null || wasEnded)) {
+      this.startedAt = this.now();
+      this.restartQueued = false;
+    }
+
+    // Freeze play time on the first ending snapshot. Later ones keep that time.
+    const playMs = ended ? (previous.playMs ?? this.now() - (this.startedAt ?? this.now())) : null;
+
     this.store.setState((state) => ({
       snapshot,
-      log: fighting ? state.log : [],
+      log: snapshot.mode === "combat" ? state.log : [],
+      playMs,
     }));
   }
 
@@ -106,6 +134,38 @@ export class UiStoreController {
     resolve(action);
   }
 
+  /**
+   * Waits until the ending screen is confirmed.
+   * A confirm that arrived first still counts.
+   */
+  requestRestart(): Promise<void> {
+    if (this.restartQueued) {
+      this.restartQueued = false;
+      return Promise.resolve();
+    }
+    return new Promise((resolve) => {
+      this.restart = resolve;
+    });
+  }
+
+  /** The ending screen confirmed a restart. Ignored while a run is going. */
+  confirmRestart(): void {
+    const mode = this.store.getState().snapshot?.mode;
+    if (!mode || !this.ended(mode)) return;
+    const resolve = this.restart;
+    if (!resolve) {
+      this.restartQueued = true;
+      return;
+    }
+    this.restart = null;
+    resolve();
+  }
+
+  /** How long the run lasted, once it has ended. Null before that. */
+  playMs(): number | null {
+    return this.store.getState().playMs;
+  }
+
   /** The zustand store, so a React hook can subscribe. */
   api(): StoreApi<UiState> {
     return this.store;
@@ -157,6 +217,11 @@ export class UiStoreController {
     }
   }
 
+  /** The run is on the victory or game over screen. */
+  private ended(mode: Snapshot["mode"]): boolean {
+    return mode === "victory" || mode === "gameOver";
+  }
+
   /** The mob after this event. The same mob when it did not touch them. */
   private enemyAfter(enemy: CombatantView, event: SimEvent): CombatantView {
     switch (event.type) {
@@ -191,4 +256,9 @@ export function useCommands(): UiState["commands"] {
 /** The lines on the log, oldest first. */
 export function useMessageLog(): readonly string[] {
   return useStore(uiStore.api(), (state) => state.log);
+}
+
+/** How long the run lasted, once it has ended. Null before that. */
+export function usePlayMs(): number | null {
+  return useStore(uiStore.api(), (state) => state.playMs);
 }

@@ -16,17 +16,38 @@ const moveCodes = new Set([
 /**
  * The keys held right now, as a stick the field can step with.
  *
- * One per page. The command window reads its own key presses while it is open.
+ * One walk at a time. The command window reads its own key presses while it is open.
  */
 export class KeyboardController {
   /** Codes currently held. */
   private readonly held = new Set<string>();
 
-  /** Starts listening. Call once for the page. */
+  /** Remembers a move key. */
+  private readonly onKeyDown = (event: KeyboardEvent) => this.press(event);
+
+  /** Forgets a move key. */
+  private readonly onKeyUp = (event: KeyboardEvent) => {
+    this.held.delete(event.code);
+  };
+
+  /** A lost window holds nothing. */
+  private readonly onBlur = () => {
+    this.held.clear();
+  };
+
+  /** Starts listening. One walk at a time; `stop` before the next run. */
   constructor() {
-    window.addEventListener("keydown", (event) => this.press(event));
-    window.addEventListener("keyup", (event) => this.held.delete(event.code));
-    window.addEventListener("blur", () => this.held.clear());
+    window.addEventListener("keydown", this.onKeyDown);
+    window.addEventListener("keyup", this.onKeyUp);
+    window.addEventListener("blur", this.onBlur);
+  }
+
+  /** Stops listening, so the next run can take the keys. */
+  stop(): void {
+    window.removeEventListener("keydown", this.onKeyDown);
+    window.removeEventListener("keyup", this.onKeyUp);
+    window.removeEventListener("blur", this.onBlur);
+    this.held.clear();
   }
 
   /** The stick for the keys held now. No keys is a still stick. */
