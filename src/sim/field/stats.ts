@@ -1,4 +1,4 @@
-import type { FightEvent } from "../combat/fight";
+import type { FightEvent } from "../combat/fight.types";
 
 /** The numbers on the victory and game over screens. Play time is clocked by the UI. */
 export type RunStats = {

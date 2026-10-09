@@ -1,4 +1,4 @@
-import type { EnemyAction, Fighter } from "../sim/combat/fight";
+import type { EnemyAction, Fighter } from "../sim/combat/fight.types";
 import type { Bundle } from "./schema";
 
 type Mob = Bundle["mobs"]["mobs"][number];

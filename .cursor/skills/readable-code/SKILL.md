@@ -3,12 +3,12 @@ name: readable-code
 description: >-
   Keeps TypeScript readable as procedures grow. Use when writing or editing
   functions and classes in this project, especially src/sim, and when the user
-  mentions readability, comments, JSDoc, grouping, classes, or fight.ts.
+  mentions readability, comments, JSDoc, grouping, classes, or fight.controller.ts.
 ---
 
 # Readable code
 
-Josh favors classes. A class is the shape for a unit that owns state and several operations. A single function is fine while the behavior is still one procedure. `fight` stays a function until Josh asks to split it.
+Josh favors classes. A class is the shape for a unit that owns state and several operations. A single function is fine while the behavior is still one formula. A fight is `OneOnOneFightController`, and `resolve()` plays it.
 
 ## Inside a procedure
 
@@ -49,4 +49,4 @@ Backfilling older declarations is its own cleanup, not part of a feature stage.
 
 ## When a function is no longer one procedure
 
-Move it to a class when the same state is threaded through several operations and the body is hard to follow as one function. Ask Josh before that split. Until then, blank lines and activity comments are the way to grow the procedure.
+Move it to a controller when the same state is threaded through several operations. A new formula stays a function until it starts owning state. Until then, blank lines and activity comments are the way to grow the procedure.

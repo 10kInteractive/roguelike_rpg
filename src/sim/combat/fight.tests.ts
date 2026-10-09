@@ -1,13 +1,14 @@
 import { expect, test } from "vitest";
 import { type Rng, SeededRandomGenerator } from "../rng";
-import { type FightEvent, fight } from "./fight";
+import { OneOnOneFightController } from "./fight.controller";
+import type { FightEvent } from "./fight.types";
 import { casterAction, fighterAction, type KnownSpell, randomAction } from "./policy";
 
 const hero = { id: "hero", hp: 30, str: 8, def: 4, haste: 8, hero: true };
 const slime = { id: "slime", hp: 12, str: 6, def: 2, haste: 5 };
 
 function heroVersusSlime(rng: Rng): FightEvent[] {
-  return fight({
+  return new OneOnOneFightController({
     hero,
     enemy: slime,
     rng,
@@ -24,7 +25,7 @@ function heroVersusSlime(rng: Rng): FightEvent[] {
     fleePerPoint: 0.05,
     fleeMin: 0.1,
     fleeMax: 0.9,
-  });
+  }).resolve();
 }
 
 function scripted(values: number[]): Rng {
@@ -92,7 +93,7 @@ test("the same seed plays the same fight", () => {
 });
 
 test("defend halves the next hit and ends on that actor's next turn", () => {
-  const events = fight({
+  const events = new OneOnOneFightController({
     hero,
     enemy: slime,
     rng: scripted([]),
@@ -110,7 +111,7 @@ test("defend halves the next hit and ends on that actor's next turn", () => {
     fleeMin: 0.1,
     fleeMax: 0.9,
     heroActions: ["defend"],
-  });
+  }).resolve();
   expect(events.slice(0, 7)).toEqual([
     { type: "defended", actorId: "hero" },
     { type: "attacked", actorId: "slime", targetId: "hero" },
@@ -144,7 +145,7 @@ test("defend halves the next hit and ends on that actor's next turn", () => {
 });
 
 test("a crit is halved while the target is defending", () => {
-  const events = fight({
+  const events = new OneOnOneFightController({
     hero,
     enemy: slime,
     rng: scripted([]),
@@ -162,7 +163,7 @@ test("a crit is halved while the target is defending", () => {
     fleeMin: 0.1,
     fleeMax: 0.9,
     heroActions: ["defend"],
-  });
+  }).resolve();
   expect(events[2]).toEqual({
     type: "damaged",
     actorId: "slime",
@@ -174,7 +175,7 @@ test("a crit is halved while the target is defending", () => {
 });
 
 test("a potion heals, spends the turn, and stops at maximum HP", () => {
-  const events = fight({
+  const events = new OneOnOneFightController({
     hero: { ...hero, hp: 5, maxHp: 30, potions: 2 },
     enemy: slime,
     rng: scripted([]),
@@ -192,7 +193,7 @@ test("a potion heals, spends the turn, and stops at maximum HP", () => {
     fleeMin: 0.1,
     fleeMax: 0.9,
     heroActions: ["potion", "potion"],
-  });
+  }).resolve();
   expect(events.slice(0, 4)).toEqual([
     {
       type: "itemUsed",
@@ -223,7 +224,7 @@ test("a potion heals, spends the turn, and stops at maximum HP", () => {
 });
 
 test("a potion at full HP is spent and restores nothing", () => {
-  const events = fight({
+  const events = new OneOnOneFightController({
     hero: { ...hero, potions: 1 },
     enemy: slime,
     rng: scripted([]),
@@ -241,7 +242,7 @@ test("a potion at full HP is spent and restores nothing", () => {
     fleeMin: 0.1,
     fleeMax: 0.9,
     heroActions: ["potion"],
-  });
+  }).resolve();
   expect(events[0]).toEqual({
     type: "itemUsed",
     actorId: "hero",
@@ -253,7 +254,7 @@ test("a potion at full HP is spent and restores nothing", () => {
 });
 
 test("a potion with none left spends the turn and restores nothing", () => {
-  const events = fight({
+  const events = new OneOnOneFightController({
     hero: { ...hero, hp: 5, maxHp: 30, potions: 0 },
     enemy: slime,
     rng: scripted([]),
@@ -271,7 +272,7 @@ test("a potion with none left spends the turn and restores nothing", () => {
     fleeMin: 0.1,
     fleeMax: 0.9,
     heroActions: ["potion"],
-  });
+  }).resolve();
   expect(events.slice(0, 2)).toEqual([
     {
       type: "itemUsed",
@@ -302,20 +303,20 @@ const fleeRules = {
 };
 
 test("a roll below the flee chance escapes and a roll of the chance does not", () => {
-  const fled = fight({
+  const fled = new OneOnOneFightController({
     ...fleeRules,
     hero,
     enemy: slime,
     rng: scripted([0]),
     heroActions: ["flee"],
-  });
-  const stayed = fight({
+  }).resolve();
+  const stayed = new OneOnOneFightController({
     ...fleeRules,
     hero,
     enemy: slime,
     rng: scripted([0.65]),
     heroActions: ["flee"],
-  });
+  }).resolve();
   expect(fled).toEqual([{ type: "fleeAttempted", actorId: "hero", success: true, chance: 0.65 }]);
   expect(stayed.slice(0, 2)).toEqual([
     { type: "fleeAttempted", actorId: "hero", success: false, chance: 0.65 },
@@ -324,20 +325,20 @@ test("a roll below the flee chance escapes and a roll of the chance does not", (
 });
 
 test("flee chance stays between 10% and 90%", () => {
-  const capped = fight({
+  const capped = new OneOnOneFightController({
     ...fleeRules,
     hero: { ...hero, haste: 30 },
     enemy: slime,
     rng: scripted([0.9]),
     heroActions: ["flee"],
-  });
-  const floored = fight({
+  }).resolve();
+  const floored = new OneOnOneFightController({
     ...fleeRules,
     hero: { ...hero, haste: 1 },
     enemy: { ...slime, haste: 20, str: 1 },
     rng: scripted([0, 0, 0.09]),
     heroActions: ["flee"],
-  });
+  }).resolve();
   expect(capped[0]).toEqual({
     type: "fleeAttempted",
     actorId: "hero",
@@ -353,7 +354,7 @@ test("flee chance stays between 10% and 90%", () => {
 });
 
 test("a miniboss cannot be fled, and the attempt does not roll", () => {
-  const events = fight({
+  const events = new OneOnOneFightController({
     ...fleeRules,
     hero,
     enemy: { ...slime, miniboss: true },
@@ -362,7 +363,7 @@ test("a miniboss cannot be fled, and the attempt does not roll", () => {
     spreadMax: 1.1,
     critChance: 0.05,
     heroActions: ["flee"],
-  });
+  }).resolve();
   expect(events.slice(0, 3)).toEqual([
     { type: "fleeAttempted", actorId: "hero", success: false, chance: 0 },
     { type: "attacked", actorId: "slime", targetId: "hero" },
@@ -398,18 +399,18 @@ const imp = {
 };
 
 test("an enemy rolls its action list, so 60/40 is attack then ember", () => {
-  const attack = fight({
+  const attack = new OneOnOneFightController({
     ...fleeRules,
     hero,
     enemy: imp,
     rng: scripted([0]),
-  });
-  const cast = fight({
+  }).resolve();
+  const cast = new OneOnOneFightController({
     ...fleeRules,
     hero,
     enemy: imp,
     rng: scripted([0.6]),
-  });
+  }).resolve();
   expect(attack[0]).toEqual({ type: "attacked", actorId: "imp", targetId: "hero" });
   expect(cast.slice(0, 2)).toEqual([
     { type: "spellCast", actorId: "imp", spellId: "spell.ember", targetId: "hero", mp: 0 },
@@ -425,13 +426,13 @@ test("an enemy rolls its action list, so 60/40 is attack then ember", () => {
 });
 
 test("an ember the enemy cannot afford is a fight instead", () => {
-  const events = fight({
+  const events = new OneOnOneFightController({
     ...fleeRules,
     hero,
     enemy: imp,
     rng: scripted([0.6, 0, 0.6, 0, 0]),
     heroActions: ["potion"],
-  });
+  }).resolve();
   expect(events.slice(0, 5)).toEqual([
     { type: "spellCast", actorId: "imp", spellId: "spell.ember", targetId: "hero", mp: 0 },
     {
@@ -462,13 +463,13 @@ const leveling = {
 };
 
 test("a win grants XP, and 6 XP raises a level", () => {
-  const events = fight({
+  const events = new OneOnOneFightController({
     ...fleeRules,
     hero: { ...hero, xp: 3, mp: 1, maxMp: 10, mag: 6 },
     enemy: { ...slime, hp: 7, xpReward: 3 },
     rng: scripted([]),
     leveling,
-  });
+  }).resolve();
   expect(events).toEqual([
     { type: "attacked", actorId: "hero", targetId: "slime" },
     {
@@ -497,13 +498,13 @@ test("a win grants XP, and 6 XP raises a level", () => {
 });
 
 test("a hero's defeat ends the fight and grants no XP", () => {
-  const events = fight({
+  const events = new OneOnOneFightController({
     ...fleeRules,
     hero: { ...hero, hp: 1, xp: 3 },
     enemy: { ...slime, haste: 20, xpReward: 3 },
     rng: scripted([]),
     leveling,
-  });
+  }).resolve();
   expect(events).toEqual([
     { type: "attacked", actorId: "slime", targetId: "hero" },
     {
@@ -519,13 +520,13 @@ test("a hero's defeat ends the fight and grants no XP", () => {
 });
 
 test("defend halves a spell", () => {
-  const events = fight({
+  const events = new OneOnOneFightController({
     ...fleeRules,
     hero: { ...hero, haste: 12 },
     enemy: imp,
     rng: scripted([0.6]),
     heroActions: ["defend"],
-  });
+  }).resolve();
   expect(events.slice(0, 3)).toEqual([
     { type: "defended", actorId: "hero" },
     { type: "spellCast", actorId: "imp", spellId: "spell.ember", targetId: "hero", mp: 0 },
@@ -549,19 +550,19 @@ test("grind multiplies the hit by 1.5 after a crit", () => {
     haste: 20,
     actions: [{ type: "grind" as const, multiplier: 1.5, weight: 1 }],
   };
-  const plain = fight({
+  const plain = new OneOnOneFightController({
     ...fleeRules,
     hero,
     enemy: sentinel,
     rng: scripted([]),
-  });
-  const crit = fight({
+  }).resolve();
+  const crit = new OneOnOneFightController({
     ...fleeRules,
     hero,
     enemy: sentinel,
     rng: scripted([]),
     critChance: 1,
-  });
+  }).resolve();
   expect(plain.slice(0, 2)).toEqual([
     { type: "grind", actorId: "sentinel", targetId: "hero", multiplier: 1.5 },
     {
@@ -577,13 +578,13 @@ test("grind multiplies the hit by 1.5 after a crit", () => {
 });
 
 test("the fighter drinks below 30% HP, then fights once healed", () => {
-  const events = fight({
+  const events = new OneOnOneFightController({
     ...fleeRules,
     hero: { ...hero, hp: 8, maxHp: 30, potions: 1 },
     enemy: slime,
     rng: scripted([]),
     heroPolicy: fighterAction,
-  });
+  }).resolve();
   expect(events.slice(0, 4)).toEqual([
     { type: "itemUsed", actorId: "hero", itemId: "item.potion", amount: 22, hp: 30, remaining: 0 },
     { type: "attacked", actorId: "slime", targetId: "hero" },
@@ -605,13 +606,13 @@ const spells: KnownSpell[] = [
 ];
 
 test("the caster throws Frost at an ice weakness, then fights when MP is short", () => {
-  const events = fight({
+  const events = new OneOnOneFightController({
     ...fleeRules,
     hero: { ...hero, mp: 4, mag: 6 },
     enemy: { ...slime, hp: 40, weak: "ice" },
     rng: scripted([]),
     heroPolicy: (actor, target) => casterAction(actor, target, spells),
-  });
+  }).resolve();
   expect(events.slice(0, 6)).toEqual([
     { type: "spellCast", actorId: "hero", spellId: "spell.frost", targetId: "slime", mp: 1 },
     {
@@ -646,24 +647,24 @@ test("the caster throws Frost at an ice weakness, then fights when MP is short",
 test("a random policy finishes a fight, including one it cannot flee", () => {
   for (const seed of [1, 2, 42]) {
     const rng = new SeededRandomGenerator(seed);
-    const events = fight({
+    const events = new OneOnOneFightController({
       ...fleeRules,
       hero: { ...hero, mp: 10, mag: 6, potions: 3 },
       enemy: slime,
       rng,
       heroPolicy: (actor) => randomAction(actor, spells, rng),
-    });
+    }).resolve();
     expect(fightEnded(events)).toBe(true);
   }
 
   const rng = new SeededRandomGenerator(7);
-  const events = fight({
+  const events = new OneOnOneFightController({
     ...fleeRules,
     hero: { ...hero, mp: 10, mag: 6, potions: 1 },
     enemy: { ...slime, hp: 30, miniboss: true },
     rng,
     heroPolicy: (actor) => randomAction(actor, spells, rng),
-  });
+  }).resolve();
   expect(events.some((event) => event.type === "fleeAttempted" && event.success)).toBe(false);
   expect(fightEnded(events)).toBe(true);
 });

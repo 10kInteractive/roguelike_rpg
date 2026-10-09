@@ -1,4 +1,5 @@
-import { type FightEvent, type Fighter, fight } from "../combat/fight";
+import { OneOnOneFightController } from "../combat/fight.controller";
+import type { FightEvent, Fighter } from "../combat/fight.types";
 import type { LevelRules } from "../combat/level";
 import { fighterAction } from "../combat/policy";
 import { type Rng, SeededRandomGenerator } from "../rng";
@@ -185,7 +186,7 @@ export function runField(input: {
       for (let count = 0; count < group.count; count++) {
         const mob = input.mobs.get(group.id);
         if (!mob) throw new Error(`Unknown mob "${group.id}"`);
-        const events = fight({
+        const events = new OneOnOneFightController({
           hero: { ...hero, hero: true },
           enemy: mob.fighter,
           rng: combatRng,
@@ -193,7 +194,7 @@ export function runField(input: {
           ...input.combat,
           leveling: input.leveling,
           heroPolicy: fighterAction,
-        });
+        }).resolve();
         fights += 1;
         const actions = countActions(events, hero.id);
         heroActions += actions.hero;

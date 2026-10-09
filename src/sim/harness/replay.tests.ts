@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { fight } from "../combat/fight";
+import { OneOnOneFightController } from "../combat/fight.controller";
 import { type KnownSpell, randomAction } from "../combat/policy";
 import { SeededRandomGenerator } from "../rng";
 import { actionsFrom, eventHash, outcomeFrom, toScriptedActions } from "./replay";
@@ -39,26 +39,26 @@ const rules = {
 
 test("the same seed and action list hash the same, and a different action does not", () => {
   const played = () =>
-    fight({
+    new OneOnOneFightController({
       ...rules,
       hero,
       enemy: slime,
       rng: new SeededRandomGenerator(1),
       heroActions: ["fight", "potion"],
       enemyActions: ["fight", "fight"],
-    });
+    }).resolve();
   const once = played();
   const twice = played();
   expect(eventHash(once)).toBe(eventHash(twice));
 
-  const other = fight({
+  const other = new OneOnOneFightController({
     ...rules,
     hero,
     enemy: slime,
     rng: new SeededRandomGenerator(1),
     heroActions: ["defend", "potion"],
     enemyActions: ["fight", "fight"],
-  });
+  }).resolve();
   expect(eventHash(other)).not.toBe(eventHash(once));
 });
 
@@ -72,23 +72,23 @@ test("a recorded fight replays to the same hash", () => {
   };
   const combat = new SeededRandomGenerator(4);
   const choice = new SeededRandomGenerator(4);
-  const events = fight({
+  const events = new OneOnOneFightController({
     ...rules,
     hero,
     enemy,
     rng: combat,
     choiceRng: choice,
     heroPolicy: (actor) => randomAction(actor, spells, choice),
-  });
+  }).resolve();
   const actions = actionsFrom(events, hero.id);
-  const replayed = fight({
+  const replayed = new OneOnOneFightController({
     ...rules,
     hero,
     enemy,
     rng: new SeededRandomGenerator(4),
     heroActions: toScriptedActions(actions.hero, spells),
     enemyActions: toScriptedActions(actions.enemy, spells),
-  });
+  }).resolve();
   expect(eventHash(replayed)).toBe(eventHash(events));
   expect(outcomeFrom(events, hero.id)).toBe(outcomeFrom(replayed, hero.id));
 });

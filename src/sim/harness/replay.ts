@@ -1,4 +1,4 @@
-import type { FightEvent, ScriptedAction } from "../combat/fight";
+import type { FightEvent, ScriptedAction } from "../combat/fight.types";
 import type { KnownSpell } from "../combat/policy";
 
 /**

@@ -524,7 +524,7 @@ The sim, the content bundle, and the headless harness are in good enough shape t
 | Path | Role |
 | --- | --- |
 | `src/sim` | Pure, seeded game rules. No DOM, React, or Three.js. |
-| `src/sim/combat` | Damage, haste queue, weighted picks, flee, leveling, combat policies, and `fight`. |
+| `src/sim/combat` | Damage, haste queue, weighted picks, flee, leveling, combat policies, and `OneOnOneFightController`. |
 | `src/sim/field` | Meadow generation, stick movement, collision, encounters, walking policies, run stats, and the grinder run loop. |
 | `src/sim/harness` | Replay hashing, combat seed sweeps, and the grinder field sweep. This drives the sim. It is not a rule. |
 | `src/content` | Zod schemas, bundle loading, and turning bundle rows into fighters. |

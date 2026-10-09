@@ -3,7 +3,8 @@ import path from "node:path";
 import { toEnemy, toHero } from "../src/content/fighters.ts";
 import { loadBundle } from "../src/content/load.ts";
 import type { Bundle } from "../src/content/schema.ts";
-import { type FightEvent, fight } from "../src/sim/combat/fight.ts";
+import { OneOnOneFightController } from "../src/sim/combat/fight.controller.ts";
+import type { FightEvent } from "../src/sim/combat/fight.types.ts";
 import {
   casterAction,
   fighterAction,
@@ -151,7 +152,7 @@ function play(
   const spells = live?.spells ?? knownSpells(bundle);
   const recorded = actions ? toScriptedActions(actions.hero, spells) : undefined;
   const enemyActions = actions ? toScriptedActions(actions.enemy, spells) : undefined;
-  return fight({
+  return new OneOnOneFightController({
     hero: toHero(bundle.hero),
     enemy: toEnemy(mob, bundle.spells.spells),
     rng: live?.combat ?? new SeededRandomGenerator(seed),
@@ -183,7 +184,7 @@ function play(
         : live?.policy === "random"
           ? (hero) => randomAction(hero, spells, live.choice)
           : fighterAction,
-  });
+  }).resolve();
 }
 
 function readLog(file: string): RunLog {

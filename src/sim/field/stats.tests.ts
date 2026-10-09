@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { fight } from "../combat/fight";
+import { OneOnOneFightController } from "../combat/fight.controller";
 import { type Rng, SeededRandomGenerator } from "../rng";
 import { createEncounterState, walk } from "./encounters";
 import { createRunStats, recordFight, recordWalk } from "./stats";
@@ -50,7 +50,12 @@ test("a walk and a won fight record distance, damage, and the seed", () => {
     rng: rolls([]),
     state: createEncounterState(4),
   });
-  const events = fight({ ...rules, hero, enemy: slime, rng: new SeededRandomGenerator(1) });
+  const events = new OneOnOneFightController({
+    ...rules,
+    hero,
+    enemy: slime,
+    rng: new SeededRandomGenerator(1),
+  }).resolve();
   const stats = recordFight(
     recordWalk(createRunStats(42, 1), walked.distance),
     events,
@@ -74,26 +79,26 @@ test("a walk and a won fight record distance, damage, and the seed", () => {
 
 test("a drink at full HP counts, a flee counts, and a defeat names the mob", () => {
   const flat = { ...rules, spreadMin: 1, spreadMax: 1, critChance: 0 };
-  const drank = fight({
+  const drank = new OneOnOneFightController({
     ...flat,
     hero: { ...hero, potions: 1 },
     enemy: slime,
     rng: rolls([]),
     heroActions: ["potion"],
-  });
-  const fled = fight({
+  }).resolve();
+  const fled = new OneOnOneFightController({
     ...flat,
     hero,
     enemy: slime,
     rng: rolls([0]),
     heroActions: ["flee"],
-  });
-  const lost = fight({
+  }).resolve();
+  const lost = new OneOnOneFightController({
     ...flat,
     hero: { ...hero, hp: 1 },
     enemy: { ...slime, haste: 20 },
     rng: rolls([]),
-  });
+  }).resolve();
 
   const afterDrink = recordFight(createRunStats(7, 1), drank, "hero", "mob.slime");
   expect(afterDrink.potionsUsed).toBe(1);
@@ -112,7 +117,7 @@ test("a drink at full HP counts, a flee counts, and a defeat names the mob", () 
 });
 
 test("a win that pays for a level records the new level", () => {
-  const events = fight({
+  const events = new OneOnOneFightController({
     ...rules,
     spreadMin: 1,
     spreadMax: 1,
@@ -125,7 +130,7 @@ test("a win that pays for a level records the new level", () => {
       levelCap: 10,
       growth: { hp: 6, mp: 2, str: 2, def: 1, mag: 1, haste: 1 },
     },
-  });
+  }).resolve();
   const stats = recordFight(createRunStats(7, 1), events, "hero", "mob.slime");
   expect(stats.level).toBe(2);
   expect(stats.fightsWon).toBe(1);
