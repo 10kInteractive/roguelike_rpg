@@ -75,7 +75,7 @@ test("a stick past the limit is refused", () => {
   expect(sim.observe().stats.distance).toBe(0);
 });
 
-test("the first fight of seed 7 opens on the hero's turn and ends in a defeat", () => {
+test("the first fight of seed 7 opens on the hero's turn and is won", () => {
   const choiceRng = new SeededRandomGenerator(7);
   const sim = createSim({
     bundle,
@@ -115,10 +115,10 @@ test("the first fight of seed 7 opens on the hero's turn and ends in a defeat", 
   }
 
   const end = sim.observe();
-  expect(end.mode).toBe("gameOver");
-  expect(end.stats.killedBy).toBe("mob.ember_imp");
-  expect(sim.legalActions()).toEqual([]);
-  expect(() => sim.act({ type: "move", x: 0, y: 0 })).toThrow(/run is over/);
+  expect(end.mode).toBe("field");
+  expect(end.hero).toMatchObject({ level: 2, hp: 36, maxHp: 36, potions: 2 });
+  expect(end.stats.fightsWon).toBe(2);
+  expect(end.combat).toBeUndefined();
 });
 
 test("a seed played one action at a time matches the headless grinder run", () => {

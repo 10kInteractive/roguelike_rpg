@@ -331,11 +331,13 @@ Starts with spells Ember and Frost, and 3 potions.
 | ID | HP | STR | DEF | MAG | HST | Element | Weak | Resists | XP | Actions |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `mob.slime` | 12 | 6 | 2 | 0 | 5 | — | — | — | 3 | attack |
-| `mob.ember_imp` | 14 | 6 | 3 | 6 | 9 | fire | ice | fire | 5 | attack 60, Ember 40 |
-| `mob.frost_moth` | 10 | 5 | 2 | 5 | 12 | ice | fire | ice | 5 | attack 60, Frost 40 |
+| `mob.ember_imp` | 14 | 6 | 3 | 0 | 9 | fire | ice | fire | 5 | attack 60, Ember 40 |
+| `mob.frost_moth` | 10 | 5 | 2 | 0 | 12 | ice | fire | ice | 5 | attack 60, Frost 40 |
 | `mob.rust_sentinel` (miniboss) | 90 | 13 | 8 | 0 | 6 | — | ice | fire | 40 | attack 70, Grind (×1.5) 30 |
 
 Every regular mob has a 15% potion drop. The Rust Sentinel is a machina, a small first hint of the tech undercurrent. Beating it ends the run, so it has no drops.
+
+The imp and the moth have no magic, so their Ember and Frost hit for the spell's power alone, 7 or 8. A punch is 3 or 4. Strider's own spells still add his magic.
 
 **Encounters (weights per terrain)**
 
