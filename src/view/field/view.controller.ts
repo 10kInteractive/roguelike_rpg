@@ -1,10 +1,10 @@
 import type { Texture } from "three";
 import { debugLog } from "../../debug/logger.controller";
 import { debugWatches } from "../../debug/watch.controller";
-import type { EncounterEvent } from "../../sim/field/encounters.types";
 import type { MeadowMap, Terrain } from "../../sim/field/map.types";
 import { tickRate } from "../../sim/field/movement.constants";
 import type { Position } from "../../sim/field/movement.types";
+import type { SimEvent } from "../../sim/game.types";
 import type { RenderLoopController } from "../renderer.controller";
 import { FixedStepClock } from "./fixed-step.controller";
 import { FollowCameraController } from "./follow-camera.controller";
@@ -46,13 +46,8 @@ export class FieldViewController {
   /** Trails the hero. Null when the camera is fixed over the whole meadow. */
   private readonly follow: FollowCameraController | null;
 
-  /** The fight the walk is waiting for. Null while no walk is running. */
-  private waiting: {
-    /** The hero's level, which steers the grinder. */
-    level: number;
-    /** Hands the fight to the caller. */
-    resolve: (encounter: EncounterEvent) => void;
-  } | null = null;
+  /** Hands the fight's events to the caller. Null while no walk is running. */
+  private waiting: ((events: readonly SimEvent[]) => void) | null = null;
 
   /** Which way the hero faces now, in radians. 0 faces south. */
   private facing = 0;
@@ -117,12 +112,11 @@ export class FieldViewController {
    * Draws the field every frame and walks until a fight starts.
    * The hero stays where the walk left them, so the next call carries on from there.
    *
-   * @param level The hero's level, which decides when the grinder heads for the miniboss.
-   * @returns The fight that stopped the walk.
+   * @returns The events of the move that started the fight, through the hero's first decision.
    */
-  walkUntilFight(level: number): Promise<EncounterEvent> {
+  walkUntilFight(): Promise<readonly SimEvent[]> {
     return new Promise((resolve) => {
-      this.waiting = { level, resolve };
+      this.waiting = resolve;
       this.aim();
       void this.loop.run(this.field.scene, (elapsed) => this.frame(elapsed));
     });
@@ -132,16 +126,19 @@ export class FieldViewController {
   private frame(elapsedSeconds: number): void {
     const steps = this.clock.advance(elapsedSeconds);
     for (let i = 0; i < steps && this.waiting; i++) {
-      const step = this.walk.step(this.waiting.level);
+      const step = this.walk.step();
       this.motion.push(step.position);
       this.simTick += 1;
 
       // The fight starts on this tick. Later steps wait for the next walk.
-      if (step.encounter) {
-        const { resolve } = this.waiting;
+      const resolve = this.waiting;
+      if (resolve && step.events.length > 0) {
         this.waiting = null;
-        log(`fight on ${step.encounter.terrain}, tick ${this.simTick}`, step.encounter.groups);
-        resolve(step.encounter);
+        const started = step.events.find((event) => event.type === "encounterStarted");
+        if (started?.type === "encounterStarted") {
+          log(`fight on ${started.terrain}, tick ${this.simTick}`, started.groups);
+        }
+        resolve(step.events);
       }
     }
 

@@ -16,9 +16,9 @@ import {
   levelRulesFromBundle,
   runMobsFromBundle,
 } from "../../content/rules";
+import { createSim } from "../../sim";
 import { CombatActionPolicy } from "../../sim/combat/policy.controller";
 import { createSeededMeadow } from "../../sim/field/map";
-import { PackFightController } from "../../sim/run/pack.controller";
 import { GrinderFieldRunController } from "../../sim/run/run.controller";
 import { SeededRandomGenerator } from "../../sim/utils/rng.controller";
 import { StandInWalkController } from "./stand-in-walk.controller";
@@ -56,42 +56,49 @@ function setup(seed: number) {
   };
 }
 
-/** Walks one tick at a time and fights each pack, until the miniboss or the hero falls. */
+/** Walks one tick at a time and answers each hero turn, until the miniboss or the hero falls. */
 function walkTickByTick(seed: number) {
-  const input = setup(seed);
-  const fieldRng = new SeededRandomGenerator(seed);
   const choiceRng = new SeededRandomGenerator(seed);
-  const policy = new CombatActionPolicy([], choiceRng);
-  const packs = new PackFightController({
-    ...input,
-    heroPolicy: (fighter) => policy.chooseFighter(fighter),
-    rngs: { drops: fieldRng, choice: choiceRng, combat: new SeededRandomGenerator(seed) },
+  const sim = createSim({
+    bundle,
+    seed,
+    rngs: {
+      field: new SeededRandomGenerator(seed),
+      choice: choiceRng,
+      combat: new SeededRandomGenerator(seed),
+    },
   });
-  const walk = new StandInWalkController({ ...input, fieldRng, choiceRng });
+  const walk = new StandInWalkController(sim, choiceRng);
+  const combat = new CombatActionPolicy([], choiceRng);
 
-  let distance = 0;
-  let fights = 0;
   let bossLevel: number | undefined;
   for (let tick = 0; tick < 200_000; tick++) {
-    const step = walk.step(packs.hero().level);
-    distance += step.distance;
-    if (!step.encounter) continue;
+    const level = sim.observe().hero.level;
+    const step = walk.step();
+    if (step.events.length === 0) continue;
+    if (step.events.some((event) => event.type === "encounterStarted" && event.miniboss)) {
+      bossLevel = level;
+    }
 
-    if (step.encounter.miniboss) bossLevel = packs.hero().level;
-    const result = packs.fight(step.encounter.groups, step.encounter.miniboss);
-    fights += result.fights.length;
-    if (result.outcome === "lose") {
-      return {
-        outcome: "lose",
-        fights,
-        distance,
-        bossLevel,
-        killedBy: result.fights.at(-1)?.mobId,
-      };
+    while (sim.observe().mode === "combat") {
+      const snapshot = sim.observe();
+      const target = snapshot.combat?.mobId ?? "";
+      const choice = combat.chooseFighter(snapshot.hero);
+      sim.act(
+        choice === "potion" ? { type: "item", item: "item.potion" } : { type: "fight", target },
+      );
     }
-    if (result.outcome === "win" && step.encounter.miniboss) {
-      return { outcome: "win", fights, distance, bossLevel, killedBy: undefined };
-    }
+
+    const done = sim.observe();
+    if (done.mode !== "victory" && done.mode !== "gameOver") continue;
+    const lost = done.mode === "gameOver";
+    return {
+      outcome: lost ? "lose" : "win",
+      fights: done.stats.fightsWon + done.stats.fightsFled + (lost ? 1 : 0),
+      distance: done.stats.distance,
+      bossLevel,
+      killedBy: done.stats.killedBy,
+    };
   }
   throw new Error(`seed ${seed} never finished`);
 }

@@ -13,7 +13,6 @@ import {
 import type { Bundle } from "../content/schema";
 import { debugLog } from "../debug/logger.controller";
 import { CombatActionPolicy } from "../sim/combat/policy.controller";
-import { createSeededMeadow } from "../sim/field/map";
 import type { Terrain } from "../sim/field/map.types";
 import { PackFightController } from "../sim/run/pack.controller";
 import type { PackResult } from "../sim/run/pack.types";
@@ -84,7 +83,7 @@ export class GameRuntimeController {
       } else {
         const status = `Renderer backend: ${backend} · seed ${options.seed}`;
         this.input.onStatus({ text: status });
-        const end = await this.startField({ loop, bundle, biome, textures, options });
+        const end = await this.startField({ loop, bundle, textures, options });
         this.input.onStatus({ text: `${status} · ${this.describeEnd(end)}` });
       }
     } catch (error) {
@@ -116,23 +115,14 @@ export class GameRuntimeController {
   private async startField(input: {
     loop: RenderLoopController;
     bundle: Bundle;
-    biome: Bundle["biomes"][number];
     textures: Partial<Record<Terrain, Texture>>;
     options: LaunchOptions;
   }): Promise<RunEnd> {
-    const { loop, bundle, biome, textures, options } = input;
-    const map = createSeededMeadow({
-      seed: options.seed,
-      width: biome.width,
-      height: biome.height,
-      minibossDistance: biome.minibossDistance,
-    });
+    const { loop, bundle, textures, options } = input;
     log(`field, seed ${options.seed}`);
     const end = await new GameLoopController({
       loop,
       bundle,
-      biome,
-      map,
       textures,
       seed: options.seed,
       cameraMode: options.camera,
