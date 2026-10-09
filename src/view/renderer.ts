@@ -1,5 +1,8 @@
 import { BoxGeometry, Mesh, MeshBasicMaterial, PerspectiveCamera, Scene } from "three";
 import { WebGPURenderer } from "three/webgpu";
+import { createLogger } from "../debug/logger";
+
+const log = createLogger("view");
 
 export type RendererBackend = "WebGPU" | "WebGL2";
 
@@ -32,7 +35,7 @@ export async function mountRenderer(parent: HTMLElement): Promise<RendererBacken
   }
 
   const backend = backendOf(renderer);
-  console.log(`[view] renderer backend: ${backend}`);
+  log("renderer backend:", backend);
 
   const resize = () => {
     const width = parent.clientWidth;
