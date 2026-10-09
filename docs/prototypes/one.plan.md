@@ -170,6 +170,8 @@ interface Sim {
 function createSim(options: { bundle: Bundle; seed: number }): Sim;
 ```
 
+The seeded generator is mulberry32. `createRng(seed)` keeps a 32-bit state, and `next()` returns a number in [0, 1). The same seed produces the same sequence in the browser and in Node. A seed is read as an unsigned 32-bit integer.
+
 - **One player action in, all consequences out.** After the hero acts, the sim runs enemy turns until the hero's next decision and returns every event in order. The view's combat sequencer plays them back one by one.
 - **Snapshot** has a `mode` (`field`, `combat`, `victory`, `gameOver`), hero stats, the field (map, hero position and facing, miniboss), in combat the actors and upcoming turn order, and the run stats.
 - `legalActions()` lists concrete actions in combat. In the field it returns the move action with its allowed range, since movement is continuous.
