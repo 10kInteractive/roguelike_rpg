@@ -1,6 +1,7 @@
 import { BoxGeometry, Mesh, MeshBasicMaterial, PerspectiveCamera, Scene } from "three";
 import { WebGPURenderer } from "three/webgpu";
 import { createLogger } from "../debug/logger";
+import { watch } from "../debug/watch";
 
 const log = createLogger("view");
 
@@ -37,6 +38,14 @@ export async function mountRenderer(parent: HTMLElement): Promise<RendererBacken
   const backend = backendOf(renderer);
   log("renderer backend:", backend);
 
+  let frames = 0;
+  let fpsWindowStart = performance.now();
+  let fps = 0;
+  if (import.meta.env.DEV) {
+    watch("backend", () => backend);
+    watch("fps", () => fps);
+  }
+
   const resize = () => {
     const width = parent.clientWidth;
     const height = parent.clientHeight;
@@ -55,6 +64,14 @@ export async function mountRenderer(parent: HTMLElement): Promise<RendererBacken
   await renderer.setAnimationLoop((time) => {
     mesh.rotation.y = time * 0.001;
     renderer.render(scene, camera);
+    if (import.meta.env.DEV) {
+      frames += 1;
+      if (time - fpsWindowStart >= 500) {
+        fps = Math.round((frames * 1000) / (time - fpsWindowStart));
+        frames = 0;
+        fpsWindowStart = time;
+      }
+    }
   });
 
   return backend;

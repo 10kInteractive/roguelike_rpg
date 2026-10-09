@@ -9,6 +9,11 @@ if (!view || !overlay) {
   throw new Error("Missing #view or #overlay element");
 }
 
+if (import.meta.env.DEV) {
+  const { mountDevPanel } = await import("../../src/debug/panel");
+  mountDevPanel();
+}
+
 const root = createRoot(overlay);
 root.render(<Overlay status="Starting renderer…" />);
 
