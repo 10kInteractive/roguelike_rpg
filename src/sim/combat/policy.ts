@@ -1,5 +1,5 @@
+import type { Rng } from "../rng";
 import type { Element } from "./damage";
-import type { Rng } from "./rng";
 
 export type HeroVitals = {
   hp: number;

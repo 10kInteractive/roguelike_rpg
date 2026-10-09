@@ -3,8 +3,13 @@ import path from "node:path";
 import { toEnemy, toHero } from "../src/content/fighters.ts";
 import { loadBundle } from "../src/content/load.ts";
 import type { Bundle } from "../src/content/schema.ts";
-import { type FightEvent, fight } from "../src/sim/fight.ts";
-import { casterAction, fighterAction, type KnownSpell, randomAction } from "../src/sim/policy.ts";
+import { type FightEvent, fight } from "../src/sim/combat/fight.ts";
+import {
+  casterAction,
+  fighterAction,
+  type KnownSpell,
+  randomAction,
+} from "../src/sim/combat/policy.ts";
 import {
   actionsFrom,
   eventHash,
@@ -12,9 +17,9 @@ import {
   type LoggedAction,
   outcomeFrom,
   toScript,
-} from "../src/sim/replay.ts";
+} from "../src/sim/harness/replay.ts";
+import { type SweepFight, sweepSummary } from "../src/sim/harness/sweep.ts";
 import { createRng } from "../src/sim/rng.ts";
-import { type SweepFight, sweepSummary } from "../src/sim/sweep.ts";
 import { readBundle } from "./read-bundle.ts";
 
 const replayPath = flag("replay");

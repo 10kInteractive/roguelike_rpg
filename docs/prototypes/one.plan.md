@@ -53,8 +53,9 @@ src/                        shared engine
   boot/                     loader screen, dynamic import of the game
   sim/                      pure, seeded game rules
     rng.ts                  seeded random number generator
-    combat/                 turn queue, actions, damage, enemy AI
+    combat/                 turn queue, actions, damage, fight, policies
     field/                  map generation, fixed-step movement and collision, encounters
+    harness/                replay and seed sweeps
     sim.ts                  createSim, observe, legalActions, act
   content/                  zod schemas and the bundle loader
   view/                     Three.js: renderer, field scene, combat scene, sequencer

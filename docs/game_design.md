@@ -116,7 +116,7 @@ Target for a ready, full clear: about 40–60 minutes.
 - **3/4 camera** that follows the hero.
 - **Random encounters by distance:** every tile's worth of distance walked rolls against the current terrain's rate. A minimum distance between fights prevents back-to-back encounters. The bundle's encounter table picks a pack of 1–3 mobs.
 - **Visible miniboss:** placed far from the spawn on reachable ground. It stands still. Touch it to fight. Walk around it to avoid it.
-- The generator guarantees the miniboss is reachable from the spawn.
+- The generator guarantees the miniboss is reachable from the spawn. Height noise below 0.38 is water and above 0.70 is mountain. The band between is grass, and a second noise layer turns grass into forest above 0.55. The spawn is a walkable tile. The miniboss stands at least its distance away, 20 tiles in the meadow. A path of path tiles runs from the spawn to the miniboss, so the two stay connected when the noise would wall them off.
 
 ### North star
 

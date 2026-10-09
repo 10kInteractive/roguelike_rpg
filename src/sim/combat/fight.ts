@@ -1,3 +1,4 @@
+import type { Rng } from "../rng";
 import {
   applyCritical,
   applyDefend,
@@ -9,7 +10,6 @@ import {
 import { fleeChance } from "./flee";
 import { gainXp, type HeroProgress, type LevelEvent, type LevelRules } from "./level";
 import type { HeroVitals, SpellChoice } from "./policy";
-import type { Rng } from "./rng";
 import { createTurnQueue } from "./turn-queue";
 import { pickWeighted, type Weighted } from "./weighted";
 

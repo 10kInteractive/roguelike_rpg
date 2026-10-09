@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
+import type { Rng } from "../rng";
 import { casterAction, fighterAction, type KnownSpell, randomAction } from "./policy";
-import type { Rng } from "./rng";
 
 const spells: KnownSpell[] = [
   { id: "spell.ember", element: "fire", power: 8, cost: 3 },
