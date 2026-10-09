@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { fight } from "../combat/fight";
-import { createRng, type Rng } from "../rng";
+import { type Rng, SeededRandomGenerator } from "../rng";
 import { createEncounterState, walk } from "./encounters";
 import { createRunStats, recordFight, recordWalk } from "./stats";
 
@@ -50,7 +50,7 @@ test("a walk and a won fight record distance, damage, and the seed", () => {
     rng: rolls([]),
     state: createEncounterState(4),
   });
-  const events = fight({ ...rules, hero, enemy: slime, rng: createRng(1) });
+  const events = fight({ ...rules, hero, enemy: slime, rng: new SeededRandomGenerator(1) });
   const stats = recordFight(
     recordWalk(createRunStats(42, 1), walked.distance),
     events,

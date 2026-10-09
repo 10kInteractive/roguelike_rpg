@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import { fight } from "../combat/fight";
 import { type KnownSpell, randomAction } from "../combat/policy";
-import { createRng } from "../rng";
+import { SeededRandomGenerator } from "../rng";
 import { actionsFrom, eventHash, outcomeFrom, toScriptedActions } from "./replay";
 
 const hero = {
@@ -43,7 +43,7 @@ test("the same seed and action list hash the same, and a different action does n
       ...rules,
       hero,
       enemy: slime,
-      rng: createRng(1),
+      rng: new SeededRandomGenerator(1),
       heroActions: ["fight", "potion"],
       enemyActions: ["fight", "fight"],
     });
@@ -55,7 +55,7 @@ test("the same seed and action list hash the same, and a different action does n
     ...rules,
     hero,
     enemy: slime,
-    rng: createRng(1),
+    rng: new SeededRandomGenerator(1),
     heroActions: ["defend", "potion"],
     enemyActions: ["fight", "fight"],
   });
@@ -70,8 +70,8 @@ test("a recorded fight replays to the same hash", () => {
       { type: "grind" as const, multiplier: 1.5, weight: 1 },
     ],
   };
-  const combat = createRng(4);
-  const choice = createRng(4);
+  const combat = new SeededRandomGenerator(4);
+  const choice = new SeededRandomGenerator(4);
   const events = fight({
     ...rules,
     hero,
@@ -85,7 +85,7 @@ test("a recorded fight replays to the same hash", () => {
     ...rules,
     hero,
     enemy,
-    rng: createRng(4),
+    rng: new SeededRandomGenerator(4),
     heroActions: toScriptedActions(actions.hero, spells),
     enemyActions: toScriptedActions(actions.enemy, spells),
   });

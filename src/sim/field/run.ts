@@ -1,7 +1,7 @@
 import { type FightEvent, type Fighter, fight } from "../combat/fight";
 import type { LevelRules } from "../combat/level";
 import { fighterAction } from "../combat/policy";
-import { createRng, type Rng } from "../rng";
+import { type Rng, SeededRandomGenerator } from "../rng";
 import { createEncounterState, type EncounterTables, type Miniboss, walk } from "./encounters";
 import type { MeadowMap } from "./map";
 import { tilesPerSecond } from "./movement";
@@ -139,9 +139,9 @@ export function runField(input: {
   };
 }): FieldRunResult {
   const hero = copyHero(input.hero);
-  const fieldRng = input.rngs?.field ?? createRng(input.seed);
-  const choiceRng = input.rngs?.choice ?? createRng(input.seed);
-  const combatRng = input.rngs?.combat ?? createRng(input.seed);
+  const fieldRng = input.rngs?.field ?? new SeededRandomGenerator(input.seed);
+  const choiceRng = input.rngs?.choice ?? new SeededRandomGenerator(input.seed);
+  const combatRng = input.rngs?.combat ?? new SeededRandomGenerator(input.seed);
   let position = { x: input.map.spawn.x + 0.5, y: input.map.spawn.y + 0.5 };
   let state = createEncounterState(input.minDistance);
   let distance = 0;

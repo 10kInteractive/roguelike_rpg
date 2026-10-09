@@ -1,4 +1,4 @@
-import { createRng, type Rng } from "../rng";
+import { type Rng, SeededRandomGenerator } from "../rng";
 
 /** What a tile is made of. Grass, forest, and path can be walked. Water and mountain cannot. */
 export type Terrain = "grass" | "forest" | "path" | "water" | "mountain";
@@ -60,7 +60,7 @@ export function createMeadow(input: {
   }
 
   // The hero starts on walkable ground. A buried map gets a clearing at the center.
-  const rng = createRng(input.seed);
+  const rng = new SeededRandomGenerator(input.seed);
   const walkable = pointsWhere(tiles, width, height, (terrain) => isWalkable(terrain));
   if (walkable.length === 0) {
     const center = { x: Math.floor(width / 2), y: Math.floor(height / 2) };
@@ -113,7 +113,7 @@ function sample(seed: number, x: number, y: number): number {
 /** One noise value at a lattice point. The same seed and point always match. */
 function latticeValue(seed: number, x: number, y: number): number {
   const mixed = (seed ^ Math.imul(x + 1, 0x9e3779b1) ^ Math.imul(y + 1, 0x85ebca6b)) >>> 0;
-  return createRng(mixed).next();
+  return new SeededRandomGenerator(mixed).next();
 }
 
 /** The blend from one noise sample to the next. */

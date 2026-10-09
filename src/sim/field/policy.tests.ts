@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { createRng, type Rng } from "../rng";
+import { type Rng, SeededRandomGenerator } from "../rng";
 import type { FieldGrid } from "./movement";
 import { casterWalk, fighterWalk, grinderTargetLevel, grinderWalk, stickHoldTicks } from "./policy";
 
@@ -30,7 +30,9 @@ test("the fighter and the caster hold one direction for a second", () => {
   expect(casterWalk(rolls([0]))).toEqual(east);
   expect(fighterWalk(rolls([0.124]))).toEqual(east);
   expect(casterWalk(rolls([0.125]))).toEqual(northeast);
-  expect(fighterWalk(createRng(3))).toEqual(casterWalk(createRng(3)));
+  expect(fighterWalk(new SeededRandomGenerator(3))).toEqual(
+    casterWalk(new SeededRandomGenerator(3)),
+  );
 });
 
 test("the grinder wanders until level 5, then walks around water to the miniboss", () => {

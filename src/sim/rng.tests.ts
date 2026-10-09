@@ -1,8 +1,8 @@
 import { expect, test } from "vitest";
-import { createRng } from "./rng";
+import { SeededRandomGenerator } from "./rng";
 
 function take(seed: number, count: number): number[] {
-  const rng = createRng(seed);
+  const rng = new SeededRandomGenerator(seed);
   return Array.from({ length: count }, () => rng.next());
 }
 

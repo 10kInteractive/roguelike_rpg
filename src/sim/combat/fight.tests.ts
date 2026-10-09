@@ -1,6 +1,5 @@
 import { expect, test } from "vitest";
-import type { Rng } from "../rng";
-import { createRng } from "../rng";
+import { type Rng, SeededRandomGenerator } from "../rng";
 import { type FightEvent, fight } from "./fight";
 import { casterAction, fighterAction, type KnownSpell, randomAction } from "./policy";
 
@@ -54,7 +53,7 @@ test("a roll below 5% crits and a roll of 5% does not", () => {
 });
 
 test("a hero and a slime trade hits until the slime reaches zero", () => {
-  expect(heroVersusSlime(createRng(1))).toEqual([
+  expect(heroVersusSlime(new SeededRandomGenerator(1))).toEqual([
     { type: "attacked", actorId: "hero", targetId: "slime" },
     {
       type: "damaged",
@@ -87,7 +86,9 @@ test("a hero and a slime trade hits until the slime reaches zero", () => {
 });
 
 test("the same seed plays the same fight", () => {
-  expect(heroVersusSlime(createRng(1))).toEqual(heroVersusSlime(createRng(1)));
+  expect(heroVersusSlime(new SeededRandomGenerator(1))).toEqual(
+    heroVersusSlime(new SeededRandomGenerator(1)),
+  );
 });
 
 test("defend halves the next hit and ends on that actor's next turn", () => {
@@ -644,7 +645,7 @@ test("the caster throws Frost at an ice weakness, then fights when MP is short",
 
 test("a random policy finishes a fight, including one it cannot flee", () => {
   for (const seed of [1, 2, 42]) {
-    const rng = createRng(seed);
+    const rng = new SeededRandomGenerator(seed);
     const events = fight({
       ...fleeRules,
       hero: { ...hero, mp: 10, mag: 6, potions: 3 },
@@ -655,7 +656,7 @@ test("a random policy finishes a fight, including one it cannot flee", () => {
     expect(fightEnded(events)).toBe(true);
   }
 
-  const rng = createRng(7);
+  const rng = new SeededRandomGenerator(7);
   const events = fight({
     ...fleeRules,
     hero: { ...hero, mp: 10, mag: 6, potions: 1 },

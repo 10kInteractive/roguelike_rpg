@@ -23,7 +23,7 @@ import {
   toScriptedActions,
 } from "../src/sim/harness/replay.ts";
 import { type SweepFight, sweepSummary } from "../src/sim/harness/sweep.ts";
-import { createRng } from "../src/sim/rng.ts";
+import { SeededRandomGenerator } from "../src/sim/rng.ts";
 import { readBundle } from "./read-bundle.ts";
 
 const replayPath = flag("replay");
@@ -67,8 +67,8 @@ if (runs !== undefined) {
   const fought: SweepFight[] = [];
   for (let next = 1; next <= Number(runs); next++) {
     const events = play(bundle, enemyId, next, undefined, {
-      combat: createRng(next),
-      choice: createRng(next),
+      combat: new SeededRandomGenerator(next),
+      choice: new SeededRandomGenerator(next),
       policy,
       spells,
     });
@@ -91,8 +91,8 @@ if (seed === undefined || !/^\d+$/.test(seed) || !policyOk) {
 }
 
 const bundle = loadBundle(await readBundle(path.resolve("prototypes/one/bundle")));
-const combat = createRng(Number(seed));
-const choice = createRng(Number(seed));
+const combat = new SeededRandomGenerator(Number(seed));
+const choice = new SeededRandomGenerator(Number(seed));
 const spells = knownSpells(bundle);
 const events = play(bundle, enemyId, Number(seed), undefined, {
   combat,
@@ -136,8 +136,8 @@ function play(
   seed: number,
   actions?: { hero: LoggedAction[]; enemy: LoggedAction[] },
   live?: {
-    combat: ReturnType<typeof createRng>;
-    choice: ReturnType<typeof createRng>;
+    combat: SeededRandomGenerator;
+    choice: SeededRandomGenerator;
     policy: string;
     spells: KnownSpell[];
   },
@@ -154,7 +154,7 @@ function play(
   return fight({
     hero: toHero(bundle.hero),
     enemy: toEnemy(mob, bundle.spells.spells),
-    rng: live?.combat ?? createRng(seed),
+    rng: live?.combat ?? new SeededRandomGenerator(seed),
     choiceRng: actions ? undefined : live?.choice,
     turnBase: bundle.rules.turnBase,
     spreadMin: bundle.rules.spreadMin,
