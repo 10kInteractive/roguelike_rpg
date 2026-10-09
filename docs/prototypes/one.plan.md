@@ -60,6 +60,8 @@ src/                        shared engine
     index.ts                planned: createSim, observe, legalActions, act
   harness/                  headless play of the sim: replay, combat sweep, field sweep
   content/                  zod schemas, the bundle loader, bundle rows into fighters and fight rules
+  runtime/                  GameRuntimeController: reads `?seed`, `?camera`, `?combat`, `?webgl`, loads the
+                            bundle, starts the renderer, and opens the field or a fight
   view/                     Three.js. RenderLoopController owns the canvas, the camera, and the one render loop.
     art/                    shared by both scenes: placeholder models, sun and sky, terrain textures
     field/                  FieldViewController, FieldSceneController, FollowCameraController,
@@ -73,7 +75,7 @@ src/                        shared engine
 prototypes/
   one/
     index.html              entry page
-    main.tsx                boots the field with a seed (`?seed=7`), or a fight (`?combat=mob.slime,mob.ember_imp`)
+    main.tsx                mounts the overlay and starts GameRuntimeController with this bundle
     bundle-source.ts        gathers the bundle's JSON files through bundle.json for the browser
     config.ts               planned: engine features this prototype uses
     bundle/                 content bundle (see below)

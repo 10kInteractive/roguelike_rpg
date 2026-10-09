@@ -25,12 +25,14 @@ export class RenderLoopController {
   /** Display frames per second over the last half second. Dev panel only. */
   private fps = 0;
 
-  /** @param parent The element the canvas fills. */
-  constructor(parent: HTMLElement) {
+  /**
+   * @param parent The element the canvas fills.
+   * @param forceWebGL Draw with WebGL2 even when the browser has WebGPU.
+   */
+  constructor(parent: HTMLElement, forceWebGL = false) {
     this.parent = parent;
     const canvas = document.createElement("canvas");
     parent.replaceChildren(canvas);
-    const forceWebGL = new URLSearchParams(window.location.search).has("webgl");
     this.renderer = new WebGPURenderer({ canvas, antialias: true, forceWebGL });
   }
 
@@ -92,7 +94,7 @@ export class RenderLoopController {
     this.camera.updateProjectionMatrix();
   }
 
-  /** WebGPU, or WebGL2 when the browser lacks WebGPU or `?webgl` forces it. */
+  /** WebGPU, or WebGL2 when the browser lacks WebGPU or the caller forced it. */
   private backend(): RendererBackend {
     const backend = this.renderer.backend;
     if ("isWebGPUBackend" in backend && backend.isWebGPUBackend === true) {

@@ -277,6 +277,7 @@ src/                shared engine
     combat/utils/   combat formulas: damage, flee chance, leveling
   harness/          headless play of the sim: replay, combat and field sweeps
   content/          zod schemas and bundle loader
+  runtime/          starts the game on a page: launch options, bundle, renderer, field or fight
   view/             Three.js classes and the one render loop
     art/            shared by every scene: placeholder models, lighting, textures
     field/          field scene, follow camera, fixed sim step, interpolation
