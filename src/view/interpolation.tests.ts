@@ -15,4 +15,5 @@ test("blends between the last two steps", () => {
   expect(motion.at(0.5)).toEqual({ x: 1.5, y: 0.5 });
   expect(motion.at(1)).toEqual({ x: 2, y: 1 });
   expect(motion.latest()).toEqual({ x: 2, y: 1 });
+  expect(motion.lastStep()).toEqual({ x: 1, y: 1 });
 });

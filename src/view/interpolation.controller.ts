@@ -33,6 +33,11 @@ export class PositionInterpolator {
     };
   }
 
+  /** How far the latest sim step moved, east and north. Zero when the hero stood still. */
+  lastStep(): Position {
+    return { x: this.current.x - this.previous.x, y: this.current.y - this.previous.y };
+  }
+
   /** The latest sim position, with no blending. */
   latest(): Position {
     return { ...this.current };

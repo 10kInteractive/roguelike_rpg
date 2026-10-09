@@ -60,7 +60,8 @@ src/                        shared engine
     index.ts                planned: createSim, observe, legalActions, act
   harness/                  headless play of the sim: replay, combat sweep, field sweep
   content/                  zod schemas, the bundle loader, bundle rows into fighters
-  view/                     Three.js: renderer. Planned: field scene, combat scene, sequencer
+  view/                     Three.js: RenderLoopController, FixedStepClock, FieldViewController, FieldSceneController.
+                            Planned: combat scene, sequencer
   ui/                       React DOM overlay. Planned: zustand store
   input/                    planned: keyboard and gamepad to actions
   assets/                   planned: manifest resolver and loader service
@@ -68,7 +69,8 @@ src/                        shared engine
 prototypes/
   one/
     index.html              entry page
-    main.tsx                boots the engine with this bundle
+    main.tsx                boots the engine with this bundle and a seed (`?seed=7`)
+    bundle-source.ts        gathers the bundle's JSON files through bundle.json for the browser
     config.ts               planned: engine features this prototype uses
     bundle/                 content bundle (see below)
 assets/
