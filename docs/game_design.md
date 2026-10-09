@@ -112,7 +112,7 @@ Target for a ready, full clear: about 40–60 minutes.
 - **One procedural biome** generated from the run seed: a grid of tiles with height, rendered as 3D low-poly terrain with pixel textures.
 - Terrain types: grass, forest, path (walkable); water, mountain (blocked). Each walkable type has its own encounter rate.
 - **Free analog movement.** The hero moves continuously in any direction: full analog on a gamepad stick, eight directions on a keyboard. The map is still a tile grid underneath (for generation, terrain type, and collision), but the hero's position is continuous and collides with blocked tiles.
-- The simulation advances movement in **fixed time steps** so it stays deterministic and replayable; the view smooths between steps.
+- The simulation advances movement in **fixed time steps** so it stays deterministic and replayable; the view smooths between steps. The field steps at 30 ticks per second. A full stick moves the hero 4 tiles per second. The stick is an integer pair from −64 to 64. A vector longer than 1 is normalized, so a diagonal step covers the same distance as a step along an axis.
 - **3/4 camera** that follows the hero.
 - **Random encounters by distance:** every tile's worth of distance walked rolls against the current terrain's rate. A minimum distance between fights prevents back-to-back encounters. The bundle's encounter table picks a pack of 1–3 mobs.
 - **Visible miniboss:** placed far from the spawn on reachable ground. It stands still. Touch it to fight. Walk around it to avoid it.
