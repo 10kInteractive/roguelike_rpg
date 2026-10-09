@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 import { OneOnOneFightController } from "../combat/fight.controller";
 import { type Rng, SeededRandomGenerator } from "../rng";
 import { EncounterWalkController } from "./encounters.controller";
-import { createRunStats, recordFight, recordWalk } from "./stats";
+import { RunStatistics } from "./stats.controller";
 
 const rules = {
   turnBase: 100,
@@ -53,15 +53,15 @@ test("a walk and a won fight record distance, damage, and the seed", () => {
     enemy: slime,
     rng: new SeededRandomGenerator(1),
   }).resolve();
-  const stats = recordFight(
-    recordWalk(createRunStats(42, 1), walked.distance),
-    events,
-    "hero",
-    "mob.slime",
-  );
+  const fresh = new RunStatistics(42, 1, "hero");
+  expect(fresh.snapshot().distance).toBe(0);
+
+  const stats = new RunStatistics(42, 1, "hero");
+  stats.addWalk(walked.distance);
+  stats.addFight(events, "mob.slime");
 
   expect(walked.distance).toBeCloseTo(4, 8);
-  expect(stats).toEqual({
+  expect(stats.snapshot()).toEqual({
     seed: 42,
     fightsWon: 1,
     fightsFled: 0,
@@ -71,7 +71,6 @@ test("a walk and a won fight record distance, damage, and the seed", () => {
     potionsUsed: 0,
     distance: walked.distance,
   });
-  expect(createRunStats(42, 1).distance).toBe(0);
 });
 
 test("a drink at full HP counts, a flee counts, and a defeat names the mob", () => {
@@ -97,15 +96,20 @@ test("a drink at full HP counts, a flee counts, and a defeat names the mob", () 
     rng: rolls([]),
   }).resolve();
 
-  const afterDrink = recordFight(createRunStats(7, 1), drank, "hero", "mob.slime");
+  const run = new RunStatistics(7, 1, "hero");
+  run.addFight(drank, "mob.slime");
+  const afterDrink = run.snapshot();
   expect(afterDrink.potionsUsed).toBe(1);
 
-  const afterFlee = recordFight(afterDrink, fled, "hero", "mob.slime");
+  run.addFight(fled, "mob.slime");
+  const afterFlee = run.snapshot();
   expect(afterFlee.fightsFled).toBe(1);
   expect(afterFlee.fightsWon).toBe(afterDrink.fightsWon);
   expect(afterFlee.killedBy).toBeUndefined();
 
-  const dead = recordFight(createRunStats(7, 1), lost, "hero", "mob.slime");
+  const deadRun = new RunStatistics(7, 1, "hero");
+  deadRun.addFight(lost, "mob.slime");
+  const dead = deadRun.snapshot();
   expect(dead.killedBy).toBe("mob.slime");
   expect(dead.fightsWon).toBe(0);
   expect(dead.fightsFled).toBe(0);
@@ -128,7 +132,9 @@ test("a win that pays for a level records the new level", () => {
       growth: { hp: 6, mp: 2, str: 2, def: 1, mag: 1, haste: 1 },
     },
   }).resolve();
-  const stats = recordFight(createRunStats(7, 1), events, "hero", "mob.slime");
+  const run = new RunStatistics(7, 1, "hero");
+  run.addFight(events, "mob.slime");
+  const stats = run.snapshot();
   expect(stats.level).toBe(2);
   expect(stats.fightsWon).toBe(1);
   expect(stats.damageDealt).toBe(7);

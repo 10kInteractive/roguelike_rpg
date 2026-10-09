@@ -606,7 +606,7 @@ The class name is the noun, so the method can be a short verb. `OneOnOneFightCon
 | `HasteTurnQueue` | Who is waiting, and when each actor may act again. | `createTurnQueue` and the `TurnQueue` object. | `act()`, `upcoming(count)` |
 | `OneOnOneFightController` | The hero and enemy copies, who is defending, turns already taken, and the event list. | `fight`. | `resolve()` |
 | `EncounterWalkController` | Hero position, distance walked on each terrain, and distance since the last fight. | `createEncounterState` and `walk`. | `holdStick(stick, ticks)` |
-| `RunStatistics` | The scoreboard for one run: fights, damage, potions, distance, level, killer. | `createRunStats`, `recordWalk`, `recordFight`. | `addWalk(distance)`, `addFight(events, enemyId)` |
+| `RunStatistics` | The scoreboard for one run: fights, damage, potions, distance, level, killer. | `createRunStats`, `recordWalk`, `recordFight`. | `addWalk(distance)`, `addFight(events, enemyId)`, `snapshot()` |
 | `GrinderFieldRunController` | The hero carried between fights, the three generators, and the meadow. | `runField`. | `play()` |
 
 `SeededRandomGenerator` and `HasteTurnQueue` are classes. Each owns the state the old factory closed over.
