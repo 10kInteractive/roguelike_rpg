@@ -4,9 +4,30 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Prototype one</title>
+    <style>
+      body {
+        margin: 0;
+        background: #111;
+        color: #eee;
+        font-family: sans-serif;
+      }
+      a {
+        color: #9cf;
+      }
+      #app {
+        height: 70vh;
+        background: #1d3a2a;
+      }
+      #app canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
   </head>
   <body>
     <p><a href="../../index.html">Launcher</a></p>
+    <p id="status">Starting renderer…</p>
     <div id="app"></div>
     <p>Base path: %BASE_URL%</p>
     <script type="module" src="./main.ts"></script>
