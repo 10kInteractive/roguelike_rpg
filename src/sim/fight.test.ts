@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { type FightEvent, fight } from "./fight";
-import { casterAction, fighterAction, type KnownSpell } from "./policy";
+import { casterAction, fighterAction, type KnownSpell, randomAction } from "./policy";
 import type { Rng } from "./rng";
 import { createRng } from "./rng";
 
@@ -641,3 +641,34 @@ test("the caster throws Frost at an ice weakness, then fights when MP is short",
     },
   ]);
 });
+
+test("a random policy finishes a fight, including one it cannot flee", () => {
+  for (const seed of [1, 2, 42]) {
+    const rng = createRng(seed);
+    const events = fight({
+      ...fleeRules,
+      hero: { ...hero, mp: 10, mag: 6, potions: 3 },
+      enemy: slime,
+      rng,
+      heroPolicy: (actor) => randomAction(actor, spells, rng),
+    });
+    expect(fightEnded(events)).toBe(true);
+  }
+
+  const rng = createRng(7);
+  const events = fight({
+    ...fleeRules,
+    hero: { ...hero, mp: 10, mag: 6, potions: 1 },
+    enemy: { ...slime, hp: 30, miniboss: true },
+    rng,
+    heroPolicy: (actor) => randomAction(actor, spells, rng),
+  });
+  expect(events.some((event) => event.type === "fleeAttempted" && event.success)).toBe(false);
+  expect(fightEnded(events)).toBe(true);
+});
+
+function fightEnded(events: FightEvent[]): boolean {
+  return events.some(
+    (event) => event.type === "actorDefeated" || (event.type === "fleeAttempted" && event.success),
+  );
+}

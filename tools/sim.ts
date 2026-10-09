@@ -3,15 +3,21 @@ import { toEnemy, toHero } from "../src/content/fighters.ts";
 import { loadBundle } from "../src/content/load.ts";
 import type { Bundle } from "../src/content/schema.ts";
 import { fight } from "../src/sim/fight.ts";
-import { casterAction, fighterAction, type KnownSpell } from "../src/sim/policy.ts";
+import { casterAction, fighterAction, type KnownSpell, randomAction } from "../src/sim/policy.ts";
 import { createRng } from "../src/sim/rng.ts";
 import { readBundle } from "./read-bundle.ts";
 
 const seed = flag("seed");
 const enemyId = flag("enemy") ?? "mob.slime";
 const policy = flag("policy") ?? "fighter";
-if (seed === undefined || !/^\d+$/.test(seed) || (policy !== "fighter" && policy !== "caster")) {
-  console.error("Usage: npm run sim -- --seed 42 [--enemy mob.slime] [--policy fighter|caster]");
+if (
+  seed === undefined ||
+  !/^\d+$/.test(seed) ||
+  (policy !== "fighter" && policy !== "caster" && policy !== "random")
+) {
+  console.error(
+    "Usage: npm run sim -- --seed 42 [--enemy mob.slime] [--policy fighter|caster|random]",
+  );
   process.exit(1);
 }
 
@@ -23,10 +29,12 @@ if (!mob) {
 }
 
 const potion = bundle.items.items.find((item) => item.id === "item.potion");
+const rng = createRng(Number(seed));
+const spells = knownSpells(bundle);
 const events = fight({
   hero: toHero(bundle.hero),
   enemy: toEnemy(mob, bundle.spells.spells),
-  rng: createRng(Number(seed)),
+  rng,
   turnBase: bundle.rules.turnBase,
   spreadMin: bundle.rules.spreadMin,
   spreadMax: bundle.rules.spreadMax,
@@ -47,8 +55,10 @@ const events = fight({
   },
   heroPolicy:
     policy === "caster"
-      ? (hero, target) => casterAction(hero, target, knownSpells(bundle))
-      : fighterAction,
+      ? (hero, target) => casterAction(hero, target, spells)
+      : policy === "random"
+        ? (hero) => randomAction(hero, spells, rng)
+        : fighterAction,
 });
 
 for (const event of events) console.log(JSON.stringify(event));

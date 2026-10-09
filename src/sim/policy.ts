@@ -1,4 +1,5 @@
 import type { Element } from "./damage";
+import type { Rng } from "./rng";
 
 export type HeroVitals = {
   hp: number;
@@ -52,4 +53,34 @@ export function casterAction(
     power: spell.power,
     cost: spell.cost,
   };
+}
+
+/**
+ * A crash-finding combat choice.
+ *
+ * One roll picks among Fight, Defend, Flee, a potion when one is left, and
+ * each known spell the hero can pay for. The roll is the fight's own RNG.
+ */
+export function randomAction(
+  hero: { mp: number; potions: number },
+  spells: readonly KnownSpell[],
+  rng: Rng,
+): "fight" | "defend" | "potion" | "flee" | SpellChoice {
+  const legal: ("fight" | "defend" | "potion" | "flee" | SpellChoice)[] = ["fight", "defend"];
+  if (hero.potions > 0) legal.push("potion");
+  legal.push("flee");
+
+  for (const spell of spells) {
+    if (hero.mp < spell.cost) continue;
+    legal.push({
+      type: "spell",
+      spellId: spell.id,
+      element: spell.element,
+      power: spell.power,
+      cost: spell.cost,
+    });
+  }
+
+  const index = Math.floor(rng.next() * legal.length);
+  return legal[index] ?? "fight";
 }
