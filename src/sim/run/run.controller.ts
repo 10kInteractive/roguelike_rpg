@@ -3,7 +3,7 @@ import type { FightEvent, Fighter } from "../combat/fight.types";
 import { CombatActionPolicy } from "../combat/policy.controller";
 import { EncounterWalkController } from "../field/encounters.controller";
 import type { EncounterEvent } from "../field/encounters.types";
-import { tilesPerSecond } from "../field/movement";
+import { tilesPerSecond } from "../field/movement.constants";
 import { FieldWalkPolicy } from "../field/policy.controller";
 import { SeededRandomGenerator } from "../utils/rng.controller";
 import type { Rng } from "../utils/rng.types";

@@ -1,32 +1,6 @@
 import type { FightEvent, ScriptedAction } from "../sim/combat/fight.types";
 import type { KnownSpell } from "../sim/combat/policy.types";
-
-/**
- * One action as a run log stores it.
- *
- * Fight, Defend, a potion, and Run are the word. A spell keeps its id, and a
- * grind keeps its multiplier. Power and cost are filled back in on replay.
- */
-export type LoggedAction =
-  | "fight"
-  | "defend"
-  | "potion"
-  | "flee"
-  | {
-      /** A cast. Power and cost are filled in on replay. */
-      type: "spell";
-      /** Which spell. */
-      spellId: KnownSpell["id"];
-    }
-  | {
-      /** A grind. The multiplier is part of the action. */
-      type: "grind";
-      /** Applied after the crit, before Defend. */
-      multiplier: number;
-    };
-
-/** How a fight ended. A flee is neither a win nor a loss. */
-export type FightOutcome = "win" | "lose" | "flee";
+import type { FightOutcome, LoggedAction, LoggedActions } from "./replay.types";
 
 /**
  * A stable hash of one event list.
@@ -45,10 +19,7 @@ export function eventHash(events: readonly FightEvent[]): string {
 }
 
 /** The hero's actions and the enemy's, in the order each of them acted. */
-export function actionsFrom(
-  events: readonly FightEvent[],
-  heroId: string,
-): { hero: LoggedAction[]; enemy: LoggedAction[] } {
+export function actionsFrom(events: readonly FightEvent[], heroId: string): LoggedActions {
   const hero: LoggedAction[] = [];
   const enemy: LoggedAction[] = [];
   for (const event of events) {

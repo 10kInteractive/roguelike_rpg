@@ -1,8 +1,10 @@
 import { expect, test } from "vitest";
 import type { Rng } from "../utils/rng.types";
 import { EncounterWalkController } from "./encounters.controller";
-import type { Terrain } from "./map";
-import { heroRadius, move, type Position } from "./movement";
+import type { Terrain } from "./map.types";
+import { move } from "./movement";
+import { heroRadius } from "./movement.constants";
+import type { Position } from "./movement.types";
 
 const east = { x: 64, y: 0 };
 const start: Position = { x: 0.5, y: 0.5 };

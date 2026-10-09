@@ -1,5 +1,6 @@
-import type { TilePoint } from "./map";
-import { type Stick, stickLimit } from "./movement";
+import type { TilePoint } from "./map.types";
+import { stickLimit } from "./movement.constants";
+import type { Stick } from "./movement.types";
 
 /** How many ticks a walking policy holds one stick. Thirty ticks is one second. */
 export const stickHoldTicks = 30;

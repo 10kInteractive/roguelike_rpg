@@ -1,13 +1,8 @@
 import { expect, test } from "vitest";
-import type { Terrain } from "./map";
-import {
-  type FieldGrid,
-  heroRadius,
-  move,
-  type Position,
-  type Stick,
-  tilesPerSecond,
-} from "./movement";
+import type { Terrain } from "./map.types";
+import { move } from "./movement";
+import { heroRadius, tilesPerSecond } from "./movement.constants";
+import type { FieldGrid, Position, Stick } from "./movement.types";
 
 const origin: Position = { x: 0, y: 0 };
 

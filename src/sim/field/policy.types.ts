@@ -1,4 +1,4 @@
-import type { Stick } from "./movement";
+import type { Stick } from "./movement.types";
 
 /** A stick held for a batch of field ticks. */
 export type WalkChoice = {

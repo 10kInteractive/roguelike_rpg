@@ -1,6 +1,8 @@
 import type { Rng } from "../utils/rng.types";
-import { isWalkable, type TilePoint } from "./map";
-import { type FieldGrid, type Position, type Stick, stickLimit } from "./movement";
+import { isWalkable } from "./map";
+import type { TilePoint } from "./map.types";
+import { stickLimit } from "./movement.constants";
+import type { FieldGrid, Position, Stick } from "./movement.types";
 import {
   grinderTargetLevel,
   pathNeighbors,

@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
-import { createMeadow, isWalkable, type MeadowMap, tileDistance } from "./map";
+import { createMeadow, isWalkable, tileDistance } from "./map";
+import type { MeadowMap } from "./map.types";
 
 const meadow = { width: 48, height: 48, minibossDistance: 20 };
 

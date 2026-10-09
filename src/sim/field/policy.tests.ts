@@ -1,8 +1,8 @@
 import { expect, test } from "vitest";
 import { SeededRandomGenerator } from "../utils/rng.controller";
 import type { Rng } from "../utils/rng.types";
-import type { TilePoint } from "./map";
-import type { FieldGrid } from "./movement";
+import type { TilePoint } from "./map.types";
+import type { FieldGrid } from "./movement.types";
 import { grinderTargetLevel, stickHoldTicks } from "./policy.constants";
 import { FieldWalkPolicy } from "./policy.controller";
 

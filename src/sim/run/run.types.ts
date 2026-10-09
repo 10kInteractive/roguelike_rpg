@@ -1,7 +1,7 @@
 import type { Fighter } from "../combat/fight.types";
 import type { LevelRules } from "../combat/utils/level.types";
 import type { EncounterTables, Miniboss } from "../field/encounters.types";
-import type { MeadowMap } from "../field/map";
+import type { MeadowMap } from "../field/map.types";
 import type { Rng } from "../utils/rng.types";
 
 /** A mob the field can start a fight with, plus its potion drop. */

@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
-import type { MeadowMap } from "../field/map";
-import { tilesPerSecond } from "../field/movement";
+import type { MeadowMap } from "../field/map.types";
+import { tilesPerSecond } from "../field/movement.constants";
 import type { Rng } from "../utils/rng.types";
 import { enemyActionSeconds, fightTransitionSeconds, heroDecisionSeconds } from "./run.constants";
 import { GrinderFieldRunController } from "./run.controller";

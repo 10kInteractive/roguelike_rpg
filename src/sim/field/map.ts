@@ -1,35 +1,7 @@
 import { SeededRandomGenerator } from "../utils/rng.controller";
 import type { Rng } from "../utils/rng.types";
-
-/** What a tile is made of. Grass, forest, and path can be walked. Water and mountain cannot. */
-export type Terrain = "grass" | "forest" | "path" | "water" | "mountain";
-
-/** A tile's column and row. The hero standing in its middle is at `(x + 0.5, y + 0.5)`. */
-export type TilePoint = {
-  /** Column. Increases east. */
-  x: number;
-  /** Row. Increases north. */
-  y: number;
-};
-
-/** One seeded meadow: the tiles, where the hero starts, and where the miniboss stands. */
-export type MeadowMap = {
-  /** Columns. */
-  width: number;
-  /** Rows. */
-  height: number;
-  /** Terrain in row-major order. */
-  tiles: Terrain[];
-  /** Walkable tile the hero starts on. */
-  spawn: TilePoint;
-  /** Tile the miniboss occupies. The path runs here from the spawn. */
-  miniboss: TilePoint;
-};
-
-const heightPeriod = 8;
-const waterBelow = 0.38;
-const mountainAbove = 0.7;
-const forestAbove = 0.55;
+import { forestAbove, heightPeriod, mountainAbove, waterBelow } from "./map.constants";
+import type { MeadowInput, MeadowMap, Terrain, TilePoint } from "./map.types";
 
 /**
  * One seeded meadow.
@@ -38,16 +10,7 @@ const forestAbove = 0.55;
  * some grass into forest. A path of path tiles joins the spawn to a miniboss
  * at least `minibossDistance` tiles away, so the miniboss is reachable.
  */
-export function createMeadow(input: {
-  /** Seed for the noise and for where the spawn and miniboss are picked. */
-  seed: number;
-  /** Columns. */
-  width: number;
-  /** Rows. */
-  height: number;
-  /** How far, in tiles, the miniboss must stand from the spawn. */
-  minibossDistance: number;
-}): MeadowMap {
+export function createMeadow(input: MeadowInput): MeadowMap {
   const { width, height } = input;
   const tiles: Terrain[] = [];
 

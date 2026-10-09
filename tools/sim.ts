@@ -3,7 +3,8 @@ import path from "node:path";
 import { toEnemy, toHero } from "../src/content/fighters.ts";
 import { loadBundle } from "../src/content/load.ts";
 import type { Bundle } from "../src/content/schema.ts";
-import { type SweepFight, sweepSummary } from "../src/harness/combat-sweep.ts";
+import { sweepSummary } from "../src/harness/combat-sweep.ts";
+import type { SweepFight } from "../src/harness/combat-sweep.types.ts";
 import { fieldSweepSummary } from "../src/harness/field-sweep.ts";
 import {
   actionsFrom,

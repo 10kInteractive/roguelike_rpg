@@ -8,8 +8,10 @@ import type {
   Miniboss,
   StickHold,
 } from "./encounters.types";
-import type { Terrain } from "./map";
-import { type FieldGrid, heroRadius, move, type Position, type Stick } from "./movement";
+import type { Terrain } from "./map.types";
+import { move } from "./movement";
+import { heroRadius } from "./movement.constants";
+import type { FieldGrid, Position, Stick } from "./movement.types";
 
 /**
  * Walks the hero across a meadow until a fight starts.

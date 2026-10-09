@@ -1,4 +1,4 @@
-import type { TilePoint } from "./map";
+import type { TilePoint } from "./map.types";
 
 /** One mob in an encounter table, and how many of them may appear. */
 export type EncounterGroup = {
