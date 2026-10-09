@@ -1,5 +1,13 @@
 import { pickWeightedListEntry } from "../utils/weighted";
-import type { FightEvent, Fighter, FightInput, PreparedFighter, TurnAction } from "./fight.types";
+import type {
+  EnemyAction,
+  FightEvent,
+  Fighter,
+  FightInput,
+  PreparedFighter,
+  ScriptedAction,
+  TurnAction,
+} from "./fight.types";
 import type { SpellChoice } from "./policy.types";
 import { HasteTurnQueue } from "./turn-queue.controller";
 import {
@@ -14,7 +22,11 @@ import { grantExperienceAndRaiseLevels } from "./utils/level";
 import type { HeroProgress } from "./utils/level.types";
 
 /**
- * Plays one hero against one mob.
+ * Plays one hero against one mob, pausing at each hero turn.
+ *
+ * `start` plays up to the hero's first decision, and each `act` plays the
+ * hero's choice and every enemy turn until the next one. `resolve` plays the
+ * whole fight from the script and the policy.
  *
  * Each turn is Fight, Defend, a potion, or Run; omitted actions Fight.
  * Turns follow the haste queue. Fight emits `attacked` and `damaged`. Defend
@@ -40,8 +52,12 @@ export class OneOnOneFightController {
   private readonly events: FightEvent[] = [];
   /** Who is guarding. A guard ends when that actor's next turn starts. */
   private readonly defending = new Set<string>();
-  /** How many turns each actor has already taken. */
+  /** How many turns each actor has started. */
   private readonly taken = new Map<string, number>();
+  /** True while the hero's turn has started and waits for a choice. */
+  private heroTurnOpen = false;
+  /** True once someone has fallen or the hero has escaped. */
+  private over = false;
 
   /**
    * @param input The two fighters, the rolls, and the bundle's numbers.
@@ -60,189 +76,262 @@ export class OneOnOneFightController {
     this.taken.set(this.enemy.id, 0);
   }
 
-  /** Plays until someone falls or the hero escapes. */
-  resolve(): FightEvent[] {
-    const { hero, enemy, queue, events, defending, taken, input } = this;
+  /**
+   * Plays the enemy's turns until the hero must choose, or the fight is over.
+   * Call once, before the first `act`.
+   *
+   * @returns What happened before the hero's first turn.
+   */
+  start(): FightEvent[] {
+    const from = this.events.length;
+    this.advance();
+    return this.events.slice(from);
+  }
 
-    while (hero.hp > 0 && enemy.hp > 0) {
+  /** True while the fight waits for the hero's choice. */
+  awaitingHero(): boolean {
+    return this.heroTurnOpen;
+  }
+
+  /** True once someone has fallen or the hero has escaped. */
+  ended(): boolean {
+    return this.over;
+  }
+
+  /**
+   * Plays the hero's turn, then the enemy's turns until the hero must choose again.
+   *
+   * @param choice Fight, Defend, a potion, Run, a cast, or a grind. An unpaid cast is Fight.
+   * @returns Every event from the hero's action up to their next decision or the fight's end.
+   */
+  act(choice: ScriptedAction): FightEvent[] {
+    if (!this.heroTurnOpen) throw new Error("The fight is not waiting for the hero");
+    const from = this.events.length;
+    this.heroTurnOpen = false;
+    this.takeTurn(this.hero, this.enemy, choice);
+    this.advance();
+    return this.events.slice(from);
+  }
+
+  /**
+   * Plays until someone falls or the hero escapes.
+   * Each hero turn takes the script's entry, then the policy's choice, then Fight.
+   */
+  resolve(): FightEvent[] {
+    const { hero, enemy, input } = this;
+    this.start();
+    while (this.heroTurnOpen) {
+      const turn = (this.taken.get(hero.id) ?? 1) - 1;
+      const scripted = input.heroActions?.[turn];
+      this.act(scripted ?? input.heroPolicy?.(hero, enemy) ?? "fight");
+    }
+    return this.events;
+  }
+
+  /** Starts turns from the haste queue, playing the enemy's, until the hero's comes up or the fight ends. */
+  private advance(): void {
+    const { hero, enemy, queue, defending, taken, input } = this;
+
+    while (!this.over) {
+      if (hero.hp <= 0 || enemy.hp <= 0) {
+        this.over = true;
+        return;
+      }
+
       // The haste queue names the actor, and their guard ends as the turn starts.
       const actorId = queue.act();
       const actor = actorId === hero.id ? hero : enemy;
-      const target = actor === hero ? enemy : hero;
       defending.delete(actor.id);
-
-      // Defend halves whatever just landed, including a spell or a grind.
-      const guarded = (amount: number) =>
-        defending.has(target.id)
-          ? applyDefendingDamageReduction(amount, input.defendMultiplier)
-          : amount;
-
-      // Pay for a spell and resolve it. The caller has already checked the MP.
-      const castSpell = (spell: SpellChoice) => {
-        actor.mp -= spell.cost;
-        const spread = input.spreadMin + input.rng.next() * (input.spreadMax - input.spreadMin);
-        const multiplier = calculateElementDamageMultiplier(
-          spell.element,
-          target.weak,
-          target.resists,
-          input.weaknessMultiplier,
-          input.resistanceMultiplier,
-        );
-        const amount = guarded(calculateMagicDamage(spell.power, actor.mag, multiplier, spread));
-        target.hp = Math.max(0, target.hp - amount);
-
-        events.push({
-          type: "spellCast",
-          actorId: actor.id,
-          spellId: spell.spellId,
-          targetId: target.id,
-          mp: actor.mp,
-        });
-        events.push({
-          type: "damaged",
-          actorId: actor.id,
-          targetId: target.id,
-          amount,
-          targetHp: target.hp,
-          critical: false,
-        });
-        this.defeatIfDown(target);
-      };
-
-      // Spread, then a crit, then the grind multiplier.
-      const resolveGrind = (multiplier: number) => {
-        const spread = input.spreadMin + input.rng.next() * (input.spreadMax - input.spreadMin);
-        const critical = input.rng.next() < input.critChance;
-        const hit = calculatePhysicalDamage(actor.str, target.def, spread);
-        const rolled = critical ? applyCriticalHitDamage(hit, input.critMultiplier) : hit;
-        const scaled = Math.max(1, Math.floor(rolled * multiplier));
-        const amount = guarded(scaled);
-        target.hp = Math.max(0, target.hp - amount);
-
-        events.push({
-          type: "grind",
-          actorId: actor.id,
-          targetId: target.id,
-          multiplier,
-        });
-        events.push({
-          type: "damaged",
-          actorId: actor.id,
-          targetId: target.id,
-          amount,
-          targetHp: target.hp,
-          critical,
-        });
-        this.defeatIfDown(target);
-      };
-
-      // A scripted action wins. Otherwise an enemy with a list rolls it, and anything left is Fight.
       const turn = taken.get(actor.id) ?? 0;
       taken.set(actor.id, turn + 1);
-      const script = actor === hero ? input.heroActions : input.enemyActions;
-      const scripted = script?.[turn];
-      let action: TurnAction = "fight";
 
-      // A recorded spell or grind plays out. An unpaid spell falls through to Fight.
-      if (typeof scripted === "object") {
-        if (scripted.type === "spell" && actor.mp >= scripted.cost) {
-          castSpell(scripted);
-          continue;
-        }
-        if (scripted.type === "grind") {
-          resolveGrind(scripted.multiplier);
-          continue;
-        }
-      } else if (typeof scripted === "string") {
-        action = scripted;
-      } else if (actor === hero && input.heroPolicy) {
-        const choice = input.heroPolicy(actor, target);
-        if (typeof choice === "string") {
-          action = choice;
-        } else if (actor.mp >= choice.cost) {
-          castSpell(choice);
-          continue;
-        }
-      } else if (actor === enemy && enemy.actions && enemy.actions.length > 0) {
+      if (actor === hero) {
+        this.heroTurnOpen = true;
+        return;
+      }
+
+      // A scripted action wins. Otherwise an enemy with a list rolls it, and anything left is Fight.
+      const scripted = input.enemyActions?.[turn];
+      if (scripted !== undefined) {
+        this.takeTurn(enemy, hero, scripted);
+      } else if (enemy.actions && enemy.actions.length > 0) {
         const picked = pickWeightedListEntry(enemy.actions, (input.choiceRng ?? input.rng).next());
-
-        // Pay for the spell and resolve it now. An unpaid spell falls through to Fight.
-        if (picked.type === "spell" && actor.mp >= picked.cost) {
-          castSpell(picked);
-          continue;
-        }
-
-        if (picked.type === "grind") {
-          resolveGrind(picked.multiplier);
-          continue;
-        }
-
-        action = picked.type === "spell" ? "fight" : picked.type;
+        this.takeTurn(enemy, hero, this.enemyChoice(picked));
+      } else {
+        this.takeTurn(enemy, hero, "fight");
       }
+    }
+  }
 
-      // Guard until this actor's next turn.
-      if (action === "defend") {
-        defending.add(actor.id);
-        events.push({ type: "defended", actorId: actor.id });
-        continue;
+  /** A picked list entry as a turn. Fight and Defend drop their weight. */
+  private enemyChoice(picked: EnemyAction): ScriptedAction {
+    switch (picked.type) {
+      case "fight":
+      case "defend":
+        return picked.type;
+      case "grind":
+        return { type: "grind", multiplier: picked.multiplier };
+      case "spell":
+        return {
+          type: "spell",
+          spellId: picked.spellId,
+          element: picked.element,
+          power: picked.power,
+          cost: picked.cost,
+        };
+    }
+  }
+
+  /** One actor's turn against the other. Ends the fight when the hero escapes. */
+  private takeTurn(actor: PreparedFighter, target: PreparedFighter, choice: ScriptedAction): void {
+    const { hero, enemy, events, defending, input } = this;
+
+    // A paid spell or a grind plays out. An unpaid spell falls through to Fight.
+    let action: TurnAction = "fight";
+    if (typeof choice === "object") {
+      if (choice.type === "spell" && actor.mp >= choice.cost) {
+        this.castSpell(actor, target, choice);
+        return;
       }
-
-      // Drink one potion. An empty stack still spends the turn.
-      if (action === "potion") {
-        const before = actor.hp;
-        if (actor.potions > 0) {
-          actor.potions -= 1;
-          actor.hp = Math.min(actor.maxHp, actor.hp + input.potionHeal);
-        }
-        events.push({
-          type: "itemUsed",
-          actorId: actor.id,
-          itemId: "item.potion",
-          amount: actor.hp - before,
-          hp: actor.hp,
-          remaining: actor.potions,
-        });
-        continue;
+      if (choice.type === "grind") {
+        this.resolveGrind(actor, target, choice.multiplier);
+        return;
       }
-
-      // A miniboss attempt fails without a roll. Success ends the fight.
-      if (action === "flee" && actor === hero) {
-        const chance = enemy.miniboss
-          ? 0
-          : calculateFleeChance(
-              hero.haste,
-              enemy.haste,
-              input.fleeBase,
-              input.fleePerPoint,
-              input.fleeMin,
-              input.fleeMax,
-            );
-        const success = chance > 0 && input.rng.next() < chance;
-        events.push({ type: "fleeAttempted", actorId: hero.id, success, chance });
-        if (success) return events;
-        continue;
-      }
-
-      // Physical hit: spread, then a crit, then halve it when the target is guarding.
-      const spread = input.spreadMin + input.rng.next() * (input.spreadMax - input.spreadMin);
-      const critical = input.rng.next() < input.critChance;
-      const hit = calculatePhysicalDamage(actor.str, target.def, spread);
-      const rolled = critical ? applyCriticalHitDamage(hit, input.critMultiplier) : hit;
-      const amount = guarded(rolled);
-      target.hp = Math.max(0, target.hp - amount);
-      events.push({ type: "attacked", actorId: actor.id, targetId: target.id });
-      events.push({
-        type: "damaged",
-        actorId: actor.id,
-        targetId: target.id,
-        amount,
-        targetHp: target.hp,
-        critical,
-      });
-      this.defeatIfDown(target);
+    } else {
+      action = choice;
     }
 
-    return events;
+    // Guard until this actor's next turn.
+    if (action === "defend") {
+      defending.add(actor.id);
+      events.push({ type: "defended", actorId: actor.id });
+      return;
+    }
+
+    // Drink one potion. An empty stack still spends the turn.
+    if (action === "potion") {
+      const before = actor.hp;
+      if (actor.potions > 0) {
+        actor.potions -= 1;
+        actor.hp = Math.min(actor.maxHp, actor.hp + input.potionHeal);
+      }
+      events.push({
+        type: "itemUsed",
+        actorId: actor.id,
+        itemId: "item.potion",
+        amount: actor.hp - before,
+        hp: actor.hp,
+        remaining: actor.potions,
+      });
+      return;
+    }
+
+    // A miniboss attempt fails without a roll. Success ends the fight.
+    if (action === "flee" && actor === hero) {
+      const chance = enemy.miniboss
+        ? 0
+        : calculateFleeChance(
+            hero.haste,
+            enemy.haste,
+            input.fleeBase,
+            input.fleePerPoint,
+            input.fleeMin,
+            input.fleeMax,
+          );
+      const success = chance > 0 && input.rng.next() < chance;
+      events.push({ type: "fleeAttempted", actorId: hero.id, success, chance });
+      if (success) this.over = true;
+      return;
+    }
+
+    // Physical hit: spread, then a crit, then halve it when the target is guarding.
+    const spread = input.spreadMin + input.rng.next() * (input.spreadMax - input.spreadMin);
+    const critical = input.rng.next() < input.critChance;
+    const hit = calculatePhysicalDamage(actor.str, target.def, spread);
+    const rolled = critical ? applyCriticalHitDamage(hit, input.critMultiplier) : hit;
+    const amount = this.guarded(target, rolled);
+    target.hp = Math.max(0, target.hp - amount);
+    events.push({ type: "attacked", actorId: actor.id, targetId: target.id });
+    events.push({
+      type: "damaged",
+      actorId: actor.id,
+      targetId: target.id,
+      amount,
+      targetHp: target.hp,
+      critical,
+    });
+    this.defeatIfDown(target);
+  }
+
+  /** Pays for a spell and resolves it. The caller has already checked the MP. */
+  private castSpell(actor: PreparedFighter, target: PreparedFighter, spell: SpellChoice): void {
+    const { events, input } = this;
+    actor.mp -= spell.cost;
+    const spread = input.spreadMin + input.rng.next() * (input.spreadMax - input.spreadMin);
+    const multiplier = calculateElementDamageMultiplier(
+      spell.element,
+      target.weak,
+      target.resists,
+      input.weaknessMultiplier,
+      input.resistanceMultiplier,
+    );
+    const amount = this.guarded(
+      target,
+      calculateMagicDamage(spell.power, actor.mag, multiplier, spread),
+    );
+    target.hp = Math.max(0, target.hp - amount);
+
+    events.push({
+      type: "spellCast",
+      actorId: actor.id,
+      spellId: spell.spellId,
+      targetId: target.id,
+      mp: actor.mp,
+    });
+    events.push({
+      type: "damaged",
+      actorId: actor.id,
+      targetId: target.id,
+      amount,
+      targetHp: target.hp,
+      critical: false,
+    });
+    this.defeatIfDown(target);
+  }
+
+  /** A physical hit multiplied: spread, then a crit, then the grind multiplier. */
+  private resolveGrind(actor: PreparedFighter, target: PreparedFighter, multiplier: number): void {
+    const { events, input } = this;
+    const spread = input.spreadMin + input.rng.next() * (input.spreadMax - input.spreadMin);
+    const critical = input.rng.next() < input.critChance;
+    const hit = calculatePhysicalDamage(actor.str, target.def, spread);
+    const rolled = critical ? applyCriticalHitDamage(hit, input.critMultiplier) : hit;
+    const scaled = Math.max(1, Math.floor(rolled * multiplier));
+    const amount = this.guarded(target, scaled);
+    target.hp = Math.max(0, target.hp - amount);
+
+    events.push({
+      type: "grind",
+      actorId: actor.id,
+      targetId: target.id,
+      multiplier,
+    });
+    events.push({
+      type: "damaged",
+      actorId: actor.id,
+      targetId: target.id,
+      amount,
+      targetHp: target.hp,
+      critical,
+    });
+    this.defeatIfDown(target);
+  }
+
+  /** Defend halves whatever lands on a guarding target, including a spell or a grind. */
+  private guarded(target: PreparedFighter, amount: number): number {
+    return this.defending.has(target.id)
+      ? applyDefendingDamageReduction(amount, this.input.defendMultiplier)
+      : amount;
   }
 
   /** A copy with the defaults filled in. The caller's fighter is left alone. */

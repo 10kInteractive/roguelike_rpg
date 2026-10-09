@@ -677,3 +677,72 @@ function fightEnded(events: FightEvent[]): boolean {
     (event) => event.type === "actorDefeated" || (event.type === "fleeAttempted" && event.success),
   );
 }
+
+test("start plays up to the hero's first turn, and act plays to the next", () => {
+  const fight = new OneOnOneFightController({
+    ...fleeRules,
+    hero,
+    enemy: imp,
+    rng: scripted([0, 0]),
+  });
+
+  // The imp is quicker, so its swing comes before the hero chooses.
+  expect(fight.start()).toEqual([
+    { type: "attacked", actorId: "imp", targetId: "hero" },
+    { type: "damaged", actorId: "imp", targetId: "hero", amount: 4, targetHp: 26, critical: false },
+  ]);
+  expect(fight.awaitingHero()).toBe(true);
+
+  const defended = fight.act("defend");
+  expect(defended[0]).toEqual({ type: "defended", actorId: "hero" });
+  expect(defended.slice(1)).toEqual([
+    { type: "attacked", actorId: "imp", targetId: "hero" },
+    { type: "damaged", actorId: "imp", targetId: "hero", amount: 2, targetHp: 24, critical: false },
+  ]);
+  expect(fight.awaitingHero()).toBe(true);
+  expect(fight.ended()).toBe(false);
+});
+
+test("acting each turn plays the same fight as resolving it from a script", () => {
+  const choices = ["defend", "potion", "fight", "flee", "fight", "defend", "fight"] as const;
+  const rules = { ...fleeRules, spreadMin: 0.9, spreadMax: 1.1, critChance: 0.05 };
+  for (let seed = 1; seed <= 30; seed++) {
+    const whole = new OneOnOneFightController({
+      ...rules,
+      hero: { ...hero, potions: 1 },
+      enemy: imp,
+      rng: new SeededRandomGenerator(seed),
+      heroActions: [...choices],
+    }).resolve();
+
+    const stepped = new OneOnOneFightController({
+      ...rules,
+      hero: { ...hero, potions: 1 },
+      enemy: imp,
+      rng: new SeededRandomGenerator(seed),
+    });
+    const events = stepped.start();
+    for (let turn = 0; stepped.awaitingHero(); turn++) {
+      events.push(...stepped.act(choices[turn] ?? "fight"));
+    }
+
+    expect(events, `seed ${seed}`).toEqual(whole);
+    expect(stepped.ended()).toBe(true);
+  }
+});
+
+test("an escape ends the fight, and acting after the end throws", () => {
+  const fight = new OneOnOneFightController({
+    ...fleeRules,
+    hero,
+    enemy: slime,
+    rng: scripted([0]),
+  });
+  expect(fight.start()).toEqual([]);
+  expect(fight.act("flee")).toEqual([
+    { type: "fleeAttempted", actorId: "hero", success: true, chance: 0.65 },
+  ]);
+  expect(fight.ended()).toBe(true);
+  expect(fight.awaitingHero()).toBe(false);
+  expect(() => fight.act("fight")).toThrow("The fight is not waiting for the hero");
+});

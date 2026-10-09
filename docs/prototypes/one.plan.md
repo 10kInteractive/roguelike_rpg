@@ -547,7 +547,7 @@ On the `bozmak/view` branch, not merged yet. The canvas, the WebGPU renderer, an
 ### 7. UI and input
 
 - `feat: field encounters on screen`. The stand-in walk rolls encounters. A fight swaps to the combat scene, plays the pack, and returns to the field where the hero stood. Touching the miniboss starts its fight. A defeat ends the run with a status line until the game over screen exists. The run plays itself on the grinder's policies and generators, so a seed plays the same run on screen as in the sweep.
-- `feat: sim api`. `createSim`, `observe`, `legalActions`, and `act` in `src/sim/index.ts`. One hero action in, every consequence out, so fights stop being resolved whole by a policy. The stand-in policy acts through `act()` until the command window replaces it.
+- `feat: sim api`. `createSim`, `observe`, `legalActions`, and `act` in `src/sim/index.ts`. One hero action in, every consequence out, so fights stop being resolved whole by a policy. The stand-in policy acts through `act()` until the command window replaces it. Three stages: `refactor: steppable fight` (the fight pauses at each hero turn), `feat: sim api`, and `refactor: stand-in plays through act()`.
 - `feat: ui store`. A zustand store holds the latest snapshot and the events still waiting to play.
 - `feat: field hud`. Level, HP, and MP.
 - `feat: command window`. Fight, Magic, Item, Defend, Run, using keyboard actions only. The player drives the run by default. `?gameloop=ai` keeps the stand-in policies playing it.
