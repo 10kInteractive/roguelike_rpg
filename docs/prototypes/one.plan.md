@@ -60,9 +60,11 @@ src/                        shared engine
     index.ts                planned: createSim, observe, legalActions, act
   harness/                  headless play of the sim: replay, combat sweep, field sweep
   content/                  zod schemas, the bundle loader, bundle rows into fighters
-  view/                     Three.js: RenderLoopController, FixedStepClock, FieldViewController, FieldSceneController,
-                            FollowCameraController.
-                            Planned: combat scene, sequencer
+  view/                     Three.js. RenderLoopController owns the canvas, the camera, and the one render loop.
+    art/                    shared by both scenes: placeholder models, sun and sky, terrain textures
+    field/                  FieldViewController, FieldSceneController, FollowCameraController,
+                            FixedStepClock, PositionInterpolator, StandInWalkController
+    combat/                 planned: combat scene, sequencer
   ui/                       React DOM overlay. Planned: zustand store
   input/                    planned: keyboard and gamepad to actions
   assets/                   planned: manifest resolver and loader service
@@ -528,6 +530,7 @@ The canvas, the WebGPU renderer, and the React overlay already exist from toolin
 - `feat: placeholder textures`. Generated pixel textures, with a sidecar for each file.
 - `feat: meadow field scene`. Tile columns, the hero, and the miniboss under a sun and a sky light. The hero turns to face movement.
 - `feat: follow camera`. A 3/4 camera stays with the hero.
+- `refactor: view directories`. `view/` splits into `field/`, `combat/`, and `art/`, which both scenes share.
 - `feat: combat scene`. Hero on one side, enemies on the other, meadow backdrop.
 - `feat: combat sequencer`. Events play in order (lunge, flash, damage number, defeat fade), then input unlocks.
 - `feat: lazy meadow pack`. The loader shows progress. The field appears when the pack is ready.

@@ -3,9 +3,9 @@ import { loadBundle } from "../../src/content/load";
 import { createSeededMeadow } from "../../src/sim/field/map";
 import { SeededRandomGenerator } from "../../src/sim/utils/rng.controller";
 import { Overlay } from "../../src/ui/Overlay";
-import { FieldViewController } from "../../src/view/field-view.controller";
+import { TerrainTextureLoader } from "../../src/view/art/terrain-textures.controller";
+import { FieldViewController } from "../../src/view/field/view.controller";
 import { RenderLoopController } from "../../src/view/renderer.controller";
-import { TerrainTextureLoader } from "../../src/view/terrain-textures.controller";
 import { bundleSource } from "./bundle-source";
 
 const view = document.getElementById("view");
@@ -48,6 +48,7 @@ try {
     loop,
     map,
     textures,
+    minibossId: biome.miniboss,
     seed,
     rng: new SeededRandomGenerator(seed),
     cameraMode,

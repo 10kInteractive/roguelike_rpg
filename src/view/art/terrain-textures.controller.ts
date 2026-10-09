@@ -1,8 +1,8 @@
 import { NearestFilter, SRGBColorSpace, type Texture, TextureLoader } from "three";
-import type { Bundle } from "../content/schema";
-import { debugLog } from "../debug/logger.controller";
-import type { Terrain } from "../sim/field/map.types";
-import { terrainTextureIds } from "./field-scene.constants";
+import type { Bundle } from "../../content/schema";
+import { debugLog } from "../../debug/logger.controller";
+import type { Terrain } from "../../sim/field/map.types";
+import { terrainTextureIds } from "./terrain-textures.constants";
 
 const log = debugLog.create("view:assets");
 

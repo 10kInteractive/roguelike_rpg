@@ -1,8 +1,8 @@
-import type { MeadowMap } from "../sim/field/map.types";
-import { moveHeroAlongStick } from "../sim/field/movement";
-import type { Position, Stick } from "../sim/field/movement.types";
-import { FieldWalkPolicy } from "../sim/field/policy.controller";
-import type { Rng } from "../sim/utils/rng.types";
+import type { MeadowMap } from "../../sim/field/map.types";
+import { moveHeroAlongStick } from "../../sim/field/movement";
+import type { Position, Stick } from "../../sim/field/movement.types";
+import { FieldWalkPolicy } from "../../sim/field/policy.controller";
+import type { Rng } from "../../sim/utils/rng.types";
 
 /**
  * Walks the hero around the meadow until real input exists.

@@ -1,18 +1,18 @@
 import type { Texture } from "three";
-import { debugLog } from "../debug/logger.controller";
-import { debugWatches } from "../debug/watch.controller";
-import type { MeadowMap, Terrain } from "../sim/field/map.types";
-import { tickRate } from "../sim/field/movement.constants";
-import type { Position } from "../sim/field/movement.types";
-import type { Rng } from "../sim/utils/rng.types";
-import { FieldSceneController } from "./field-scene.controller";
-import { heroTurnRate, overviewOffset } from "./field-view.constants";
-import type { FieldCameraMode } from "./field-view.types";
+import { debugLog } from "../../debug/logger.controller";
+import { debugWatches } from "../../debug/watch.controller";
+import type { MeadowMap, Terrain } from "../../sim/field/map.types";
+import { tickRate } from "../../sim/field/movement.constants";
+import type { Position } from "../../sim/field/movement.types";
+import type { Rng } from "../../sim/utils/rng.types";
+import type { RenderLoopController } from "../renderer.controller";
 import { FixedStepClock } from "./fixed-step.controller";
 import { FollowCameraController } from "./follow-camera.controller";
 import { PositionInterpolator } from "./interpolation.controller";
-import type { RenderLoopController } from "./renderer.controller";
+import { FieldSceneController } from "./scene.controller";
 import { StandInWalkController } from "./stand-in-walk.controller";
+import { heroTurnRate, overviewOffset } from "./view.constants";
+import type { FieldCameraMode } from "./view.types";
 
 const log = debugLog.create("view:field");
 
@@ -61,6 +61,8 @@ export class FieldViewController {
     map: MeadowMap;
     /** Terrain textures that loaded. */
     textures: Partial<Record<Terrain, Texture>>;
+    /** The mob on the miniboss tile, such as `mob.rust_sentinel`. */
+    minibossId: string;
     /** The run seed, shown on the dev panel. */
     seed: number;
     /** Direction rolls for the stand-in walk. */
@@ -70,7 +72,7 @@ export class FieldViewController {
   }) {
     this.loop = input.loop;
     this.map = input.map;
-    this.field = new FieldSceneController(input.map, input.textures);
+    this.field = new FieldSceneController(input.map, input.textures, input.minibossId);
     this.walk = new StandInWalkController(input.map, input.rng);
     this.motion = new PositionInterpolator(this.walk.start());
     this.drawn = this.walk.start();

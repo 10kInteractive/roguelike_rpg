@@ -1,4 +1,4 @@
-import type { Position } from "../sim/field/movement.types";
+import type { Position } from "../../sim/field/movement.types";
 
 /**
  * Remembers the last two sim positions and blends between them.

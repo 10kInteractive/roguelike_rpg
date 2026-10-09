@@ -1,27 +1,21 @@
 import {
   BoxGeometry,
   Color,
-  DirectionalLight,
-  Group,
-  HemisphereLight,
+  type Group,
   InstancedMesh,
   Matrix4,
-  Mesh,
   MeshLambertMaterial,
   Scene,
   type Texture,
   type Vector3,
 } from "three";
-import type { MeadowMap, Terrain, TilePoint } from "../sim/field/map.types";
-import type { Position } from "../sim/field/movement.types";
-import {
-  groundBounceColor,
-  heroLook,
-  minibossLook,
-  skyColor,
-  terrainFallbackColors,
-  terrainHeights,
-} from "./field-scene.constants";
+import type { MeadowMap, Terrain, TilePoint } from "../../sim/field/map.types";
+import type { Position } from "../../sim/field/movement.types";
+import { addSunAndSky } from "../art/lighting";
+import { skyColor } from "../art/lighting.constants";
+import { buildHeroModel, buildMobModel } from "../art/models";
+import { terrainFallbackColors } from "../art/terrain-textures.constants";
+import { terrainHeights } from "./scene.constants";
 
 /**
  * The meadow as Three.js objects: tile columns, the hero, the miniboss, and light.
@@ -45,16 +39,17 @@ export class FieldSceneController {
   /**
    * @param map The seeded meadow.
    * @param textures Each terrain's texture. A missing one draws its fallback color.
+   * @param minibossId The mob standing on the miniboss tile, such as `mob.rust_sentinel`.
    */
-  constructor(map: MeadowMap, textures: Partial<Record<Terrain, Texture>>) {
+  constructor(map: MeadowMap, textures: Partial<Record<Terrain, Texture>>, minibossId: string) {
     this.map = map;
     this.heights = map.tiles.map((terrain) => terrainHeights[terrain]);
     this.scene.background = new Color(skyColor);
 
     this.addTiles(textures);
-    this.addLight();
-    this.addMiniboss(map.miniboss);
-    this.hero = this.buildHero();
+    addSunAndSky(this.scene, this.center());
+    this.addMiniboss(map.miniboss, minibossId);
+    this.hero = buildHeroModel();
     this.scene.add(this.hero);
   }
 
@@ -106,45 +101,13 @@ export class FieldSceneController {
     }
   }
 
-  /** A sun from the southwest, high up, and a sky light that tints from above. */
-  private addLight(): void {
-    const sun = new DirectionalLight(0xfff2d8, 2.2);
-    const { x, z } = this.center();
-    sun.position.set(x - 20, 40, z + 30);
-    sun.target.position.set(x, 0, z);
-    this.scene.add(sun, sun.target);
-    this.scene.add(new HemisphereLight(skyColor, groundBounceColor, 1.2));
-  }
-
-  /** The Rust Sentinel standing on its tile. */
-  private addMiniboss(tile: TilePoint): void {
-    const { color, width, height } = minibossLook;
-    const body = new Mesh(
-      new BoxGeometry(width, height, width).translate(0, height / 2, 0),
-      new MeshLambertMaterial({ color }),
-    );
+  /** The miniboss standing on its tile, facing south toward the camera. */
+  private addMiniboss(tile: TilePoint, minibossId: string): void {
+    const miniboss = buildMobModel(minibossId);
     const center = { x: tile.x + 0.5, y: tile.y + 0.5 };
-    body.position.set(center.x, this.groundAt(center), -center.y);
-    body.name = "miniboss";
-    this.scene.add(body);
-  }
-
-  /** The hero block and a nose on its +z side, so facing is visible from above. */
-  private buildHero(): Group {
-    const { color, noseColor, width, height } = heroLook;
-    const body = new Mesh(
-      new BoxGeometry(width, height, width).translate(0, height / 2, 0),
-      new MeshLambertMaterial({ color }),
-    );
-    const nose = new Mesh(
-      new BoxGeometry(width * 0.4, width * 0.4, width * 0.4),
-      new MeshLambertMaterial({ color: noseColor }),
-    );
-    nose.position.set(0, height * 0.7, width / 2 + width * 0.15);
-    const hero = new Group();
-    hero.add(body, nose);
-    hero.name = "hero";
-    return hero;
+    miniboss.position.set(center.x, this.groundAt(center), -center.y);
+    miniboss.name = "miniboss";
+    this.scene.add(miniboss);
   }
 
   /** The top of the column under a sim position. Off the map is ground level. */
