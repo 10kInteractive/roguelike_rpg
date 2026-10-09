@@ -5,6 +5,7 @@
     "module": "esnext",
     "jsx": "react-jsx",
     "moduleResolution": "bundler",
+    "resolveJsonModule": true,
     "types": ["vite/client"],
     "strict": true,
     "noUncheckedIndexedAccess": true,

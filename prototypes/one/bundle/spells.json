@@ -1,0 +1,6 @@
+{
+  "spells": [
+    { "id": "spell.ember", "element": "fire", "power": 8, "cost": 3 },
+    { "id": "spell.frost", "element": "ice", "power": 8, "cost": 3 }
+  ]
+}
