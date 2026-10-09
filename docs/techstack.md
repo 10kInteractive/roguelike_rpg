@@ -284,7 +284,7 @@ src/                shared engine
     combat/         combat scene and sequencer
   ui/               React DOM overlay and the zustand store
     components/     command window, field HUD, message log, run ending
-  input/            keyboard to a stick. Gamepad mapping is planned
+  input/            keyboard and gamepad to a stick and menu presses
   audio/            Web Audio mixer and music stems
   assets/           manifest resolver and loader service
   debug/            namespaced logger and dev panel

@@ -72,7 +72,7 @@ src/                        shared engine
                             TweenController, FloatingTextController
   ui/                       React DOM overlay. UiStoreController: the latest snapshot and the events waiting to play
     components/             CommandWindow, FieldHud, MessageLog, RunEndScreen
-  input/                    KeyboardController: held keys as a stick. Gamepad is planned
+  input/                    KeyboardController and GamepadController: held keys or the pad as a stick, and menu presses
   assets/                   AssetLoaderController: loads a manifest pack with progress. Built URLs for
                             every file under /assets, so production builds ship them
   debug/                    DebugLogController, DebugWatchController, dev panel
@@ -409,7 +409,7 @@ React DOM overlay over the canvas, NES-style bordered windows and a pixel font. 
 | Confirm | Enter, Space, Z | A |
 | Cancel | Escape, Backspace, X | B |
 
-The input layer turns devices into one quantized move vector per tick plus discrete menu actions. Default bindings only. Rebinding comes later.
+The input layer turns devices into one quantized move vector per tick plus discrete menu actions. Default bindings only. Rebinding comes later. A menu direction from the stick registers at half deflection, once, until the stick comes back. A direction already held when a menu opens does not count until it is released.
 
 ## Harness
 

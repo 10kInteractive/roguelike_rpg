@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { gamepad } from "../../input/gamepad.controller";
+import type { MenuDirection } from "../../input/gamepad.types";
 import type { MenuRow } from "../commands";
 import { rowUsable } from "../commands";
 import { uiStore, useCommands } from "../store.controller";
@@ -42,8 +44,32 @@ function CommandMenus({ rows }: { rows: readonly MenuRow[] }) {
       }
       if (row?.action) uiStore.submit(row.action);
     };
+    const onPad = (action: MenuDirection) => {
+      if (action === "up") {
+        setMenus(move(-1));
+        return;
+      }
+      if (action === "down") {
+        setMenus(move(1));
+        return;
+      }
+      if (action === "cancel") {
+        setMenus(back);
+        return;
+      }
+      const row = menu.rows[menu.index];
+      if (row?.menu && row.menu.length > 0) {
+        setMenus((current) => [...current, { rows: row.menu ?? [], index: 0 }]);
+        return;
+      }
+      if (row?.action) uiStore.submit(row.action);
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    const stopPad = gamepad.onMenu(onPad);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      stopPad();
+    };
   }, [menu]);
 
   return (

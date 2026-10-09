@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { gamepad } from "../../input/gamepad.controller";
 import type { Snapshot } from "../../sim/game.types";
 import { nameFromId } from "../names";
 import { uiStore, usePlayMs, useUiSnapshot } from "../store.controller";
@@ -16,8 +17,14 @@ export function RunEndScreen() {
       event.preventDefault();
       uiStore.confirmRestart();
     };
+    const stopPad = gamepad.onMenu((action) => {
+      if (action === "confirm") uiStore.confirmRestart();
+    });
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      stopPad();
+    };
   }, [ended]);
 
   if (!ended || !snapshot) return null;
