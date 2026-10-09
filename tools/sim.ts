@@ -2,6 +2,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { enemyFighterFromMob, heroFighterFromBundle } from "../src/content/fighters.ts";
 import { loadBundle } from "../src/content/load.ts";
+import {
+  combatRulesFromBundle,
+  knownSpellsFromBundle,
+  levelRulesFromBundle,
+  runMobsFromBundle,
+} from "../src/content/rules.ts";
 import type { Bundle } from "../src/content/schema.ts";
 import { formatCombatSeedSweepSummary } from "../src/harness/combat-sweep.ts";
 import type { SweepFight } from "../src/harness/combat-sweep.types.ts";
@@ -21,7 +27,6 @@ import type { KnownSpell } from "../src/sim/combat/policy.types.ts";
 import type { EncounterTables } from "../src/sim/field/encounters.types.ts";
 import { createSeededMeadow } from "../src/sim/field/map.ts";
 import { GrinderFieldRunController } from "../src/sim/run/run.controller.ts";
-import type { RunMob } from "../src/sim/run/run.types.ts";
 import { SeededRandomGenerator } from "../src/sim/utils/rng.controller.ts";
 import { readBundle } from "./read-bundle.ts";
 
@@ -62,7 +67,7 @@ if (runs !== undefined) {
     process.exit(1);
   }
   const bundle = loadBundle(await readBundle(path.resolve("prototypes/one/bundle")));
-  const spells = knownSpells(bundle);
+  const spells = knownSpellsFromBundle(bundle);
   const fought: SweepFight[] = [];
   for (let next = 1; next <= Number(runs); next++) {
     const events = play(bundle, enemyId, next, undefined, {
@@ -92,7 +97,7 @@ if (seed === undefined || !/^\d+$/.test(seed) || !policyOk) {
 const bundle = loadBundle(await readBundle(path.resolve("prototypes/one/bundle")));
 const combat = new SeededRandomGenerator(Number(seed));
 const choice = new SeededRandomGenerator(Number(seed));
-const spells = knownSpells(bundle);
+const spells = knownSpellsFromBundle(bundle);
 const events = play(bundle, enemyId, Number(seed), undefined, {
   combat,
   choice,
@@ -146,8 +151,7 @@ function play(
     console.error(`Unknown enemy ${enemyId}`);
     process.exit(1);
   }
-  const potion = bundle.items.items.find((item) => item.id === "item.potion");
-  const spells = live?.spells ?? knownSpells(bundle);
+  const spells = live?.spells ?? knownSpellsFromBundle(bundle);
   const recorded = actions ? expandLoggedActionsIntoFightScript(actions.hero, spells) : undefined;
   const enemyActions = actions
     ? expandLoggedActionsIntoFightScript(actions.enemy, spells)
@@ -158,24 +162,8 @@ function play(
     enemy: enemyFighterFromMob(mob, bundle.spells.spells),
     rng: live?.combat ?? new SeededRandomGenerator(seed),
     choiceRng: actions ? undefined : live?.choice,
-    turnBase: bundle.rules.turnBase,
-    spreadMin: bundle.rules.spreadMin,
-    spreadMax: bundle.rules.spreadMax,
-    critChance: bundle.rules.critChance,
-    critMultiplier: bundle.rules.critMultiplier,
-    defendMultiplier: bundle.rules.defendMultiplier,
-    potionHeal: potion?.heal ?? 0,
-    fleeBase: bundle.rules.fleeBase,
-    fleePerPoint: bundle.rules.fleePerPoint,
-    fleeMin: bundle.rules.fleeMin,
-    fleeMax: bundle.rules.fleeMax,
-    weaknessMultiplier: bundle.rules.weaknessMultiplier,
-    resistanceMultiplier: bundle.rules.resistanceMultiplier,
-    leveling: {
-      xpPerLevel: bundle.rules.xpPerLevel,
-      levelCap: bundle.rules.levelCap,
-      growth: bundle.hero.growth,
-    },
+    ...combatRulesFromBundle(bundle),
+    leveling: levelRulesFromBundle(bundle),
     heroActions: recorded,
     enemyActions,
     heroPolicy: actions
@@ -209,45 +197,12 @@ function isRunLog(value: unknown): value is RunLog {
   );
 }
 
-function knownSpells(bundle: Bundle): KnownSpell[] {
-  return bundle.hero.spells.flatMap((id) => {
-    const spell = bundle.spells.spells.find((entry) => entry.id === id);
-    if (!spell || (spell.id !== "spell.ember" && spell.id !== "spell.frost")) return [];
-    return [{ id: spell.id, element: spell.element, power: spell.power, cost: spell.cost }];
-  });
-}
-
 function sweepGrinder(bundle: Bundle, runs: number): string {
   const biome = bundle.biomes[0];
   if (!biome) throw new Error("The bundle has no biome");
-  const potion = bundle.items.items.find((item) => item.id === "item.potion");
-  const mobs = new Map<string, RunMob>();
-  for (const mob of bundle.mobs.mobs) {
-    mobs.set(mob.id, {
-      fighter: enemyFighterFromMob(mob, bundle.spells.spells),
-      potionDrop: mob.potionDrop,
-    });
-  }
-  const combat = {
-    turnBase: bundle.rules.turnBase,
-    spreadMin: bundle.rules.spreadMin,
-    spreadMax: bundle.rules.spreadMax,
-    critChance: bundle.rules.critChance,
-    critMultiplier: bundle.rules.critMultiplier,
-    defendMultiplier: bundle.rules.defendMultiplier,
-    potionHeal: potion?.heal ?? 0,
-    fleeBase: bundle.rules.fleeBase,
-    fleePerPoint: bundle.rules.fleePerPoint,
-    fleeMin: bundle.rules.fleeMin,
-    fleeMax: bundle.rules.fleeMax,
-    weaknessMultiplier: bundle.rules.weaknessMultiplier,
-    resistanceMultiplier: bundle.rules.resistanceMultiplier,
-  };
-  const leveling = {
-    xpPerLevel: bundle.rules.xpPerLevel,
-    levelCap: bundle.rules.levelCap,
-    growth: bundle.hero.growth,
-  };
+  const mobs = runMobsFromBundle(bundle);
+  const combat = combatRulesFromBundle(bundle);
+  const leveling = levelRulesFromBundle(bundle);
   const tables = encounterTables(bundle);
   const results = [];
   for (let next = 1; next <= runs; next++) {
