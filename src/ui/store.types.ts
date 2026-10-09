@@ -1,5 +1,5 @@
 import type { SimEvent, Snapshot } from "../sim/game.types";
-import type { CommandRow } from "./commands";
+import type { MenuRow } from "./commands";
 
 /** What the overlay can see. The sim stays the authority. */
 export type UiState = {
@@ -8,5 +8,5 @@ export type UiState = {
   /** Events the view has not played yet, oldest first. */
   pending: SimEvent[];
   /** The command window's rows. Null while it is closed. */
-  commands: CommandRow[] | null;
+  commands: MenuRow[] | null;
 };
