@@ -28,6 +28,45 @@
       "quoteStyle": "double"
     }
   },
+  "overrides": [
+    {
+      "includes": ["src/sim/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "three": "The sim cannot import three.",
+                  "react": "The sim cannot import react.",
+                  "react-dom": "The sim cannot import react-dom.",
+                  "zustand": "The sim cannot import zustand."
+                },
+                "patterns": [
+                  {
+                    "group": ["three/**", "react/**", "react-dom/**", "zustand/**"],
+                    "message": "The sim cannot import three, react, or zustand."
+                  },
+                  {
+                    "group": [
+                      "**/view",
+                      "**/view/**",
+                      "**/ui",
+                      "**/ui/**",
+                      "**/input",
+                      "**/input/**"
+                    ],
+                    "message": "The sim cannot import the view, UI, or input."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
   "assist": {
     "enabled": true,
     "actions": {
