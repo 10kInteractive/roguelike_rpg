@@ -3,7 +3,8 @@ import type { FightEvent, Fighter } from "../combat/fight.types";
 import type { LevelRules } from "../combat/level";
 import { fighterAction } from "../combat/policy";
 import { type Rng, SeededRandomGenerator } from "../rng";
-import { createEncounterState, type EncounterTables, type Miniboss, walk } from "./encounters";
+import { EncounterWalkController } from "./encounters.controller";
+import type { EncounterTables, Miniboss } from "./encounters.types";
 import type { MeadowMap } from "./map";
 import { tilesPerSecond } from "./movement";
 import { grinderWalk } from "./policy";
@@ -143,8 +144,14 @@ export function runField(input: {
   const fieldRng = input.rngs?.field ?? new SeededRandomGenerator(input.seed);
   const choiceRng = input.rngs?.choice ?? new SeededRandomGenerator(input.seed);
   const combatRng = input.rngs?.combat ?? new SeededRandomGenerator(input.seed);
-  let position = { x: input.map.spawn.x + 0.5, y: input.map.spawn.y + 0.5 };
-  let state = createEncounterState(input.minDistance);
+  const encounter = new EncounterWalkController({
+    position: { x: input.map.spawn.x + 0.5, y: input.map.spawn.y + 0.5 },
+    field: input.map,
+    tables: input.tables,
+    minDistance: input.minDistance,
+    rng: fieldRng,
+    miniboss: input.miniboss,
+  });
   let distance = 0;
   let fights = 0;
   let heroActions = 0;
@@ -155,25 +162,13 @@ export function runField(input: {
   for (let batch = 0; batch < maxBatches && hero.hp > 0; batch++) {
     // Hold the grinder's stick, and stop early when a fight starts.
     const choice = grinderWalk({
-      position,
+      position: encounter.position,
       field: input.map,
       miniboss: input.miniboss.tile,
       level: hero.level,
       rng: choiceRng,
     });
-    const stepped = walk({
-      position,
-      stick: choice.stick,
-      ticks: choice.ticks,
-      field: input.map,
-      tables: input.tables,
-      minDistance: input.minDistance,
-      rng: fieldRng,
-      state,
-      miniboss: input.miniboss,
-    });
-    position = stepped.position;
-    state = stepped.state;
+    const stepped = encounter.holdStick(choice.stick, choice.ticks);
     distance += stepped.distance;
     const started = stepped.events[0];
     if (!started) continue;

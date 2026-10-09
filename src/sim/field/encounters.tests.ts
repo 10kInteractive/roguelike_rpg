@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import type { Rng } from "../rng";
-import { createEncounterState, walk } from "./encounters";
+import { EncounterWalkController } from "./encounters.controller";
 import type { Terrain } from "./map";
 import { heroRadius, move, type Position } from "./movement";
 
@@ -9,39 +9,32 @@ const start: Position = { x: 0.5, y: 0.5 };
 
 test("each terrain rolls its own rate, and a matching roll does not start a fight", () => {
   const grass = row("grass", 16);
-  const quiet = walk({
+  const quiet = new EncounterWalkController({
     position: start,
-    stick: east,
-    ticks: 8,
     field: grass,
     tables: { grass: { rate: 0.1, packs: [slime] } },
     minDistance: 0,
     rng: rolls([0.1]),
-    state: createEncounterState(0),
-  });
+  }).holdStick(east, 8);
   expect(quiet.events).toEqual([]);
   expect(quiet.ticks).toBe(8);
 
-  const fight = walk({
+  const started = new EncounterWalkController({
     position: start,
-    stick: east,
-    ticks: 30,
     field: grass,
     tables: { grass: { rate: 0.1, packs: [slime] } },
     minDistance: 0,
     rng: rolls([0]),
-    state: createEncounterState(0),
   });
+  const fight = started.holdStick(east, 30);
   expect(fight.ticks).toBe(8);
-  expect(fight.position).toEqual(move(start, east, 8, grass));
+  expect(started.position).toEqual(move(start, east, 8, grass));
   expect(fight.events).toEqual([
     { type: "encounterStarted", terrain: "grass", groups: [{ id: "mob.slime", count: 1 }] },
   ]);
 
-  const forest = walk({
+  const forest = new EncounterWalkController({
     position: start,
-    stick: east,
-    ticks: 30,
     field: row("forest", 16),
     tables: {
       forest: { rate: 0, packs: [slime] },
@@ -49,8 +42,7 @@ test("each terrain rolls its own rate, and a matching roll does not start a figh
     },
     minDistance: 0,
     rng: rolls([0]),
-    state: createEncounterState(0),
-  });
+  }).holdStick(east, 30);
   expect(forest.events).toEqual([]);
 });
 
@@ -65,50 +57,28 @@ test("fights stay 4 tiles apart, and the walk stops when one starts", () => {
       ],
     },
   };
-  const first = walk({
+  const walk = new EncounterWalkController({
     position: start,
-    stick: east,
-    ticks: 30,
     field,
     tables,
     minDistance: 4,
-    rng: rolls([0, 0, 0]),
-    state: createEncounterState(4),
+    rng: rolls([0, 0, 0, 0, 0.5]),
   });
+  const first = walk.holdStick(east, 30);
+  const firstPosition = { ...walk.position };
   expect(first.events).toEqual([
     { type: "encounterStarted", terrain: "grass", groups: [{ id: "mob.slime", count: 1 }] },
   ]);
   expect(first.ticks).toBeLessThan(30);
 
-  const gap = walk({
-    position: first.position,
-    stick: east,
-    ticks: 22,
-    field,
-    tables,
-    minDistance: 4,
-    rng: rolls([0, 0, 0]),
-    state: first.state,
-  });
+  const gap = walk.holdStick(east, 22);
   expect(gap.events).toEqual([]);
 
-  const second = walk({
-    position: gap.position,
-    stick: east,
-    ticks: 40,
-    field,
-    tables,
-    minDistance: 4,
-    rng: rolls([0, 0.5]),
-    state: gap.state,
-  });
+  const second = walk.holdStick(east, 40);
   expect(second.events).toEqual([
     { type: "encounterStarted", terrain: "grass", groups: [{ id: "mob.ember_imp", count: 1 }] },
   ]);
-  const apart = Math.hypot(
-    second.position.x - first.position.x,
-    second.position.y - first.position.y,
-  );
+  const apart = Math.hypot(walk.position.x - firstPosition.x, walk.position.y - firstPosition.y);
   expect(apart).toBeGreaterThanOrEqual(4);
 });
 
@@ -118,17 +88,15 @@ test("touching the miniboss starts its fight, and walking clear of it does not",
   const center = { x: miniboss.tile.x + 0.5, y: miniboss.tile.y + 0.5 };
   const reach = miniboss.radius + heroRadius;
   const quiet = { grass: { rate: 0, packs: [slime] } };
-  const touched = walk({
+  const touchedWalk = new EncounterWalkController({
     position: start,
-    stick: east,
-    ticks: 40,
     field,
     tables: quiet,
     minDistance: 4,
     rng: rolls([]),
-    state: createEncounterState(4),
     miniboss,
   });
+  const touched = touchedWalk.holdStick(east, 40);
   expect(touched.events).toEqual([
     {
       type: "encounterStarted",
@@ -139,7 +107,7 @@ test("touching the miniboss starts its fight, and walking clear of it does not",
   ]);
   expect(touched.ticks).toBeLessThan(40);
   expect(
-    Math.hypot(touched.position.x - center.x, touched.position.y - center.y),
+    Math.hypot(touchedWalk.position.x - center.x, touchedWalk.position.y - center.y),
   ).toBeLessThanOrEqual(reach);
   const before = move(start, east, touched.ticks - 1, field);
   expect(Math.hypot(before.x - center.x, before.y - center.y)).toBeGreaterThan(reach);
@@ -149,17 +117,14 @@ test("touching the miniboss starts its fight, and walking clear of it does not",
     height: 4,
     tiles: Array.from({ length: 32 }, () => "grass" as const),
   };
-  const aside = walk({
+  const aside = new EncounterWalkController({
     position: start,
-    stick: east,
-    ticks: 30,
     field: meadow,
     tables: quiet,
     minDistance: 4,
     rng: rolls([]),
-    state: createEncounterState(4),
     miniboss: { tile: { x: 3, y: 3 }, radius: 0.8, id: "mob.rust_sentinel" },
-  });
+  }).holdStick(east, 30);
   expect(aside.events).toEqual([]);
   expect(aside.ticks).toBe(30);
 });

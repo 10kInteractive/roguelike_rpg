@@ -11,7 +11,7 @@ import {
   type KnownSpell,
   randomAction,
 } from "../src/sim/combat/policy.ts";
-import type { EncounterTables } from "../src/sim/field/encounters.ts";
+import type { EncounterTables } from "../src/sim/field/encounters.types.ts";
 import { createMeadow } from "../src/sim/field/map.ts";
 import { type RunMob, runField } from "../src/sim/field/run.ts";
 import { fieldSweepSummary } from "../src/sim/harness/field-sweep.ts";

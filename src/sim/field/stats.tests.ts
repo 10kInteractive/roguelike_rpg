@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import { OneOnOneFightController } from "../combat/fight.controller";
 import { type Rng, SeededRandomGenerator } from "../rng";
-import { createEncounterState, walk } from "./encounters";
+import { EncounterWalkController } from "./encounters.controller";
 import { createRunStats, recordFight, recordWalk } from "./stats";
 
 const rules = {
@@ -40,16 +40,13 @@ test("a walk and a won fight record distance, damage, and the seed", () => {
     height: 1,
     tiles: Array.from({ length: 16 }, () => "grass" as const),
   };
-  const walked = walk({
+  const walked = new EncounterWalkController({
     position: { x: 0.5, y: 0.5 },
-    stick: { x: 64, y: 0 },
-    ticks: 30,
     field: grass,
     tables: { grass: { rate: 0, packs: [] } },
     minDistance: 4,
     rng: rolls([]),
-    state: createEncounterState(4),
-  });
+  }).holdStick({ x: 64, y: 0 }, 30);
   const events = new OneOnOneFightController({
     ...rules,
     hero,

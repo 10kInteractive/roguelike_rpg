@@ -49,4 +49,4 @@ Backfilling older declarations is its own cleanup, not part of a feature stage.
 
 ## When a function is no longer one procedure
 
-Move it to a controller when the same state is threaded through several operations. A new formula stays a function until it starts owning state. Until then, blank lines and activity comments are the way to grow the procedure.
+Move it to a controller when the same state is threaded through several operations. Helpers that exist for that controller are private methods. A formula shared by more than one controller stays a function. Until then, blank lines and activity comments are the way to grow the procedure.
