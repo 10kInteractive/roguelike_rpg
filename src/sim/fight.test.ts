@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { type FightEvent, fight } from "./fight";
-import { fighterAction } from "./policy";
+import { casterAction, fighterAction, type KnownSpell } from "./policy";
 import type { Rng } from "./rng";
 import { createRng } from "./rng";
 
@@ -595,5 +595,49 @@ test("the fighter drinks below 30% HP, then fights once healed", () => {
       critical: false,
     },
     { type: "attacked", actorId: "hero", targetId: "slime" },
+  ]);
+});
+
+const spells: KnownSpell[] = [
+  { id: "spell.ember", element: "fire", power: 8, cost: 3 },
+  { id: "spell.frost", element: "ice", power: 8, cost: 3 },
+];
+
+test("the caster throws Frost at an ice weakness, then fights when MP is short", () => {
+  const events = fight({
+    ...fleeRules,
+    hero: { ...hero, mp: 4, mag: 6 },
+    enemy: { ...slime, hp: 40, weak: "ice" },
+    rng: scripted([]),
+    heroPolicy: (actor, target) => casterAction(actor, target, spells),
+  });
+  expect(events.slice(0, 6)).toEqual([
+    { type: "spellCast", actorId: "hero", spellId: "spell.frost", targetId: "slime", mp: 1 },
+    {
+      type: "damaged",
+      actorId: "hero",
+      targetId: "slime",
+      amount: 21,
+      targetHp: 19,
+      critical: false,
+    },
+    { type: "attacked", actorId: "slime", targetId: "hero" },
+    {
+      type: "damaged",
+      actorId: "slime",
+      targetId: "hero",
+      amount: 4,
+      targetHp: 26,
+      critical: false,
+    },
+    { type: "attacked", actorId: "hero", targetId: "slime" },
+    {
+      type: "damaged",
+      actorId: "hero",
+      targetId: "slime",
+      amount: 7,
+      targetHp: 12,
+      critical: false,
+    },
   ]);
 });

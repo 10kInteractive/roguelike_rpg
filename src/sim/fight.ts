@@ -8,7 +8,7 @@ import {
 } from "./damage";
 import { fleeChance } from "./flee";
 import { gainXp, type HeroProgress, type LevelEvent, type LevelRules } from "./level";
-import type { HeroVitals } from "./policy";
+import type { HeroVitals, SpellChoice } from "./policy";
 import type { Rng } from "./rng";
 import { createTurnQueue } from "./turn-queue";
 import { pickWeighted, type Weighted } from "./weighted";
@@ -120,8 +120,11 @@ export type FightInput = {
   resistanceMultiplier: number;
   /** When set, a defeated enemy grants XP and may level the hero. */
   leveling?: LevelRules;
-  /** Chooses an unscripted hero turn from current HP and potions. */
-  heroPolicy?: (hero: HeroVitals) => TurnAction;
+  /** Chooses an unscripted hero turn from current HP, MP, and the target. */
+  heroPolicy?: (
+    hero: HeroVitals & { mp: number },
+    target: { weak?: Element },
+  ) => TurnAction | SpellChoice;
   /** One entry per hero turn. Turns past the end Fight. */
   heroActions?: TurnAction[];
   /** One entry per enemy turn. Turns past the end Fight. */
@@ -173,6 +176,38 @@ export function fight(input: FightInput): FightEvent[] {
     const guarded = (amount: number) =>
       defending.has(target.id) ? applyDefend(amount, input.defendMultiplier) : amount;
 
+    // Pay for a spell and resolve it. The caller has already checked the MP.
+    const castSpell = (spell: SpellChoice) => {
+      actor.mp -= spell.cost;
+      const spread = input.spreadMin + input.rng.next() * (input.spreadMax - input.spreadMin);
+      const multiplier = elementMultiplier(
+        spell.element,
+        target.weak,
+        target.resists,
+        input.weaknessMultiplier,
+        input.resistanceMultiplier,
+      );
+      const amount = guarded(magicDamage(spell.power, actor.mag, multiplier, spread));
+      target.hp = Math.max(0, target.hp - amount);
+
+      events.push({
+        type: "spellCast",
+        actorId: actor.id,
+        spellId: spell.spellId,
+        targetId: target.id,
+        mp: actor.mp,
+      });
+      events.push({
+        type: "damaged",
+        actorId: actor.id,
+        targetId: target.id,
+        amount,
+        targetHp: target.hp,
+        critical: false,
+      });
+      defeatIfDown(events, hero, enemy, target, input.leveling);
+    };
+
     // A scripted action wins. Otherwise an enemy with a list rolls it, and anything left is Fight.
     const turn = taken.get(actor.id) ?? 0;
     taken.set(actor.id, turn + 1);
@@ -180,9 +215,15 @@ export function fight(input: FightInput): FightEvent[] {
     const scripted = script?.[turn];
     let action: TurnAction = scripted ?? "fight";
 
-    // A scripted turn wins. Otherwise the fighter drinks below 30% HP.
+    // A scripted turn wins. Otherwise the policy picks Fight, a potion, or a spell.
     if (scripted === undefined && actor === hero && input.heroPolicy) {
-      action = input.heroPolicy(actor);
+      const choice = input.heroPolicy(actor, target);
+      if (typeof choice === "string") {
+        action = choice;
+      } else if (actor.mp >= choice.cost) {
+        castSpell(choice);
+        continue;
+      }
     }
 
     if (scripted === undefined && actor === enemy && enemy.actions && enemy.actions.length > 0) {
@@ -190,34 +231,7 @@ export function fight(input: FightInput): FightEvent[] {
 
       // Pay for the spell and resolve it now. An unpaid spell falls through to Fight.
       if (picked.type === "spell" && actor.mp >= picked.cost) {
-        actor.mp -= picked.cost;
-        const spread = input.spreadMin + input.rng.next() * (input.spreadMax - input.spreadMin);
-        const multiplier = elementMultiplier(
-          picked.element,
-          target.weak,
-          target.resists,
-          input.weaknessMultiplier,
-          input.resistanceMultiplier,
-        );
-        const amount = guarded(magicDamage(picked.power, actor.mag, multiplier, spread));
-        target.hp = Math.max(0, target.hp - amount);
-
-        events.push({
-          type: "spellCast",
-          actorId: actor.id,
-          spellId: picked.spellId,
-          targetId: target.id,
-          mp: actor.mp,
-        });
-        events.push({
-          type: "damaged",
-          actorId: actor.id,
-          targetId: target.id,
-          amount,
-          targetHp: target.hp,
-          critical: false,
-        });
-        defeatIfDown(events, hero, enemy, target, input.leveling);
+        castSpell(picked);
         continue;
       }
 
