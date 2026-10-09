@@ -1,11 +1,12 @@
 import { OneOnOneFightController } from "../combat/fight.controller";
 import type { FightEvent, Fighter } from "../combat/fight.types";
-import { fighterAction } from "../combat/policy";
+import { CombatActionPolicy } from "../combat/policy.controller";
 import { EncounterWalkController } from "../field/encounters.controller";
 import type { EncounterEvent } from "../field/encounters.types";
 import { tilesPerSecond } from "../field/movement";
-import { grinderWalk } from "../field/policy";
-import { type Rng, SeededRandomGenerator } from "../rng";
+import { FieldWalkPolicy } from "../field/policy.controller";
+import { SeededRandomGenerator } from "../utils/rng.controller";
+import type { Rng } from "../utils/rng.types";
 import {
   enemyActionSeconds,
   fightTransitionSeconds,
@@ -38,6 +39,12 @@ export class GrinderFieldRunController {
 
   /** Where the hero walks, and when a fight starts. */
   private readonly encounter: EncounterWalkController;
+
+  /** Which way the grinder pushes the stick. */
+  private readonly walkPolicy: FieldWalkPolicy;
+
+  /** The fighter's turn choices: Fight, or a potion below 30% HP. */
+  private readonly combatPolicy: CombatActionPolicy;
 
   /** Tiles the hero actually walked. */
   private distance = 0;
@@ -74,19 +81,19 @@ export class GrinderFieldRunController {
       rng: this.fieldRng,
       miniboss: input.miniboss,
     });
+    this.walkPolicy = new FieldWalkPolicy({
+      field: input.map,
+      miniboss: input.miniboss.tile,
+      rng: this.choiceRng,
+    });
+    this.combatPolicy = new CombatActionPolicy([], this.choiceRng);
   }
 
   /** Walks and fights until the miniboss falls, the hero falls, or the safety cap runs out. */
   play(): FieldRunResult {
     for (let hold = 0; hold < maxStickHolds && this.hero.hp > 0; hold++) {
       // Hold the grinder's stick, and stop early when a fight starts.
-      const choice = grinderWalk({
-        position: this.encounter.position,
-        field: this.input.map,
-        miniboss: this.input.miniboss.tile,
-        level: this.hero.level,
-        rng: this.choiceRng,
-      });
+      const choice = this.walkPolicy.chooseGrinder(this.encounter.position, this.hero.level);
       const stepped = this.encounter.holdStick(choice.stick, choice.ticks);
       this.distance += stepped.distance;
       const started = stepped.events[0];
@@ -114,7 +121,7 @@ export class GrinderFieldRunController {
           choiceRng: this.choiceRng,
           ...this.input.combat,
           leveling: this.input.leveling,
-          heroPolicy: fighterAction,
+          heroPolicy: (hero) => this.combatPolicy.chooseFighter(hero),
         }).resolve();
         this.fights += 1;
         this.countActions(events);

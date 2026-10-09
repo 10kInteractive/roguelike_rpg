@@ -1,7 +1,10 @@
 import { expect, test } from "vitest";
-import { type Rng, SeededRandomGenerator } from "../rng";
+import { SeededRandomGenerator } from "../utils/rng.controller";
+import type { Rng } from "../utils/rng.types";
+import type { TilePoint } from "./map";
 import type { FieldGrid } from "./movement";
-import { casterWalk, fighterWalk, grinderTargetLevel, grinderWalk, stickHoldTicks } from "./policy";
+import { grinderTargetLevel, stickHoldTicks } from "./policy.constants";
+import { FieldWalkPolicy } from "./policy.controller";
 
 function rolls(values: number[]): Rng {
   let index = 0;
@@ -23,15 +26,19 @@ function meadow(rows: readonly string[]): FieldGrid {
   return { width, height, tiles };
 }
 
+function walker(rng: Rng, field = meadow(["g"]), miniboss: TilePoint = { x: 0, y: 0 }) {
+  return new FieldWalkPolicy({ field, miniboss, rng });
+}
+
 test("the fighter and the caster hold one direction for a second", () => {
   const east = { stick: { x: 64, y: 0 }, ticks: stickHoldTicks };
   const northeast = { stick: { x: 64, y: 64 }, ticks: stickHoldTicks };
-  expect(fighterWalk(rolls([0]))).toEqual(east);
-  expect(casterWalk(rolls([0]))).toEqual(east);
-  expect(fighterWalk(rolls([0.124]))).toEqual(east);
-  expect(casterWalk(rolls([0.125]))).toEqual(northeast);
-  expect(fighterWalk(new SeededRandomGenerator(3))).toEqual(
-    casterWalk(new SeededRandomGenerator(3)),
+  expect(walker(rolls([0])).chooseFighter()).toEqual(east);
+  expect(walker(rolls([0])).chooseCaster()).toEqual(east);
+  expect(walker(rolls([0.124])).chooseFighter()).toEqual(east);
+  expect(walker(rolls([0.125])).chooseCaster()).toEqual(northeast);
+  expect(walker(new SeededRandomGenerator(3)).chooseFighter()).toEqual(
+    walker(new SeededRandomGenerator(3)).chooseCaster(),
   );
 });
 
@@ -40,58 +47,37 @@ test("the grinder wanders until level 5, then walks around water to the miniboss
   const miniboss = { x: 4, y: 0 };
   const beside = { x: 1.5, y: 0.5 };
 
-  const wandering = grinderWalk({
-    position: beside,
-    field,
-    miniboss,
-    level: grinderTargetLevel - 1,
-    rng: rolls([0]),
-  });
+  const wandering = walker(rolls([0]), field, miniboss).chooseGrinder(
+    beside,
+    grinderTargetLevel - 1,
+  );
   expect(wandering).toEqual({ stick: { x: 64, y: 0 }, ticks: stickHoldTicks });
 
   let pulls = 0;
-  const heading = grinderWalk({
-    position: beside,
-    field,
-    miniboss,
-    level: grinderTargetLevel,
-    rng: {
-      next() {
-        pulls += 1;
-        return 0;
-      },
+  const counting: Rng = {
+    next() {
+      pulls += 1;
+      return 0;
     },
-  });
+  };
+  const heading = walker(counting, field, miniboss).chooseGrinder(beside, grinderTargetLevel);
   expect(heading).toEqual({ stick: { x: 0, y: 64 }, ticks: stickHoldTicks });
   expect(pulls).toBe(0);
 
-  const along = grinderWalk({
-    position: { x: 1.5, y: 2.5 },
-    field,
-    miniboss,
-    level: grinderTargetLevel,
-    rng: rolls([]),
-  });
+  const along = walker(rolls([]), field, miniboss).chooseGrinder(
+    { x: 1.5, y: 2.5 },
+    grinderTargetLevel,
+  );
   expect(along.stick).toEqual({ x: 64, y: 0 });
-  expect(
-    grinderWalk({
-      position: beside,
-      field,
-      miniboss,
-      level: grinderTargetLevel,
-      rng: rolls([]),
-    }),
-  ).toEqual(heading);
+  expect(walker(rolls([]), field, miniboss).chooseGrinder(beside, grinderTargetLevel)).toEqual(
+    heading,
+  );
 });
 
 test("an unreachable miniboss sends the grinder wandering", () => {
-  const field = meadow(["gw"]);
-  const choice = grinderWalk({
-    position: { x: 0.5, y: 0.5 },
-    field,
-    miniboss: { x: 1, y: 0 },
-    level: grinderTargetLevel,
-    rng: rolls([0]),
-  });
+  const choice = walker(rolls([0]), meadow(["gw"]), { x: 1, y: 0 }).chooseGrinder(
+    { x: 0.5, y: 0.5 },
+    grinderTargetLevel,
+  );
   expect(choice).toEqual({ stick: { x: 64, y: 0 }, ticks: stickHoldTicks });
 });

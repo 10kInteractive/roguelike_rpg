@@ -1,5 +1,5 @@
 import type { FightEvent, ScriptedAction } from "../combat/fight.types";
-import type { KnownSpell } from "../combat/policy";
+import type { KnownSpell } from "../combat/policy.types";
 
 /**
  * One action as a run log stores it.

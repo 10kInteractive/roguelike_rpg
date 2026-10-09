@@ -1,7 +1,8 @@
 import { expect, test } from "vitest";
 import { OneOnOneFightController } from "../combat/fight.controller";
-import { type KnownSpell, randomAction } from "../combat/policy";
-import { SeededRandomGenerator } from "../rng";
+import { CombatActionPolicy } from "../combat/policy.controller";
+import type { KnownSpell } from "../combat/policy.types";
+import { SeededRandomGenerator } from "../utils/rng.controller";
 import { actionsFrom, eventHash, outcomeFrom, toScriptedActions } from "./replay";
 
 const hero = {
@@ -78,7 +79,7 @@ test("a recorded fight replays to the same hash", () => {
     enemy,
     rng: combat,
     choiceRng: choice,
-    heroPolicy: (actor) => randomAction(actor, spells, choice),
+    heroPolicy: (actor) => new CombatActionPolicy(spells, choice).chooseRandom(actor),
   }).resolve();
   const actions = actionsFrom(events, hero.id);
   const replayed = new OneOnOneFightController({

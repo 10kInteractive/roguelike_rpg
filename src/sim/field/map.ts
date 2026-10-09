@@ -1,4 +1,5 @@
-import { type Rng, SeededRandomGenerator } from "../rng";
+import { SeededRandomGenerator } from "../utils/rng.controller";
+import type { Rng } from "../utils/rng.types";
 
 /** What a tile is made of. Grass, forest, and path can be walked. Water and mountain cannot. */
 export type Terrain = "grass" | "forest" | "path" | "water" | "mountain";

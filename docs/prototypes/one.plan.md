@@ -557,8 +557,7 @@ Combat rules are already in the right folder. The awkward files are the ones tha
 
 ```
 src/sim                 game rules only
-  rng.ts                SeededRandomGenerator
-  rng.types.ts
+  utils/                shared by more than one sim area: SeededRandomGenerator
   combat/               formulas, HasteTurnQueue, CombatActionPolicy, OneOnOneFightController
   field/                meadow, movement, EncounterWalkController, FieldWalkPolicy
   run/                  GrinderFieldRunController and RunStatistics
@@ -584,7 +583,10 @@ For each rule file `{area}.ts`:
 - `{area}.types.ts` holds the exported types and their member comments.
 - `{area}.constants.ts` holds the tuning numbers for that rule, when it has any.
 - `{area}.tests.ts` holds the tests for that file.
-- `{area}.ts` holds a formula. `{area}.controller.ts` holds a controller.
+- `{area}.controller.ts` holds a class: a controller, a policy, the generator, or the turn queue.
+- `{area}.ts` holds formulas only.
+- Area names are kebab-case and leave out the folder, so the field walk policy is `field/policy.controller.ts`.
+- Callers import types from `{area}.types.ts` directly. A controller file does not re-export them.
 
 Constants that move:
 
@@ -592,7 +594,7 @@ Constants that move:
 | --- | --- |
 | `field/map.constants.ts` | Height period, water line, mountain line, forest line. |
 | `field/movement.constants.ts` | Tick rate, tiles per second, stick limit, hero radius. |
-| `field/policy.constants.ts` | How long a stick is held, the level at which the grinder paths to the miniboss. |
+| `field/policy.constants.ts` | How long a stick is held, the level at which the grinder paths to the miniboss, the eight wander directions, and the four path steps. |
 | `run/run.constants.ts` | Seconds per hero decision, per enemy action, and per fight transition. The safety cap on how many walks one run may take. |
 
 ### Controller classes
@@ -612,12 +614,12 @@ The class name is the noun, so the method can be a short verb. `OneOnOneFightCon
 
 `SeededRandomGenerator` and `HasteTurnQueue` are classes. Each owns the state the old factory closed over.
 
-Two policy classes group the choices a controller asks for. They have no fields. The fight controller and the run controller call them.
+Two policy classes group the choices a controller asks for. Each is built once with what does not change between choices, and the fight or run calls it each turn or each stick hold.
 
-| Class | Methods | Replaces |
-| --- | --- | --- |
-| `CombatActionPolicy` | `chooseFighter`, `chooseCaster`, `chooseRandom` | `fighterAction`, `casterAction`, `randomAction` |
-| `FieldWalkPolicy` | `chooseFighter`, `chooseCaster`, `chooseGrinder` | `fighterWalk`, `casterWalk`, `grinderWalk` |
+| Class | Built with | Methods | Replaces |
+| --- | --- | --- | --- |
+| `CombatActionPolicy` | Known spells, and the roll for the random choice. | `chooseFighter`, `chooseCaster`, `chooseRandom` | `fighterAction`, `casterAction`, `randomAction` |
+| `FieldWalkPolicy` | The meadow, the miniboss tile, and the direction roll. | `chooseFighter`, `chooseCaster`, `chooseGrinder` | `fighterWalk`, `casterWalk`, `grinderWalk` |
 
 These stay single functions. Each one is a formula. It does not keep state between calls:
 

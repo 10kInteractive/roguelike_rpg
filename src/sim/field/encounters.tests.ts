@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import type { Rng } from "../rng";
+import type { Rng } from "../utils/rng.types";
 import { EncounterWalkController } from "./encounters.controller";
 import type { Terrain } from "./map";
 import { heroRadius, move, type Position } from "./movement";

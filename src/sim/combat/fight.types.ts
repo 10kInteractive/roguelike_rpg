@@ -1,7 +1,7 @@
-import type { Rng } from "../rng";
+import type { Rng } from "../utils/rng.types";
 import type { Element } from "./damage";
 import type { LevelEvent, LevelRules } from "./level";
-import type { HeroVitals, SpellChoice } from "./policy";
+import type { HeroVitals, SpellChoice } from "./policy.types";
 import type { Weighted } from "./weighted";
 
 /** One combatant, the hero or a mob, as a fight sees them. */
@@ -42,6 +42,26 @@ export type Fighter = {
   hero?: boolean;
   /** A miniboss fight cannot be fled. */
   miniboss?: boolean;
+};
+
+/** A fighter with every default filled in, so the fight can mutate a copy. */
+export type PreparedFighter = Fighter & {
+  /** Healing stops here. */
+  maxHp: number;
+  /** Healing MP stops here. */
+  maxMp: number;
+  /** Potions carried. */
+  potions: number;
+  /** Spell damage. */
+  mag: number;
+  /** Magic points right now. */
+  mp: number;
+  /** Current level. */
+  level: number;
+  /** XP toward the next level. */
+  xp: number;
+  /** XP granted when this actor is defeated. */
+  xpReward: number;
 };
 
 /** A combat command: Fight, Defend, a potion, or Run. */

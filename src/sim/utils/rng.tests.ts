@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { SeededRandomGenerator } from "./rng";
+import { SeededRandomGenerator } from "./rng.controller";
 
 function take(seed: number, count: number): number[] {
   const rng = new SeededRandomGenerator(seed);

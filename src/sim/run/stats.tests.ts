@@ -1,7 +1,8 @@
 import { expect, test } from "vitest";
 import { OneOnOneFightController } from "../combat/fight.controller";
 import { EncounterWalkController } from "../field/encounters.controller";
-import { type Rng, SeededRandomGenerator } from "../rng";
+import { SeededRandomGenerator } from "../utils/rng.controller";
+import type { Rng } from "../utils/rng.types";
 import { RunStatistics } from "./stats.controller";
 
 const rules = {

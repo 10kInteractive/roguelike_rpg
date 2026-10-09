@@ -1,18 +1,4 @@
-import type { TurnActor } from "./turn-queue.types";
-
-/** One actor waiting in the haste queue. */
-type QueuedActor = {
-  /** Id written on this actor's events. */
-  id: string;
-  /** How quickly this actor's turn comes back around. */
-  haste: number;
-  /** Wins a tie that haste does not already decide. */
-  hero: boolean;
-  /** When this actor may act again. Lower goes first. */
-  time: number;
-  /** Place in the original list. Breaks a tie the hero flag does not. */
-  order: number;
-};
+import type { QueuedActor, TurnActor } from "./turn-queue.types";
 
 /**
  * Orders combat turns by next-turn time.
@@ -52,7 +38,7 @@ export class HasteTurnQueue {
 
   /** The actor who acts next. Advances that actor's time. */
   act(): string {
-    return step(this.waiting, this.turnBase);
+    return this.step(this.waiting);
   }
 
   /** The next `count` actors to act, soonest first. Does not advance the queue. */
@@ -60,45 +46,43 @@ export class HasteTurnQueue {
     const copy = this.waiting.map((actor) => ({ ...actor }));
     const ids: string[] = [];
     for (let i = 0; i < count; i++) {
-      ids.push(step(copy, this.turnBase));
+      ids.push(this.step(copy));
     }
     return ids;
   }
-}
 
-/** The actor who goes now. Their next turn is pushed back by the turn base. */
-function step(queued: QueuedActor[], turnBase: number): string {
-  const actor = soonest(queued);
-  actor.time += turnBase / actor.haste;
-  return actor.id;
-}
-
-/** The actor whose turn is due first. */
-function soonest(queued: readonly QueuedActor[]): QueuedActor {
-  let best = queued[0];
-  if (!best) {
-    throw new Error("A turn queue needs at least one actor");
+  /** The actor who goes now. Their next turn is pushed back by the turn base. */
+  private step(queued: QueuedActor[]): string {
+    const actor = this.soonest(queued);
+    actor.time += this.turnBase / actor.haste;
+    return actor.id;
   }
-  for (const actor of queued) {
-    if (comesBefore(actor, best)) {
-      best = actor;
+
+  /** The actor whose turn is due first. */
+  private soonest(queued: readonly QueuedActor[]): QueuedActor {
+    let best = queued[0];
+    if (!best) {
+      throw new Error("A turn queue needs at least one actor");
     }
+    for (const actor of queued) {
+      if (this.comesBefore(actor, best)) {
+        best = actor;
+      }
+    }
+    return best;
   }
-  return best;
-}
 
-/** True when `a` should act before `b`: sooner time, then higher haste, then the hero. */
-function comesBefore(a: QueuedActor, b: QueuedActor): boolean {
-  if (a.time !== b.time) {
-    return a.time < b.time;
+  /** True when `a` should act before `b`: sooner time, then higher haste, then the hero. */
+  private comesBefore(a: QueuedActor, b: QueuedActor): boolean {
+    if (a.time !== b.time) {
+      return a.time < b.time;
+    }
+    if (a.haste !== b.haste) {
+      return a.haste > b.haste;
+    }
+    if (a.hero !== b.hero) {
+      return a.hero;
+    }
+    return a.order < b.order;
   }
-  if (a.haste !== b.haste) {
-    return a.haste > b.haste;
-  }
-  if (a.hero !== b.hero) {
-    return a.hero;
-  }
-  return a.order < b.order;
 }
-
-export type { TurnActor } from "./turn-queue.types";

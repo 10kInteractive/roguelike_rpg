@@ -1,8 +1,10 @@
 import { expect, test } from "vitest";
-import { type Rng, SeededRandomGenerator } from "../rng";
+import { SeededRandomGenerator } from "../utils/rng.controller";
+import type { Rng } from "../utils/rng.types";
 import { OneOnOneFightController } from "./fight.controller";
 import type { FightEvent } from "./fight.types";
-import { casterAction, fighterAction, type KnownSpell, randomAction } from "./policy";
+import { CombatActionPolicy } from "./policy.controller";
+import type { KnownSpell } from "./policy.types";
 
 const hero = { id: "hero", hp: 30, str: 8, def: 4, haste: 8, hero: true };
 const slime = { id: "slime", hp: 12, str: 6, def: 2, haste: 5 };
@@ -583,7 +585,7 @@ test("the fighter drinks below 30% HP, then fights once healed", () => {
     hero: { ...hero, hp: 8, maxHp: 30, potions: 1 },
     enemy: slime,
     rng: scripted([]),
-    heroPolicy: fighterAction,
+    heroPolicy: (actor) => new CombatActionPolicy([], scripted([])).chooseFighter(actor),
   }).resolve();
   expect(events.slice(0, 4)).toEqual([
     { type: "itemUsed", actorId: "hero", itemId: "item.potion", amount: 22, hp: 30, remaining: 0 },
@@ -611,7 +613,8 @@ test("the caster throws Frost at an ice weakness, then fights when MP is short",
     hero: { ...hero, mp: 4, mag: 6 },
     enemy: { ...slime, hp: 40, weak: "ice" },
     rng: scripted([]),
-    heroPolicy: (actor, target) => casterAction(actor, target, spells),
+    heroPolicy: (actor, target) =>
+      new CombatActionPolicy(spells, scripted([])).chooseCaster(actor, target),
   }).resolve();
   expect(events.slice(0, 6)).toEqual([
     { type: "spellCast", actorId: "hero", spellId: "spell.frost", targetId: "slime", mp: 1 },
@@ -652,7 +655,7 @@ test("a random policy finishes a fight, including one it cannot flee", () => {
       hero: { ...hero, mp: 10, mag: 6, potions: 3 },
       enemy: slime,
       rng,
-      heroPolicy: (actor) => randomAction(actor, spells, rng),
+      heroPolicy: (actor) => new CombatActionPolicy(spells, rng).chooseRandom(actor),
     }).resolve();
     expect(fightEnded(events)).toBe(true);
   }
@@ -663,7 +666,7 @@ test("a random policy finishes a fight, including one it cannot flee", () => {
     hero: { ...hero, mp: 10, mag: 6, potions: 1 },
     enemy: { ...slime, hp: 30, miniboss: true },
     rng,
-    heroPolicy: (actor) => randomAction(actor, spells, rng),
+    heroPolicy: (actor) => new CombatActionPolicy(spells, rng).chooseRandom(actor),
   }).resolve();
   expect(events.some((event) => event.type === "fleeAttempted" && event.success)).toBe(false);
   expect(fightEnded(events)).toBe(true);

@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
-import { HasteTurnQueue, type TurnActor } from "./turn-queue";
+import { HasteTurnQueue } from "./turn-queue.controller";
+import type { TurnActor } from "./turn-queue.types";
 
 const turnBase = 100;
 

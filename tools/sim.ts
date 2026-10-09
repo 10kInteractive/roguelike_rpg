@@ -5,12 +5,8 @@ import { loadBundle } from "../src/content/load.ts";
 import type { Bundle } from "../src/content/schema.ts";
 import { OneOnOneFightController } from "../src/sim/combat/fight.controller.ts";
 import type { FightEvent } from "../src/sim/combat/fight.types.ts";
-import {
-  casterAction,
-  fighterAction,
-  type KnownSpell,
-  randomAction,
-} from "../src/sim/combat/policy.ts";
+import { CombatActionPolicy } from "../src/sim/combat/policy.controller.ts";
+import type { KnownSpell } from "../src/sim/combat/policy.types.ts";
 import type { EncounterTables } from "../src/sim/field/encounters.types.ts";
 import { createMeadow } from "../src/sim/field/map.ts";
 import { fieldSweepSummary } from "../src/sim/harness/field-sweep.ts";
@@ -23,9 +19,9 @@ import {
   toScriptedActions,
 } from "../src/sim/harness/replay.ts";
 import { type SweepFight, sweepSummary } from "../src/sim/harness/sweep.ts";
-import { SeededRandomGenerator } from "../src/sim/rng.ts";
 import { GrinderFieldRunController } from "../src/sim/run/run.controller.ts";
 import type { RunMob } from "../src/sim/run/run.types.ts";
+import { SeededRandomGenerator } from "../src/sim/utils/rng.controller.ts";
 import { readBundle } from "./read-bundle.ts";
 
 const replayPath = flag("replay");
@@ -153,6 +149,7 @@ function play(
   const spells = live?.spells ?? knownSpells(bundle);
   const recorded = actions ? toScriptedActions(actions.hero, spells) : undefined;
   const enemyActions = actions ? toScriptedActions(actions.enemy, spells) : undefined;
+  const policy = new CombatActionPolicy(spells, live?.choice ?? new SeededRandomGenerator(seed));
   return new OneOnOneFightController({
     hero: toHero(bundle.hero),
     enemy: toEnemy(mob, bundle.spells.spells),
@@ -181,10 +178,10 @@ function play(
     heroPolicy: actions
       ? undefined
       : live?.policy === "caster"
-        ? (hero, target) => casterAction(hero, target, spells)
+        ? (hero, target) => policy.chooseCaster(hero, target)
         : live?.policy === "random"
-          ? (hero) => randomAction(hero, spells, live.choice)
-          : fighterAction,
+          ? (hero) => policy.chooseRandom(hero)
+          : (hero) => policy.chooseFighter(hero),
   }).resolve();
 }
 

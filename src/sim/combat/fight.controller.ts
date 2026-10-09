@@ -5,11 +5,11 @@ import {
   magicDamage,
   physicalDamage,
 } from "./damage";
-import type { FightEvent, Fighter, FightInput, TurnAction } from "./fight.types";
+import type { FightEvent, Fighter, FightInput, PreparedFighter, TurnAction } from "./fight.types";
 import { fleeChance } from "./flee";
-import { gainXp, type HeroProgress, type LevelRules } from "./level";
-import type { SpellChoice } from "./policy";
-import { HasteTurnQueue } from "./turn-queue";
+import { gainXp, type HeroProgress } from "./level";
+import type { SpellChoice } from "./policy.types";
+import { HasteTurnQueue } from "./turn-queue.controller";
 import { pickWeighted } from "./weighted";
 
 /**
@@ -30,9 +30,9 @@ import { pickWeighted } from "./weighted";
  */
 export class OneOnOneFightController {
   /** The player's fighter. A copy, so the caller's hero is left alone. */
-  private readonly hero: Prepared;
+  private readonly hero: PreparedFighter;
   /** The mob. A copy, so the caller's enemy is left alone. */
-  private readonly enemy: Prepared;
+  private readonly enemy: PreparedFighter;
   /** Who acts next. */
   private readonly queue: HasteTurnQueue;
   /** What happened, in order. */
@@ -46,8 +46,8 @@ export class OneOnOneFightController {
    * @param input The two fighters, the rolls, and the bundle's numbers.
    */
   constructor(private readonly input: FightInput) {
-    this.hero = prepare(input.hero);
-    this.enemy = prepare(input.enemy);
+    this.hero = this.prepare(input.hero);
+    this.enemy = this.prepare(input.enemy);
     this.queue = new HasteTurnQueue(
       [
         { id: this.hero.id, haste: this.hero.haste, hero: this.hero.hero },
@@ -103,7 +103,7 @@ export class OneOnOneFightController {
           targetHp: target.hp,
           critical: false,
         });
-        defeatIfDown(events, hero, enemy, target, input.leveling);
+        this.defeatIfDown(target);
       };
 
       // Spread, then a crit, then the grind multiplier.
@@ -130,7 +130,7 @@ export class OneOnOneFightController {
           targetHp: target.hp,
           critical,
         });
-        defeatIfDown(events, hero, enemy, target, input.leveling);
+        this.defeatIfDown(target);
       };
 
       // A scripted action wins. Otherwise an enemy with a list rolls it, and anything left is Fight.
@@ -236,88 +236,55 @@ export class OneOnOneFightController {
         targetHp: target.hp,
         critical,
       });
-      defeatIfDown(events, hero, enemy, target, input.leveling);
+      this.defeatIfDown(target);
     }
 
     return events;
   }
+
+  /** A copy with the defaults filled in. The caller's fighter is left alone. */
+  private prepare(fighter: Fighter): PreparedFighter {
+    const mp = fighter.mp ?? 0;
+    return {
+      ...fighter,
+      maxHp: fighter.maxHp ?? fighter.hp,
+      maxMp: fighter.maxMp ?? mp,
+      potions: fighter.potions ?? 0,
+      mag: fighter.mag ?? 0,
+      mp,
+      level: fighter.level ?? 1,
+      xp: fighter.xp ?? 0,
+      xpReward: fighter.xpReward ?? 0,
+    };
+  }
+
+  /** Zero HP defeats that actor. Only a fallen enemy grants XP. */
+  private defeatIfDown(target: PreparedFighter): void {
+    if (target.hp > 0) return;
+
+    const { hero, enemy, events } = this;
+    const leveling = this.input.leveling;
+    events.push({ type: "actorDefeated", actorId: target.id });
+    if (target !== enemy || enemy.xpReward <= 0 || !leveling) return;
+
+    const gained = gainXp(this.progressOf(hero), enemy.xpReward, leveling);
+    Object.assign(hero, gained.hero);
+    events.push(...gained.events);
+  }
+
+  /** The hero's level, XP, and stats, ready for a win to raise them. */
+  private progressOf(hero: PreparedFighter): HeroProgress {
+    return {
+      level: hero.level,
+      xp: hero.xp,
+      hp: hero.hp,
+      maxHp: hero.maxHp,
+      mp: hero.mp,
+      maxMp: hero.maxMp,
+      str: hero.str,
+      def: hero.def,
+      mag: hero.mag,
+      haste: hero.haste,
+    };
+  }
 }
-
-/** A fighter with every default filled in, so the fight can mutate a copy. */
-type Prepared = Fighter & {
-  /** Healing stops here. */
-  maxHp: number;
-  /** Healing MP stops here. */
-  maxMp: number;
-  /** Potions carried. */
-  potions: number;
-  /** Spell damage. */
-  mag: number;
-  /** Magic points right now. */
-  mp: number;
-  /** Current level. */
-  level: number;
-  /** XP toward the next level. */
-  xp: number;
-  /** XP granted when this actor is defeated. */
-  xpReward: number;
-};
-
-/** A copy with the defaults filled in. The caller's fighter is left alone. */
-function prepare(fighter: Fighter): Prepared {
-  const mp = fighter.mp ?? 0;
-  return {
-    ...fighter,
-    maxHp: fighter.maxHp ?? fighter.hp,
-    maxMp: fighter.maxMp ?? mp,
-    potions: fighter.potions ?? 0,
-    mag: fighter.mag ?? 0,
-    mp,
-    level: fighter.level ?? 1,
-    xp: fighter.xp ?? 0,
-    xpReward: fighter.xpReward ?? 0,
-  };
-}
-
-/** Zero HP defeats that actor. Only a fallen enemy grants XP. */
-function defeatIfDown(
-  events: FightEvent[],
-  hero: Prepared,
-  enemy: Prepared,
-  target: Prepared,
-  leveling: LevelRules | undefined,
-): void {
-  if (target.hp > 0) return;
-
-  events.push({ type: "actorDefeated", actorId: target.id });
-  if (target !== enemy || enemy.xpReward <= 0 || !leveling) return;
-
-  const gained = gainXp(progressOf(hero), enemy.xpReward, leveling);
-  Object.assign(hero, gained.hero);
-  events.push(...gained.events);
-}
-
-/** The hero's level, XP, and stats, ready for a win to raise them. */
-function progressOf(hero: Prepared): HeroProgress {
-  return {
-    level: hero.level,
-    xp: hero.xp,
-    hp: hero.hp,
-    maxHp: hero.maxHp,
-    mp: hero.mp,
-    maxMp: hero.maxMp,
-    str: hero.str,
-    def: hero.def,
-    mag: hero.mag,
-    haste: hero.haste,
-  };
-}
-
-export type {
-  EnemyAction,
-  FightEvent,
-  Fighter,
-  FightInput,
-  ScriptedAction,
-  TurnAction,
-} from "./fight.types";
