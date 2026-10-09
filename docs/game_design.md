@@ -155,7 +155,7 @@ Target for a ready, full clear: about 40–60 minutes.
 
 - **Physical:** attack power (STR) minus half the target's DEF, times a small random spread. The result is rounded down to an integer. Minimum 1.
 - **Magic:** spell power plus MAG, times the element multiplier, times a small random spread. Ignores DEF in prototype one.
-- **Critical hits:** small flat chance on physical attacks, extra damage.
+- **Critical hits:** a flat chance on physical attacks. Prototype one uses 5% and ×1.5. The spread is rolled first, then the crit chance. A crit multiplies that hit's damage by the multiplier and rounds down again.
 - All randomness comes from the run's seeded RNG.
 
 #### Enemies

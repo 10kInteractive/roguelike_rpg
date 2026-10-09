@@ -12,3 +12,12 @@ export function physicalDamage(attack: number, defense: number, spread: number):
   const raw = (attack - defense / 2) * spread;
   return Math.max(1, Math.floor(raw));
 }
+
+/**
+ * Extra damage for a critical hit.
+ *
+ * Multiplies an already rounded hit, then rounds down again.
+ */
+export function applyCritical(damage: number, multiplier: number): number {
+  return Math.max(1, Math.floor(damage * multiplier));
+}
