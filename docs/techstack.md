@@ -289,7 +289,7 @@ src/                shared engine
   assets/           manifest resolver and loader service
   debug/            namespaced logger and dev panel
 prototypes/
-  <name>/           entry page, config, bundle/
+  <name>/           entry page, stylesheet, config, bundle/
 assets/
   authored/         hand-built, wins over generated
   generated/        tool / LLM output plus sidecars
