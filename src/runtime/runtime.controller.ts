@@ -12,13 +12,17 @@ import {
 } from "../content/rules";
 import type { Bundle } from "../content/schema";
 import { debugLog } from "../debug/logger.controller";
+import { CombatActionPolicy } from "../sim/combat/policy.controller";
 import { createSeededMeadow } from "../sim/field/map";
 import type { Terrain } from "../sim/field/map.types";
+import { PackFightController } from "../sim/run/pack.controller";
+import type { PackResult } from "../sim/run/pack.types";
 import { SeededRandomGenerator } from "../sim/utils/rng.controller";
 import { terrainTextureIds } from "../view/art/terrain-textures.constants";
 import { CombatViewController } from "../view/combat/view.controller";
-import { FieldViewController } from "../view/field/view.controller";
 import { RenderLoopController } from "../view/renderer.controller";
+import { GameLoopController } from "./game-loop.controller";
+import type { RunEnd } from "./game-loop.types";
 import type { GameRuntimeInput, LaunchOptions } from "./runtime.types";
 
 const log = debugLog.create("runtime");
@@ -66,13 +70,22 @@ export class GameRuntimeController {
       const textures = this.terrainTextures(pack);
 
       if (options.combat) {
-        await this.startCombat({ loop, bundle, biome, textures, options, mobIds: options.combat });
-        this.input.onStatus({
-          text: `Renderer backend: ${backend} · combat · seed ${options.seed}`,
+        const status = `Renderer backend: ${backend} · combat · seed ${options.seed}`;
+        this.input.onStatus({ text: status });
+        const result = await this.startCombat({
+          loop,
+          bundle,
+          biome,
+          textures,
+          options,
+          mobIds: options.combat,
         });
+        this.input.onStatus({ text: `${status} · pack ${result.outcome}` });
       } else {
-        await this.startField({ loop, bundle, biome, textures, options });
-        this.input.onStatus({ text: `Renderer backend: ${backend} · seed ${options.seed}` });
+        const status = `Renderer backend: ${backend} · seed ${options.seed}`;
+        this.input.onStatus({ text: status });
+        const end = await this.startField({ loop, bundle, biome, textures, options });
+        this.input.onStatus({ text: `${status} · ${this.describeEnd(end)}` });
       }
     } catch (error) {
       console.error("[runtime] start failed", error);
@@ -99,15 +112,15 @@ export class GameRuntimeController {
     return textures;
   }
 
-  /** The seeded meadow, with the stand-in walk. */
+  /** The seeded meadow, played by the stand-in until the run ends. */
   private async startField(input: {
     loop: RenderLoopController;
     bundle: Bundle;
     biome: Bundle["biomes"][number];
     textures: Partial<Record<Terrain, Texture>>;
     options: LaunchOptions;
-  }): Promise<void> {
-    const { loop, biome, textures, options } = input;
+  }): Promise<RunEnd> {
+    const { loop, bundle, biome, textures, options } = input;
     const map = createSeededMeadow({
       seed: options.seed,
       width: biome.width,
@@ -115,15 +128,24 @@ export class GameRuntimeController {
       minibossDistance: biome.minibossDistance,
     });
     log(`field, seed ${options.seed}`);
-    await new FieldViewController({
+    const end = await new GameLoopController({
       loop,
+      bundle,
+      biome,
       map,
       textures,
-      minibossId: biome.miniboss,
       seed: options.seed,
-      rng: new SeededRandomGenerator(options.seed),
       cameraMode: options.camera,
-    }).start();
+    }).play();
+    log("run over", end);
+    return end;
+  }
+
+  /** The status line's ending, until the game over screen exists. */
+  private describeEnd(end: RunEnd): string {
+    const fights = end.fights === 1 ? "1 fight" : `${end.fights} fights`;
+    if (end.outcome === "win") return `run won at level ${end.level} after ${fights}`;
+    return `defeated by ${end.killedBy ?? "nobody"} at level ${end.level} after ${fights}`;
   }
 
   /** One pack's fight, played by the stand-in caster. */
@@ -134,7 +156,7 @@ export class GameRuntimeController {
     textures: Partial<Record<Terrain, Texture>>;
     options: LaunchOptions;
     mobIds: readonly string[];
-  }): Promise<void> {
+  }): Promise<PackResult> {
     const { loop, bundle, biome, textures, options } = input;
     const mobIds = input.mobIds.length === 0 ? [biome.miniboss] : input.mobIds;
     const known = new Set(bundle.mobs.mobs.map((mob) => mob.id));
@@ -142,17 +164,30 @@ export class GameRuntimeController {
     if (unknown.length > 0) throw new Error(`Unknown mob in ?combat: ${unknown.join(", ")}`);
 
     log(`combat: ${mobIds.join(", ")}, seed ${options.seed}`);
-    await new CombatViewController({
-      loop,
-      mobIds,
-      textures,
-      hero: heroFighterFromBundle(bundle.hero),
-      mobs: runMobsFromBundle(bundle),
+    const mobs = runMobsFromBundle(bundle);
+    const hero = heroFighterFromBundle(bundle.hero);
+    const choice = new SeededRandomGenerator(options.seed);
+    const policy = new CombatActionPolicy(knownSpellsFromBundle(bundle), choice);
+    const packs = new PackFightController({
+      hero,
+      mobs,
       combat: combatRulesFromBundle(bundle),
       leveling: levelRulesFromBundle(bundle),
-      spells: knownSpellsFromBundle(bundle),
-      seed: options.seed,
-    }).start();
+      heroPolicy: (fighter, target) => policy.chooseCaster(fighter, target),
+      rngs: {
+        drops: new SeededRandomGenerator(options.seed),
+        choice,
+        combat: new SeededRandomGenerator(options.seed),
+      },
+    });
+    const miniboss = mobIds.some((id) => mobs.get(id)?.fighter.miniboss);
+    const result = packs.fight(
+      mobIds.map((id) => ({ id, count: 1 })),
+      miniboss,
+    );
+    await new CombatViewController({ loop, mobIds, textures, heroId: hero.id }).play(result);
+    log(`pack ${result.outcome}`, packs.hero());
+    return result;
   }
 
   /** The launch options in the URL. A missing seed rolls a fresh one. */

@@ -61,7 +61,8 @@ src/                        shared engine
   harness/                  headless play of the sim: replay, combat sweep, field sweep
   content/                  zod schemas, the bundle loader, bundle rows into fighters and fight rules
   runtime/                  GameRuntimeController: reads `?seed`, `?camera`, `?combat`, `?webgl`, loads the
-                            bundle, starts the renderer, and opens the field or a fight
+                            bundle, starts the renderer, and opens the field or a fight.
+                            GameLoopController: walks the field and plays each fight until the run ends
   view/                     Three.js. RenderLoopController owns the canvas, the camera, and the one render loop.
     art/                    shared by both scenes: placeholder models, sun and sky, terrain texture ids
     field/                  FieldViewController, FieldSceneController, FollowCameraController,
@@ -545,11 +546,11 @@ On the `bozmak/view` branch, not merged yet. The canvas, the WebGPU renderer, an
 
 ### 7. UI and input
 
-- `feat: field encounters on screen`. The stand-in walk rolls encounters. A fight swaps to the combat scene, plays the pack, and returns to the field where the hero stood. Touching the miniboss starts its fight. A defeat ends the run with a status line until the game over screen exists.
+- `feat: field encounters on screen`. The stand-in walk rolls encounters. A fight swaps to the combat scene, plays the pack, and returns to the field where the hero stood. Touching the miniboss starts its fight. A defeat ends the run with a status line until the game over screen exists. The run plays itself on the grinder's policies and generators, so a seed plays the same run on screen as in the sweep.
 - `feat: sim api`. `createSim`, `observe`, `legalActions`, and `act` in `src/sim/index.ts`. One hero action in, every consequence out, so fights stop being resolved whole by a policy. The stand-in policy acts through `act()` until the command window replaces it.
 - `feat: ui store`. A zustand store holds the latest snapshot and the events still waiting to play.
 - `feat: field hud`. Level, HP, and MP.
-- `feat: command window`. Fight, Magic, Item, Defend, Run, using keyboard actions only.
+- `feat: command window`. Fight, Magic, Item, Defend, Run, using keyboard actions only. The player drives the run by default. `?gameloop=ai` keeps the stand-in policies playing it.
 - `feat: spell item and target menus`. Submenus for spells, potions, and which enemy.
 - `feat: turn order and message log`. The next actors, and a line for each event.
 - `feat: victory and game over`. Run stats and a restart. Restart creates a new sim with a new seed.
