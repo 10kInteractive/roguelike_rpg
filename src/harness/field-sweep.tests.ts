@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import type { FieldRunResult } from "../run/run.types";
+import type { FieldRunResult } from "../sim/run/run.types";
 import { fieldSweepSummary } from "./field-sweep";
 
 test("a field sweep averages the runs and lists deaths by mob", () => {

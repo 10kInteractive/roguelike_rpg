@@ -1,5 +1,5 @@
-import type { FightEvent, ScriptedAction } from "../combat/fight.types";
-import type { KnownSpell } from "../combat/policy.types";
+import type { FightEvent, ScriptedAction } from "../sim/combat/fight.types";
+import type { KnownSpell } from "../sim/combat/policy.types";
 
 /**
  * One action as a run log stores it.

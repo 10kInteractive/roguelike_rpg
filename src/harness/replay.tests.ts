@@ -1,8 +1,8 @@
 import { expect, test } from "vitest";
-import { OneOnOneFightController } from "../combat/fight.controller";
-import { CombatActionPolicy } from "../combat/policy.controller";
-import type { KnownSpell } from "../combat/policy.types";
-import { SeededRandomGenerator } from "../utils/rng.controller";
+import { OneOnOneFightController } from "../sim/combat/fight.controller";
+import { CombatActionPolicy } from "../sim/combat/policy.controller";
+import type { KnownSpell } from "../sim/combat/policy.types";
+import { SeededRandomGenerator } from "../sim/utils/rng.controller";
 import { actionsFrom, eventHash, outcomeFrom, toScriptedActions } from "./replay";
 
 const hero = {

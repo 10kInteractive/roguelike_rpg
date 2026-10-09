@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { sweepSummary } from "./sweep";
+import { sweepSummary } from "./combat-sweep";
 
 test("a sweep counts fights, the win rate, and deaths by mob", () => {
   const summary = sweepSummary([

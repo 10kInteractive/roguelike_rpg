@@ -3,13 +3,8 @@ import path from "node:path";
 import { toEnemy, toHero } from "../src/content/fighters.ts";
 import { loadBundle } from "../src/content/load.ts";
 import type { Bundle } from "../src/content/schema.ts";
-import { OneOnOneFightController } from "../src/sim/combat/fight.controller.ts";
-import type { FightEvent } from "../src/sim/combat/fight.types.ts";
-import { CombatActionPolicy } from "../src/sim/combat/policy.controller.ts";
-import type { KnownSpell } from "../src/sim/combat/policy.types.ts";
-import type { EncounterTables } from "../src/sim/field/encounters.types.ts";
-import { createMeadow } from "../src/sim/field/map.ts";
-import { fieldSweepSummary } from "../src/sim/harness/field-sweep.ts";
+import { type SweepFight, sweepSummary } from "../src/harness/combat-sweep.ts";
+import { fieldSweepSummary } from "../src/harness/field-sweep.ts";
 import {
   actionsFrom,
   eventHash,
@@ -17,8 +12,13 @@ import {
   type LoggedAction,
   outcomeFrom,
   toScriptedActions,
-} from "../src/sim/harness/replay.ts";
-import { type SweepFight, sweepSummary } from "../src/sim/harness/sweep.ts";
+} from "../src/harness/replay.ts";
+import { OneOnOneFightController } from "../src/sim/combat/fight.controller.ts";
+import type { FightEvent } from "../src/sim/combat/fight.types.ts";
+import { CombatActionPolicy } from "../src/sim/combat/policy.controller.ts";
+import type { KnownSpell } from "../src/sim/combat/policy.types.ts";
+import type { EncounterTables } from "../src/sim/field/encounters.types.ts";
+import { createMeadow } from "../src/sim/field/map.ts";
 import { GrinderFieldRunController } from "../src/sim/run/run.controller.ts";
 import type { RunMob } from "../src/sim/run/run.types.ts";
 import { SeededRandomGenerator } from "../src/sim/utils/rng.controller.ts";

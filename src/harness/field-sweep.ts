@@ -1,4 +1,4 @@
-import type { FieldRunResult } from "../run/run.types";
+import type { FieldRunResult } from "../sim/run/run.types";
 
 /**
  * One line each for the grinder sweep.
