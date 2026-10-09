@@ -385,7 +385,7 @@ All art starts as placeholders: simple shapes plus pixel textures written by `to
 ## View
 
 - **Renderer:** `WebGPURenderer` with automatic WebGL2 fallback. One render loop owned by the view.
-- **Field scene:** terrain built from the map as merged low-poly tile columns with pixel textures; hero and miniboss as placeholder models; the hero turns to face its movement; 3/4 camera that follows the hero smoothly. Positions interpolate between sim ticks.
+- **Field scene:** terrain built from the map as merged low-poly tile columns with pixel textures; hero and miniboss as placeholder models of six blocks; the hero turns to face its movement; 3/4 camera that follows the hero smoothly. Positions interpolate between sim ticks.
 - **Combat scene:** a simple meadow backdrop, hero on one side, enemies on the other.
 - **Combat sequencer:** consumes sim events in order and plays each one (lunge, flash, damage number, defeat fade) with `await`, then tells the UI it's ready for input.
 - **Lighting:** one sun and one sky light.
