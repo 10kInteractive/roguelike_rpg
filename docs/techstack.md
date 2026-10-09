@@ -25,7 +25,7 @@ Mechanics live in `docs/game_design.md`; this doc covers how we build them. Deci
 | Build | Vite, TypeScript strict. |
 | Lint and format | Biome only. |
 | Tests | Vitest (sim), headless sim CLI, LLM playtesters, Playwright (browser). |
-| Hosting | Josh's private server, served under `joshbosworth.com/foo`. |
+| Hosting | Josh's private server, served under `joshbosworth.com/roguelike_rpg`. |
 | Pixel look | Pixel textures on low-poly models. No low-resolution render target. |
 | Asset tools | GIMP, Blender, DAW to be decided. |
 
@@ -200,9 +200,9 @@ Every change should be easy to see. Two tools, both in `src/debug`:
 - **TypeScript** in strict mode. Vite strips types; `tsc --noEmit` type-checks in CI.
 - **[Biome](https://biomejs.dev/)** for linting and formatting. No ESLint or Prettier.
 - **Node 22** (installed locally: v22.14).
-- **Hosting on Josh's private server** at `joshbosworth.com/foo`. The build is plain static files, so the server only needs to serve `dist/` under that path.
-- Vite's `base` option is set from an environment variable (`BASE_PATH`, default `/foo/` for production builds, `/` locally), so the path can change without code edits.
-- **Deploy by git:** push to the remote, then on the server `git pull`, `npm ci`, and `BASE_PATH=/foo/ npm run build`. The web server serves the resulting `dist/`. Since `dist/` is never committed, the server builds it and needs Node 22. Something smarter (a CI job, a webhook) can come later.
+- **Hosting on Josh's private server** at `joshbosworth.com/roguelike_rpg`. The build is plain static files, so the server only needs to serve `dist/` under that path.
+- Vite's `base` option is set from an environment variable (`BASE_PATH`, default `/roguelike_rpg/` for production builds, `/` locally), so the path can change without code edits.
+- **Deploy by git:** push to the remote, then on the server `git pull`, `npm ci`, and `BASE_PATH=/roguelike_rpg/ npm run build`. The web server serves the resulting `dist/`. Since `dist/` is never committed, the server builds it and needs Node 22. Something smarter (a CI job, a webhook) can come later.
 - **Prototype one is local only.** Deploying starts after it.
 - **CI** on every pull request: type-check, lint, unit tests, content validation, sim purity check, a short headless sim smoke run, build.
 

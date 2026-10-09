@@ -134,7 +134,7 @@ Dev dependencies:
 
 ### Config notes
 
-- **Vite:** multi-page inputs (launcher and `prototypes/one/index.html`). `base` comes from the `BASE_PATH` environment variable: `/foo/` for production builds, `/` locally.
+- **Vite:** multi-page inputs (launcher and `prototypes/one/index.html`). `base` comes from the `BASE_PATH` environment variable: `/roguelike_rpg/` for production builds, `/` locally.
 - **TypeScript:** strict mode. `tsconfig.sim.json` covers `src/sim` with only ES libraries, so DOM globals fail type-checking.
 - **Biome:** recommended rules. An override for `src/sim/**` restricts imports of `three`, `react`, `zustand`, and anything in `src/view`, `src/ui`, or `src/input`.
 - **`.gitignore` additions:** `runs/` (sim logs), `playwright-report/`, `test-results/`.
@@ -144,7 +144,7 @@ Dev dependencies:
 
 - On pull requests: `npm ci`, then `npm run check`, then `npm run build`.
 - **Prototype one is local only.** `npm run dev` for play, `npm run build && npm run preview` to check the production build.
-- Deploying to `joshbosworth.com/foo` comes later (see `docs/techstack.md`). The `BASE_PATH` setting is there from day one so the build is ready for it.
+- Deploying to `joshbosworth.com/roguelike_rpg` comes later (see `docs/techstack.md`). The `BASE_PATH` setting is there from day one so the build is ready for it.
 
 ## The simulation interface
 

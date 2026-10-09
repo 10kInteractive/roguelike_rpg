@@ -4,4 +4,6 @@ if (!app) {
   throw new Error("Missing #app element");
 }
 
-app.textContent = "Hello World";
+app.textContent = "Prototype one";
+
+export {};
