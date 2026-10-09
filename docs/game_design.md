@@ -154,7 +154,7 @@ Target for a ready, full clear: about 40–60 minutes.
 #### Damage
 
 - **Physical:** attack power (STR) minus half the target's DEF, times a small random spread. The result is rounded down to an integer. Minimum 1.
-- **Magic:** spell power plus MAG, times the element multiplier, times a small random spread. Ignores DEF in prototype one.
+- **Magic:** spell power plus MAG, times the element multiplier, times a small random spread. The result is rounded down to an integer. Minimum 1. Ignores DEF. Spells do not crit.
 - **Critical hits:** a flat chance on physical attacks. Prototype one uses 5% and ×1.5. The spread is rolled first, then the crit chance. A crit multiplies that hit's damage by the multiplier and rounds down again.
 - All randomness comes from the run's seeded RNG.
 
@@ -187,7 +187,7 @@ Shown on both the victory and game over screens: play time, fights won, fights f
 
 - Two elements: **fire** and **ice**.
 - Each mob may be aligned to an element, be weak to one, and resist one.
-- Hitting a weakness multiplies damage up; hitting a resistance multiplies it down. Multipliers live in the bundle.
+- Hitting a weakness multiplies damage by the weakness multiplier; hitting a resistance multiplies it by the resistance multiplier. Prototype one uses ×1.5 and ×0.5. A hit that is neither is ×1. If an element is listed as both, the weakness multiplier applies. Multipliers live in the bundle.
 - The hero's two spells cover both elements, so reading a mob and choosing the right spell is the first combat decision.
 
 ### North star
