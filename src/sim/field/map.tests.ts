@@ -1,5 +1,11 @@
 import { expect, test } from "vitest";
-import { createSeededMeadow, distanceBetweenTiles, isTerrainWalkable } from "./map";
+import {
+  createSeededMeadow,
+  distanceBetweenTiles,
+  isTerrainWalkable,
+  sampleMeadowNoise,
+} from "./map";
+import { heightPeriod } from "./map.constants";
 import type { MeadowMap } from "./map.types";
 
 const meadow = { width: 48, height: 48, minibossDistance: 20 };
@@ -19,6 +25,20 @@ test("spawn and the miniboss are reachable on many seeds", () => {
     expect(isTerrainWalkable(tileAt(map, map.spawn))).toBe(true);
     expect(isTerrainWalkable(tileAt(map, map.miniboss))).toBe(true);
     expect(reachable(map)).toBe(true);
+  }
+});
+
+test("noise changes gradually east–west and north–south", () => {
+  // One tile is an eighth of the way between seeded values, so a step moves the blend at most 1/8.
+  const largestStep = 1 / heightPeriod + 1e-9;
+  for (let seed = 1; seed <= 20; seed++) {
+    for (let y = 0; y < meadow.height; y++) {
+      for (let x = 0; x < meadow.width; x++) {
+        const here = sampleMeadowNoise(seed, x, y);
+        expect(Math.abs(sampleMeadowNoise(seed, x + 1, y) - here)).toBeLessThanOrEqual(largestStep);
+        expect(Math.abs(sampleMeadowNoise(seed, x, y + 1) - here)).toBeLessThanOrEqual(largestStep);
+      }
+    }
   }
 });
 

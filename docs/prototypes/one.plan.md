@@ -686,4 +686,4 @@ Mechanics stay in `docs/game_design.md`. This plan stays the build spec. The REA
 
 - Branch `bozmak/housekeeping`, one commit per stage.
 - `npm run check` passes. The caster replay at seed 42, the 200-fight random sweep, and the 1000-run grinder sweep print exactly what they did before.
-- Found along the way and left alone, because fixing it changes every meadow: the second blend in map noise uses the vertical weight `ty` where the horizontal weight `tx` belongs.
+- Found along the way and fixed in its own commit after the housekeeping: the second blend in map noise used the vertical weight `ty` where the horizontal weight `tx` belongs, so noise jumped at every eighth column. Every meadow changed. The 1000-run grinder sweep moved from a 0.735 win rate and 19.4 fights to 0.755 and 20.0, still near the 70% target.

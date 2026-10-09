@@ -18,8 +18,8 @@ export function createSeededMeadow(input: MeadowInput): MeadowMap {
   // Height and a second noise layer. Low ground is water, high ground is mountain.
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      const heightValue = sample(input.seed, x, y);
-      const forestValue = sample(input.seed ^ 0x6d2b79f5, x, y);
+      const heightValue = sampleMeadowNoise(input.seed, x, y);
+      const forestValue = sampleMeadowNoise(input.seed ^ 0x6d2b79f5, x, y);
       tiles.push(terrainAt(heightValue, forestValue));
     }
   }
@@ -64,14 +64,19 @@ function terrainAt(heightValue: number, forestValue: number): Terrain {
   return "grass";
 }
 
-/** Smoothed noise at a tile. Neighboring tiles change gradually. */
-function sample(seed: number, x: number, y: number): number {
+/**
+ * Smoothed noise at a tile, in [0, 1). Neighboring tiles change gradually.
+ *
+ * Seeded values sit every `heightPeriod` tiles. A tile blends the four around
+ * it: east–west along the row above and below, then north–south between those.
+ */
+export function sampleMeadowNoise(seed: number, x: number, y: number): number {
   const x0 = Math.floor(x / heightPeriod);
   const y0 = Math.floor(y / heightPeriod);
   const tx = (x % heightPeriod) / heightPeriod;
   const ty = (y % heightPeriod) / heightPeriod;
   const a = lerp(latticeValue(seed, x0, y0), latticeValue(seed, x0 + 1, y0), tx);
-  const b = lerp(latticeValue(seed, x0, y0 + 1), latticeValue(seed, x0 + 1, y0 + 1), ty);
+  const b = lerp(latticeValue(seed, x0, y0 + 1), latticeValue(seed, x0 + 1, y0 + 1), tx);
   return lerp(a, b, ty);
 }
 
