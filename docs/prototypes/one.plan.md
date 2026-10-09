@@ -56,7 +56,7 @@ src/                        shared engine
     combat/                 HasteTurnQueue, OneOnOneFightController, CombatActionPolicy
       utils/                damage, flee chance, leveling formulas
     field/                  meadow generation, movement and collision, EncounterWalkController, FieldWalkPolicy
-    run/                    GrinderFieldRunController, RunStatistics
+    run/                    GrinderFieldRunController, PackFightController, RunStatistics
     index.ts                planned: createSim, observe, legalActions, act
   harness/                  headless play of the sim: replay, combat sweep, field sweep
   content/                  zod schemas, the bundle loader, bundle rows into fighters and fight rules
