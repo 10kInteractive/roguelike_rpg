@@ -64,7 +64,7 @@ src/                        shared engine
     art/                    shared by both scenes: placeholder models, sun and sky, terrain textures
     field/                  FieldViewController, FieldSceneController, FollowCameraController,
                             FixedStepClock, PositionInterpolator, StandInWalkController
-    combat/                 planned: combat scene, sequencer
+    combat/                 CombatViewController, CombatSceneController. Planned: sequencer
   ui/                       React DOM overlay. Planned: zustand store
   input/                    planned: keyboard and gamepad to actions
   assets/                   planned: manifest resolver and loader service
@@ -72,7 +72,7 @@ src/                        shared engine
 prototypes/
   one/
     index.html              entry page
-    main.tsx                boots the engine with this bundle and a seed (`?seed=7`)
+    main.tsx                boots the field with a seed (`?seed=7`), or a fight (`?combat=mob.slime,mob.ember_imp`)
     bundle-source.ts        gathers the bundle's JSON files through bundle.json for the browser
     config.ts               planned: engine features this prototype uses
     bundle/                 content bundle (see below)
