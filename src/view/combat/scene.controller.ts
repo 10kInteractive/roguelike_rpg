@@ -80,6 +80,16 @@ export class CombatSceneController {
     return this.focused;
   }
 
+  /** The hero on the stage, for the sequencer to animate. */
+  heroActor(): StagedActor {
+    return this.hero;
+  }
+
+  /** The mob being fought, for the sequencer to animate. */
+  focusedActor(): StagedActor | undefined {
+    return this.pack[this.focused];
+  }
+
   /**
    * Moves the idle bob along for one display frame.
    *
@@ -89,7 +99,8 @@ export class CombatSceneController {
     this.seconds += elapsedSeconds;
     for (const actor of [this.hero, ...this.pack]) {
       const turn = (this.seconds * idleBob.perSecond + actor.phase * 0.37) * Math.PI * 2;
-      actor.model.position.y = (Math.sin(turn) * 0.5 + 0.5) * actor.bob;
+      const bob = actor.down ? 0 : (Math.sin(turn) * 0.5 + 0.5) * actor.bob;
+      actor.model.position.y = bob + actor.lift;
     }
   }
 
@@ -104,7 +115,7 @@ export class CombatSceneController {
     model.position.set(home.x, 0, home.z);
     model.rotation.y = facing;
     this.scene.add(model);
-    return { model, home, bob, phase };
+    return { model, home, bob, phase, lift: 0, down: false };
   }
 
   /** A grass floor, a tree line, and mountains behind it, all from the terrain textures. */

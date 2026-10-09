@@ -10,4 +10,8 @@ export type StagedActor = {
   bob: number;
   /** Offsets this actor's bob so the line does not move in step. */
   phase: number;
+  /** Extra height on top of the bob, for hops. The sequencer sets it. */
+  lift: number;
+  /** True once defeated. A downed actor stops bobbing. */
+  down: boolean;
 };

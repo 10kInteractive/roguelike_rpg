@@ -64,7 +64,8 @@ src/                        shared engine
     art/                    shared by both scenes: placeholder models, sun and sky, terrain textures
     field/                  FieldViewController, FieldSceneController, FollowCameraController,
                             FixedStepClock, PositionInterpolator, StandInWalkController
-    combat/                 CombatViewController, CombatSceneController. Planned: sequencer
+    combat/                 CombatViewController, CombatSceneController, CombatSequencerController,
+                            TweenController, FloatingTextController
   ui/                       React DOM overlay. Planned: zustand store
   input/                    planned: keyboard and gamepad to actions
   assets/                   planned: manifest resolver and loader service

@@ -1,5 +1,12 @@
 import { createRoot } from "react-dom/client";
+import { heroFighterFromBundle } from "../../src/content/fighters";
 import { loadBundle } from "../../src/content/load";
+import {
+  combatRulesFromBundle,
+  knownSpellsFromBundle,
+  levelRulesFromBundle,
+  runMobsFromBundle,
+} from "../../src/content/rules";
 import { createSeededMeadow } from "../../src/sim/field/map";
 import { SeededRandomGenerator } from "../../src/sim/utils/rng.controller";
 import { Overlay } from "../../src/ui/Overlay";
@@ -49,8 +56,18 @@ try {
     const unknown = mobIds.filter((id) => !known.has(id));
     if (unknown.length > 0) throw new Error(`Unknown mob in ?combat: ${unknown.join(", ")}`);
 
-    await new CombatViewController({ loop, mobIds, textures }).start();
-    root.render(<Overlay status={`Renderer backend: ${backend} · combat`} />);
+    await new CombatViewController({
+      loop,
+      mobIds,
+      textures,
+      hero: heroFighterFromBundle(bundle.hero),
+      mobs: runMobsFromBundle(bundle),
+      combat: combatRulesFromBundle(bundle),
+      leveling: levelRulesFromBundle(bundle),
+      spells: knownSpellsFromBundle(bundle),
+      seed,
+    }).start();
+    root.render(<Overlay status={`Renderer backend: ${backend} · combat · seed ${seed}`} />);
   } else {
     const map = createSeededMeadow({
       seed,
