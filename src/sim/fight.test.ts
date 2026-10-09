@@ -16,6 +16,7 @@ function heroVersusSlime(rng: Rng): FightEvent[] {
     spreadMax: 1.1,
     critChance: 0.05,
     critMultiplier: 1.5,
+    defendMultiplier: 0.5,
   });
 }
 
@@ -78,4 +79,72 @@ test("a hero and a slime trade hits until the slime reaches zero", () => {
 
 test("the same seed plays the same fight", () => {
   expect(heroVersusSlime(createRng(1))).toEqual(heroVersusSlime(createRng(1)));
+});
+
+test("defend halves the next hit and ends on that actor's next turn", () => {
+  const events = fight({
+    hero,
+    enemy: slime,
+    rng: scripted([]),
+    turnBase: 100,
+    spreadMin: 1,
+    spreadMax: 1,
+    critChance: 0,
+    critMultiplier: 1.5,
+    defendMultiplier: 0.5,
+    heroActions: ["defend"],
+  });
+  expect(events.slice(0, 7)).toEqual([
+    { type: "defended", actorId: "hero" },
+    { type: "attacked", actorId: "slime", targetId: "hero" },
+    {
+      type: "damaged",
+      actorId: "slime",
+      targetId: "hero",
+      amount: 2,
+      targetHp: 28,
+      critical: false,
+    },
+    { type: "attacked", actorId: "hero", targetId: "slime" },
+    {
+      type: "damaged",
+      actorId: "hero",
+      targetId: "slime",
+      amount: 7,
+      targetHp: 5,
+      critical: false,
+    },
+    { type: "attacked", actorId: "slime", targetId: "hero" },
+    {
+      type: "damaged",
+      actorId: "slime",
+      targetId: "hero",
+      amount: 4,
+      targetHp: 24,
+      critical: false,
+    },
+  ]);
+});
+
+test("a crit is halved while the target is defending", () => {
+  const events = fight({
+    hero,
+    enemy: slime,
+    rng: scripted([]),
+    turnBase: 100,
+    spreadMin: 1,
+    spreadMax: 1,
+    critChance: 1,
+    critMultiplier: 1.5,
+    defendMultiplier: 0.5,
+    heroActions: ["defend"],
+  });
+  expect(events[2]).toEqual({
+    type: "damaged",
+    actorId: "slime",
+    targetId: "hero",
+    amount: 3,
+    targetHp: 27,
+    critical: true,
+  });
 });

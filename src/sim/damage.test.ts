@@ -1,5 +1,11 @@
 import { expect, test } from "vitest";
-import { applyCritical, elementMultiplier, magicDamage, physicalDamage } from "./damage";
+import {
+  applyCritical,
+  applyDefend,
+  elementMultiplier,
+  magicDamage,
+  physicalDamage,
+} from "./damage";
 
 test("physical damage is attack minus half defense, times the spread, rounded down", () => {
   expect(physicalDamage(8, 4, 1)).toBe(6);
@@ -14,6 +20,11 @@ test("physical damage is at least 1", () => {
 test("a critical hit multiplies damage by 1.5 and rounds down", () => {
   expect(applyCritical(5, 1.5)).toBe(7);
   expect(applyCritical(1, 1.5)).toBe(1);
+});
+
+test("defend halves a hit and still leaves at least 1", () => {
+  expect(applyDefend(4, 0.5)).toBe(2);
+  expect(applyDefend(1, 0.5)).toBe(1);
 });
 
 const weakness = 1.5;

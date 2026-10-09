@@ -22,6 +22,15 @@ export function applyCritical(damage: number, multiplier: number): number {
   return Math.max(1, Math.floor(damage * multiplier));
 }
 
+/**
+ * Damage taken while defending.
+ *
+ * Multiplies an already rounded hit, then rounds down again.
+ */
+export function applyDefend(damage: number, multiplier: number): number {
+  return Math.max(1, Math.floor(damage * multiplier));
+}
+
 export type Element = "fire" | "ice";
 
 /**
