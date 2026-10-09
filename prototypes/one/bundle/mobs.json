@@ -1,0 +1,65 @@
+{
+  "mobs": [
+    {
+      "id": "mob.slime",
+      "hp": 12,
+      "str": 6,
+      "def": 2,
+      "mag": 0,
+      "haste": 5,
+      "xp": 3,
+      "potionDrop": 0.15,
+      "actions": [{ "type": "attack", "weight": 1 }]
+    },
+    {
+      "id": "mob.ember_imp",
+      "hp": 14,
+      "str": 6,
+      "def": 3,
+      "mag": 6,
+      "haste": 9,
+      "element": "fire",
+      "weak": "ice",
+      "resists": "fire",
+      "xp": 5,
+      "potionDrop": 0.15,
+      "actions": [
+        { "type": "attack", "weight": 60 },
+        { "type": "spell", "spell": "spell.ember", "weight": 40 }
+      ]
+    },
+    {
+      "id": "mob.frost_moth",
+      "hp": 10,
+      "str": 5,
+      "def": 2,
+      "mag": 5,
+      "haste": 12,
+      "element": "ice",
+      "weak": "fire",
+      "resists": "ice",
+      "xp": 5,
+      "potionDrop": 0.15,
+      "actions": [
+        { "type": "attack", "weight": 60 },
+        { "type": "spell", "spell": "spell.frost", "weight": 40 }
+      ]
+    },
+    {
+      "id": "mob.rust_sentinel",
+      "hp": 90,
+      "str": 13,
+      "def": 8,
+      "mag": 0,
+      "haste": 6,
+      "weak": "ice",
+      "resists": "fire",
+      "xp": 40,
+      "miniboss": true,
+      "actions": [
+        { "type": "attack", "weight": 70 },
+        { "type": "grind", "multiplier": 1.5, "weight": 30 }
+      ]
+    }
+  ]
+}

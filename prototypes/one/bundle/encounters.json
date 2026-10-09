@@ -1,0 +1,39 @@
+{
+  "terrains": [
+    {
+      "id": "terrain.grass",
+      "rate": 0.1,
+      "packs": [
+        { "weight": 50, "groups": [{ "id": "mob.slime", "min": 1, "max": 2 }] },
+        {
+          "weight": 25,
+          "groups": [
+            { "id": "mob.slime", "min": 1, "max": 1 },
+            { "id": "mob.ember_imp", "min": 1, "max": 1 }
+          ]
+        },
+        { "weight": 25, "groups": [{ "id": "mob.frost_moth", "min": 1, "max": 2 }] }
+      ]
+    },
+    {
+      "id": "terrain.forest",
+      "rate": 0.15,
+      "packs": [
+        { "weight": 35, "groups": [{ "id": "mob.ember_imp", "min": 1, "max": 2 }] },
+        { "weight": 35, "groups": [{ "id": "mob.frost_moth", "min": 2, "max": 2 }] },
+        {
+          "weight": 30,
+          "groups": [
+            { "id": "mob.ember_imp", "min": 1, "max": 1 },
+            { "id": "mob.frost_moth", "min": 1, "max": 1 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "terrain.path",
+      "rate": 0.04,
+      "packs": [{ "weight": 100, "groups": [{ "id": "mob.slime", "min": 1, "max": 1 }] }]
+    }
+  ]
+}

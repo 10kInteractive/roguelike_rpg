@@ -1,0 +1,39 @@
+{
+  "packs": [
+    {
+      "id": "boot",
+      "load": "immediate",
+      "assets": [
+        { "id": "ui.font.main", "file": "assets/generated/ui.font.main.png" },
+        { "id": "ui.loader.art", "file": "assets/generated/ui.loader.art.png" }
+      ]
+    },
+    {
+      "id": "core",
+      "load": "afterBoot",
+      "assets": [
+        { "id": "hero.strider.model", "file": "assets/generated/hero.strider.model.glb" },
+        { "id": "ui.window.frame", "file": "assets/generated/ui.window.frame.png" }
+      ]
+    },
+    {
+      "id": "biome.meadow",
+      "load": "lazy",
+      "assets": [
+        { "id": "terrain.grass.texture", "file": "assets/generated/terrain.grass.texture.png" },
+        { "id": "terrain.forest.texture", "file": "assets/generated/terrain.forest.texture.png" },
+        { "id": "terrain.path.texture", "file": "assets/generated/terrain.path.texture.png" },
+        { "id": "terrain.water.texture", "file": "assets/generated/terrain.water.texture.png" },
+        {
+          "id": "terrain.mountain.texture",
+          "file": "assets/generated/terrain.mountain.texture.png"
+        },
+        { "id": "mob.slime.model", "file": "assets/generated/mob.slime.model.glb" },
+        { "id": "mob.ember_imp.model", "file": "assets/generated/mob.ember_imp.model.glb" },
+        { "id": "mob.frost_moth.model", "file": "assets/generated/mob.frost_moth.model.glb" },
+        { "id": "mob.rust_sentinel.model", "file": "assets/generated/mob.rust_sentinel.model.glb" },
+        { "id": "combat.backdrop.meadow", "file": "assets/generated/combat.backdrop.meadow.png" }
+      ]
+    }
+  ]
+}

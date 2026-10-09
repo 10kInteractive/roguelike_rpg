@@ -1,0 +1,20 @@
+{
+  "turnBase": 100,
+  "spreadMin": 0.9,
+  "spreadMax": 1.1,
+  "critChance": 0.05,
+  "critMultiplier": 1.5,
+  "weaknessMultiplier": 1.5,
+  "resistanceMultiplier": 0.5,
+  "defendMultiplier": 0.5,
+  "fleeBase": 0.5,
+  "fleePerPoint": 0.05,
+  "fleeMin": 0.1,
+  "fleeMax": 0.9,
+  "fieldTickRate": 30,
+  "heroWalkSpeed": 4,
+  "heroCollisionRadius": 0.3,
+  "minEncounterDistance": 4,
+  "levelCap": 10,
+  "xpPerLevel": 6
+}

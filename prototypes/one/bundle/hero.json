@@ -1,0 +1,20 @@
+{
+  "id": "hero.strider",
+  "name": "Strider",
+  "hp": 30,
+  "mp": 10,
+  "str": 8,
+  "def": 4,
+  "mag": 6,
+  "haste": 8,
+  "growth": {
+    "hp": 6,
+    "mp": 2,
+    "str": 2,
+    "def": 1,
+    "mag": 1,
+    "haste": 1
+  },
+  "spells": ["spell.ember", "spell.frost"],
+  "items": [{ "id": "item.potion", "count": 3 }]
+}

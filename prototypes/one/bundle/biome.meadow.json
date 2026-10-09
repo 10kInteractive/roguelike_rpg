@@ -1,0 +1,8 @@
+{
+  "id": "biome.meadow",
+  "width": 48,
+  "height": 48,
+  "miniboss": "mob.rust_sentinel",
+  "minibossDistance": 20,
+  "minibossRadius": 0.8
+}

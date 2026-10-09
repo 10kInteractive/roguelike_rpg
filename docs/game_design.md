@@ -95,9 +95,9 @@ Target for a ready, full clear: about 40–60 minutes.
 
 ### Prototype
 
-- Every defeated enemy gives XP. Enough XP raises the level, which raises stats by a fixed amount per stat.
-- Level-ups fully restore HP and MP. A small reward that makes grinding feel good.
-- Level cap set by the bundle (low, around 10).
+- Every defeated enemy gives its XP reward. The fight ends when either side reaches zero HP, and that side is defeated. Dying or fleeing grants no XP.
+- The XP to leave the current level is 6 × that level. One grant can raise several levels. Each level adds HP +6, MP +2, STR +2, DEF +1, MAG +1, and HST +1, then fully restores HP and MP.
+- The level cap is 10. At the cap, a win still grants XP and does not raise the level or stats.
 
 ### North star
 
@@ -135,9 +135,9 @@ Target for a ready, full clear: about 40–60 minutes.
 
 #### Turn order: haste
 
-- Every actor has a **next-turn time**. The actor with the lowest time acts next.
+- Every actor has a **next-turn time**. The actor with the lowest time acts next. A fight starts with every time at 0, so the first turn is a tie.
 - After acting, an actor's time increases by a fixed base amount divided by its haste. Twice the haste means twice the turns.
-- Ties go to the higher haste, then to the hero.
+- Ties go to the higher haste, then to the hero, then to whoever is earlier in the fight's actor list.
 - This interleaves hero and enemy turns; nobody waits for a whole team to finish.
 - The UI shows the **upcoming turn order** (the next several actors), so haste is visible and planning is possible.
 
@@ -151,16 +151,19 @@ Target for a ready, full clear: about 40–60 minutes.
 | Defend | Halve damage taken until your next turn. |
 | Run | Try to flee. Chance rises with your haste versus the enemies'. A failed attempt costs the turn. You can't run from a miniboss. |
 
+The Run chance is 50% plus 5% per point of hero haste over the enemies' average haste, clamped to 10%–90%. The attempt succeeds when the roll is below that chance. A roll equal to the chance fails. Success ends the fight. Failure costs the turn. A miniboss attempt fails without a roll and still costs the turn.
+
 #### Damage
 
-- **Physical:** attack power (STR) minus half the target's DEF, times a small random spread. Minimum 1.
-- **Magic:** spell power plus MAG, times the element multiplier, times a small random spread. Ignores DEF in prototype one.
-- **Critical hits:** small flat chance on physical attacks, extra damage.
+- **Physical:** attack power (STR) minus half the target's DEF, times a small random spread. The result is rounded down to an integer. Minimum 1.
+- **Magic:** spell power plus MAG, times the element multiplier, times a small random spread. The result is rounded down to an integer. Minimum 1. Ignores DEF. Spells do not crit.
+- **Critical hits:** a flat chance on physical attacks. Prototype one uses 5% and ×1.5. The spread is rolled first, then the crit chance. A crit multiplies that hit's damage by the multiplier and rounds down again.
+- **Defend:** incoming damage, including a crit, is multiplied by the defend multiplier and rounded down again. Minimum 1. Prototype one uses ×0.5. The effect ends at the start of that actor's next turn, before they act.
 - All randomness comes from the run's seeded RNG.
 
 #### Enemies
 
-- Each mob has stats, an element, weaknesses and resistances, and a short list of actions with weights. The AI picks by weight; no deep tactics yet.
+- Each mob has stats, an element, weaknesses and resistances, and a short list of actions with weights. The AI picks by weight and has no other tactics. One roll in [0, 1) is multiplied by the total weight and walks the list in order. Each action covers a slice of its weight, and a roll on a boundary belongs to the next action. A spell the actor cannot afford is Fight instead, without rolling again.
 
 #### Outcomes
 
@@ -187,7 +190,7 @@ Shown on both the victory and game over screens: play time, fights won, fights f
 
 - Two elements: **fire** and **ice**.
 - Each mob may be aligned to an element, be weak to one, and resist one.
-- Hitting a weakness multiplies damage up; hitting a resistance multiplies it down. Multipliers live in the bundle.
+- Hitting a weakness multiplies damage by the weakness multiplier; hitting a resistance multiplies it by the resistance multiplier. Prototype one uses ×1.5 and ×0.5. A hit that is neither is ×1. If an element is listed as both, the weakness multiplier applies. Multipliers live in the bundle.
 - The hero's two spells cover both elements, so reading a mob and choosing the right spell is the first combat decision.
 
 ### North star
@@ -202,6 +205,7 @@ Shown on both the victory and game over screens: play time, fights won, fights f
 
 - Consumables only: potions that restore HP. Mobs can drop them.
 - A small carried stack, no inventory screen beyond the Item command.
+- A potion restores a fixed amount of HP, up to the drinker's maximum. Prototype one restores 25. Drinking spends one potion and the turn. At full HP it still spends both and restores nothing. With none left, the turn passes and nothing is restored.
 
 ### North star
 

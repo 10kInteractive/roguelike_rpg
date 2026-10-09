@@ -1,0 +1,15 @@
+{
+  "id": "prototype.one",
+  "version": 1,
+  "extends": [],
+  "files": {
+    "rules": "rules.json",
+    "hero": "hero.json",
+    "spells": "spells.json",
+    "items": "items.json",
+    "mobs": "mobs.json",
+    "encounters": "encounters.json",
+    "biomes": ["biome.meadow.json"],
+    "assets": "assets.json"
+  }
+}
