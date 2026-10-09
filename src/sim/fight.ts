@@ -125,11 +125,15 @@ export type FightInput = {
     hero: HeroVitals & { mp: number },
     target: { weak?: Element },
   ) => TurnAction | SpellChoice;
+  /** Enemy action picks. Defaults to the combat RNG. */
+  choiceRng?: Rng;
   /** One entry per hero turn. Turns past the end Fight. */
-  heroActions?: TurnAction[];
+  heroActions?: ScriptedAction[];
   /** One entry per enemy turn. Turns past the end Fight. */
-  enemyActions?: TurnAction[];
+  enemyActions?: ScriptedAction[];
 };
+
+export type ScriptedAction = TurnAction | SpellChoice | { type: "grind"; multiplier: number };
 
 /**
  * Runs a fight. Each turn is Fight, Defend, a potion, or Run; omitted actions Fight.
@@ -208,15 +212,53 @@ export function fight(input: FightInput): FightEvent[] {
       defeatIfDown(events, hero, enemy, target, input.leveling);
     };
 
+    // Spread, then a crit, then the grind multiplier.
+    const resolveGrind = (multiplier: number) => {
+      const spread = input.spreadMin + input.rng.next() * (input.spreadMax - input.spreadMin);
+      const critical = input.rng.next() < input.critChance;
+      const hit = physicalDamage(actor.str, target.def, spread);
+      const rolled = critical ? applyCritical(hit, input.critMultiplier) : hit;
+      const scaled = Math.max(1, Math.floor(rolled * multiplier));
+      const amount = guarded(scaled);
+      target.hp = Math.max(0, target.hp - amount);
+
+      events.push({
+        type: "grind",
+        actorId: actor.id,
+        targetId: target.id,
+        multiplier,
+      });
+      events.push({
+        type: "damaged",
+        actorId: actor.id,
+        targetId: target.id,
+        amount,
+        targetHp: target.hp,
+        critical,
+      });
+      defeatIfDown(events, hero, enemy, target, input.leveling);
+    };
+
     // A scripted action wins. Otherwise an enemy with a list rolls it, and anything left is Fight.
     const turn = taken.get(actor.id) ?? 0;
     taken.set(actor.id, turn + 1);
     const script = actor === hero ? input.heroActions : input.enemyActions;
     const scripted = script?.[turn];
-    let action: TurnAction = scripted ?? "fight";
+    let action: TurnAction = "fight";
 
-    // A scripted turn wins. Otherwise the policy picks Fight, a potion, or a spell.
-    if (scripted === undefined && actor === hero && input.heroPolicy) {
+    // A recorded spell or grind plays out. An unpaid spell falls through to Fight.
+    if (typeof scripted === "object") {
+      if (scripted.type === "spell" && actor.mp >= scripted.cost) {
+        castSpell(scripted);
+        continue;
+      }
+      if (scripted.type === "grind") {
+        resolveGrind(scripted.multiplier);
+        continue;
+      }
+    } else if (typeof scripted === "string") {
+      action = scripted;
+    } else if (actor === hero && input.heroPolicy) {
       const choice = input.heroPolicy(actor, target);
       if (typeof choice === "string") {
         action = choice;
@@ -224,10 +266,8 @@ export function fight(input: FightInput): FightEvent[] {
         castSpell(choice);
         continue;
       }
-    }
-
-    if (scripted === undefined && actor === enemy && enemy.actions && enemy.actions.length > 0) {
-      const picked = pickWeighted(enemy.actions, input.rng.next());
+    } else if (actor === enemy && enemy.actions && enemy.actions.length > 0) {
+      const picked = pickWeighted(enemy.actions, (input.choiceRng ?? input.rng).next());
 
       // Pay for the spell and resolve it now. An unpaid spell falls through to Fight.
       if (picked.type === "spell" && actor.mp >= picked.cost) {
@@ -235,31 +275,8 @@ export function fight(input: FightInput): FightEvent[] {
         continue;
       }
 
-      // Spread, then a crit, then the grind multiplier.
       if (picked.type === "grind") {
-        const spread = input.spreadMin + input.rng.next() * (input.spreadMax - input.spreadMin);
-        const critical = input.rng.next() < input.critChance;
-        const hit = physicalDamage(actor.str, target.def, spread);
-        const rolled = critical ? applyCritical(hit, input.critMultiplier) : hit;
-        const scaled = Math.max(1, Math.floor(rolled * picked.multiplier));
-        const amount = guarded(scaled);
-        target.hp = Math.max(0, target.hp - amount);
-
-        events.push({
-          type: "grind",
-          actorId: actor.id,
-          targetId: target.id,
-          multiplier: picked.multiplier,
-        });
-        events.push({
-          type: "damaged",
-          actorId: actor.id,
-          targetId: target.id,
-          amount,
-          targetHp: target.hp,
-          critical,
-        });
-        defeatIfDown(events, hero, enemy, target, input.leveling);
+        resolveGrind(picked.multiplier);
         continue;
       }
 

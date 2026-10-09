@@ -209,7 +209,8 @@ Shown on both the victory and game over screens: play time, fights won, fights f
 - A potion restores a fixed amount of HP, up to the drinker's maximum. Prototype one restores 25. Drinking spends one potion and the turn. At full HP it still spends both and restores nothing. With none left, the turn passes and nothing is restored.
 - The fighter Fights, and drinks a potion when HP is below 30% of maximum and one remains. At 30% the fighter Fights. With none left, the fighter Fights.
 - The caster casts the known spell that matches the target's weakness, while MP can pay for it, then Fights. A target with no weakness is a Fight.
-- The random policy picks one legal action with the fight's RNG: Fight, Defend, Flee, a potion when one remains, or a known spell it can pay for. It is there to find crashes.
+- The random policy picks one legal action: Fight, Defend, Flee, a potion when one remains, or a known spell it can pay for. It is there to find crashes.
+- A run log records the seed, the bundle, every action, the outcome, and a hash of the events. Replay plays that action list again and checks the hash. Enemy picks and the random policy draw from a second generator started from the same seed, so the combat rolls stay put.
 
 ### North star
 
