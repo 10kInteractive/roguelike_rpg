@@ -18,11 +18,12 @@ Read `@.cursor/config.json` for stack and path defaults. Treat `docs/game_design
 ## Layout
 
 - Design docs live under `docs/`.
-- Follow the layout in `docs/techstack.md`. Do not invent folder conventions beyond it.
+- The layout in `docs/techstack.md` is a starting point. Add a directory when the code needs one, and record it in that layout.
 
 ## Working style
 
 - Capture mechanics in the design doc before implementing them.
 - Build in small, observable stages with one commit each. Follow `.cursor/skills/staged-delivery/SKILL.md`.
+- Structure logic as controller classes. Follow `.cursor/skills/controller-classes/SKILL.md`.
 - Do not commit `.env` files, credentials, or generated `dist/` / `node_modules/`.
-- Do not create git commits or push unless Josh asks.
+- Ask before committing a stage, as the staged-delivery skill says. Do not push unless Josh asks.

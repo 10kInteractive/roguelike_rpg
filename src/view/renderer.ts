@@ -1,9 +1,9 @@
 import { BoxGeometry, Mesh, MeshBasicMaterial, PerspectiveCamera, Scene } from "three";
 import { WebGPURenderer } from "three/webgpu";
-import { createLogger } from "../debug/logger";
-import { watch } from "../debug/watch";
+import { debugLog } from "../debug/logger.controller";
+import { debugWatches } from "../debug/watch.controller";
 
-const log = createLogger("view");
+const log = debugLog.create("view");
 
 export type RendererBackend = "WebGPU" | "WebGL2";
 
@@ -42,8 +42,8 @@ export async function mountRenderer(parent: HTMLElement): Promise<RendererBacken
   let fpsWindowStart = performance.now();
   let fps = 0;
   if (import.meta.env.DEV) {
-    watch("backend", () => backend);
-    watch("fps", () => fps);
+    debugWatches.watch("backend", () => backend);
+    debugWatches.watch("fps", () => fps);
   }
 
   const resize = () => {

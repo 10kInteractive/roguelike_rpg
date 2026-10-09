@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import type { BundleSource } from "../src/content/load.ts";
+import type { BundleSource } from "../src/content/load.types.ts";
 
 export async function readBundle(dir: string): Promise<BundleSource> {
   const manifest = await readJson(path.join(dir, "bundle.json"));

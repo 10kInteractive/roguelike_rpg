@@ -1,0 +1,102 @@
+import { expect, test } from "vitest";
+import { OneOnOneFightController } from "../sim/combat/fight.controller";
+import { CombatActionPolicy } from "../sim/combat/policy.controller";
+import type { KnownSpell } from "../sim/combat/policy.types";
+import { SeededRandomGenerator } from "../sim/utils/rng.controller";
+import {
+  expandLoggedActionsIntoFightScript,
+  hashFightEventList,
+  readFightOutcomeFromEvents,
+  readLoggedActionsFromFightEvents,
+} from "./replay";
+
+const hero = {
+  id: "hero",
+  hp: 30,
+  str: 8,
+  def: 4,
+  haste: 8,
+  mag: 6,
+  mp: 10,
+  potions: 2,
+  hero: true,
+};
+const slime = { id: "slime", hp: 40, str: 6, def: 2, haste: 5 };
+const spells: KnownSpell[] = [
+  { id: "spell.ember", element: "fire", power: 8, cost: 3 },
+  { id: "spell.frost", element: "ice", power: 8, cost: 3 },
+];
+
+const rules = {
+  turnBase: 100,
+  spreadMin: 0.9,
+  spreadMax: 1.1,
+  critChance: 0.05,
+  critMultiplier: 1.5,
+  defendMultiplier: 0.5,
+  weaknessMultiplier: 1.5,
+  resistanceMultiplier: 0.5,
+  potionHeal: 25,
+  fleeBase: 0.5,
+  fleePerPoint: 0.05,
+  fleeMin: 0.1,
+  fleeMax: 0.9,
+};
+
+test("the same seed and action list hash the same, and a different action does not", () => {
+  const played = () =>
+    new OneOnOneFightController({
+      ...rules,
+      hero,
+      enemy: slime,
+      rng: new SeededRandomGenerator(1),
+      heroActions: ["fight", "potion"],
+      enemyActions: ["fight", "fight"],
+    }).resolve();
+  const once = played();
+  const twice = played();
+  expect(hashFightEventList(once)).toBe(hashFightEventList(twice));
+
+  const other = new OneOnOneFightController({
+    ...rules,
+    hero,
+    enemy: slime,
+    rng: new SeededRandomGenerator(1),
+    heroActions: ["defend", "potion"],
+    enemyActions: ["fight", "fight"],
+  }).resolve();
+  expect(hashFightEventList(other)).not.toBe(hashFightEventList(once));
+});
+
+test("a recorded fight replays to the same hash", () => {
+  const enemy = {
+    ...slime,
+    actions: [
+      { type: "fight" as const, weight: 1 },
+      { type: "grind" as const, multiplier: 1.5, weight: 1 },
+    ],
+  };
+  const combat = new SeededRandomGenerator(4);
+  const choice = new SeededRandomGenerator(4);
+  const events = new OneOnOneFightController({
+    ...rules,
+    hero,
+    enemy,
+    rng: combat,
+    choiceRng: choice,
+    heroPolicy: (actor) => new CombatActionPolicy(spells, choice).chooseRandom(actor),
+  }).resolve();
+  const actions = readLoggedActionsFromFightEvents(events, hero.id);
+  const replayed = new OneOnOneFightController({
+    ...rules,
+    hero,
+    enemy,
+    rng: new SeededRandomGenerator(4),
+    heroActions: expandLoggedActionsIntoFightScript(actions.hero, spells),
+    enemyActions: expandLoggedActionsIntoFightScript(actions.enemy, spells),
+  }).resolve();
+  expect(hashFightEventList(replayed)).toBe(hashFightEventList(events));
+  expect(readFightOutcomeFromEvents(events, hero.id)).toBe(
+    readFightOutcomeFromEvents(replayed, hero.id),
+  );
+});

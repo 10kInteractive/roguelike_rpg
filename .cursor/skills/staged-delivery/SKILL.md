@@ -25,8 +25,8 @@ Stage: <one sentence>
 - [ ] 2. Make the smallest change that does it
 - [ ] 3. Make it observable
 - [ ] 4. Verify it yourself
-- [ ] 5. Report and propose a commit message
-- [ ] 6. Wait for Josh to commit before starting the next stage
+- [ ] 5. Report, propose a commit message, and ask if Josh will commit it himself
+- [ ] 6. If he will not, commit this stage. Either way, wait before the next stage
 ```
 
 **1. State it.** Before editing, say in one sentence what the stage does and exactly how Josh will see it ("Open the dev server with `?debug=sim:combat` and the console prints each turn").
@@ -52,8 +52,9 @@ Follow the logging and dev panel conventions in `docs/techstack.md` (section "Ob
 - How to see it: the exact command, URL, debug namespace, or panel entry.
 - What you ran and what it showed.
 - A proposed commit message.
+- Ask whether Josh wants to commit this stage himself.
 
-**6. Wait.** Josh creates branches and makes commits himself. Don't branch, commit, or push unless he asks. If he does ask, commit only this stage's files. Then move to the next stage when he says.
+**6. Commit.** If he commits it himself, wait. If he does not, commit only this stage's files with the proposed message, then wait. Do not push, and do not start the next stage, until he says to.
 
 ## Branches
 
@@ -96,4 +97,5 @@ Right size, in order:
 - Bundle several stages into one change because they're "related".
 - Leave a stage with no way to see it working.
 - Remove a useful namespaced log just to tidy up. It stays off unless enabled.
-- Branch, commit, push, or start the next stage without Josh's go-ahead.
+- Branch, push, or start the next stage without Josh's go-ahead.
+- Commit a stage he said he would commit himself.

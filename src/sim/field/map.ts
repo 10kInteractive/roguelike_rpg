@@ -1,34 +1,8 @@
-import { createRng, type Rng } from "../rng";
-
-/** What a tile is made of. Grass, forest, and path can be walked. Water and mountain cannot. */
-export type Terrain = "grass" | "forest" | "path" | "water" | "mountain";
-
-/** A tile's column and row. The hero standing in its middle is at `(x + 0.5, y + 0.5)`. */
-export type TilePoint = {
-  /** Column. Increases east. */
-  x: number;
-  /** Row. Increases north. */
-  y: number;
-};
-
-/** One seeded meadow: the tiles, where the hero starts, and where the miniboss stands. */
-export type MeadowMap = {
-  /** Columns. */
-  width: number;
-  /** Rows. */
-  height: number;
-  /** Terrain in row-major order. */
-  tiles: Terrain[];
-  /** Walkable tile the hero starts on. */
-  spawn: TilePoint;
-  /** Tile the miniboss occupies. The path runs here from the spawn. */
-  miniboss: TilePoint;
-};
-
-const heightPeriod = 8;
-const waterBelow = 0.38;
-const mountainAbove = 0.7;
-const forestAbove = 0.55;
+import { hashToUnit } from "../utils/rng";
+import { SeededRandomGenerator } from "../utils/rng.controller";
+import type { Rng } from "../utils/rng.types";
+import { forestAbove, heightPeriod, mountainAbove, waterBelow } from "./map.constants";
+import type { MeadowInput, MeadowMap, Terrain, TilePoint } from "./map.types";
 
 /**
  * One seeded meadow.
@@ -37,31 +11,22 @@ const forestAbove = 0.55;
  * some grass into forest. A path of path tiles joins the spawn to a miniboss
  * at least `minibossDistance` tiles away, so the miniboss is reachable.
  */
-export function createMeadow(input: {
-  /** Seed for the noise and for where the spawn and miniboss are picked. */
-  seed: number;
-  /** Columns. */
-  width: number;
-  /** Rows. */
-  height: number;
-  /** How far, in tiles, the miniboss must stand from the spawn. */
-  minibossDistance: number;
-}): MeadowMap {
+export function createSeededMeadow(input: MeadowInput): MeadowMap {
   const { width, height } = input;
   const tiles: Terrain[] = [];
 
   // Height and a second noise layer. Low ground is water, high ground is mountain.
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      const heightValue = sample(input.seed, x, y);
-      const forestValue = sample(input.seed ^ 0x6d2b79f5, x, y);
+      const heightValue = sampleMeadowNoise(input.seed, x, y);
+      const forestValue = sampleMeadowNoise(input.seed ^ 0x6d2b79f5, x, y);
       tiles.push(terrainAt(heightValue, forestValue));
     }
   }
 
   // The hero starts on walkable ground. A buried map gets a clearing at the center.
-  const rng = createRng(input.seed);
-  const walkable = pointsWhere(tiles, width, height, (terrain) => isWalkable(terrain));
+  const rng = new SeededRandomGenerator(input.seed);
+  const walkable = pointsWhere(tiles, width, height, (terrain) => isTerrainWalkable(terrain));
   if (walkable.length === 0) {
     const center = { x: Math.floor(width / 2), y: Math.floor(height / 2) };
     tiles[tileIndex(width, center)] = "grass";
@@ -71,7 +36,7 @@ export function createMeadow(input: {
 
   // The miniboss stands far from that spawn. A small map uses the farthest tile.
   const far = pointsWhere(tiles, width, height, (_terrain, point) => {
-    return point !== spawn && tileDistance(spawn, point) >= input.minibossDistance;
+    return point !== spawn && distanceBetweenTiles(spawn, point) >= input.minibossDistance;
   });
   const miniboss = far.length > 0 ? pickTile(far, rng) : farthest(tiles, width, height, spawn);
 
@@ -82,12 +47,12 @@ export function createMeadow(input: {
 }
 
 /** Grass, forest, and path. Water and mountain stop the hero. */
-export function isWalkable(terrain: Terrain): boolean {
+export function isTerrainWalkable(terrain: Terrain): boolean {
   return terrain === "grass" || terrain === "forest" || terrain === "path";
 }
 
 /** Straight-line distance between two tiles, in tile widths. */
-export function tileDistance(from: TilePoint, to: TilePoint): number {
+export function distanceBetweenTiles(from: TilePoint, to: TilePoint): number {
   return Math.hypot(to.x - from.x, to.y - from.y);
 }
 
@@ -99,21 +64,26 @@ function terrainAt(heightValue: number, forestValue: number): Terrain {
   return "grass";
 }
 
-/** Smoothed noise at a tile. Neighboring tiles change gradually. */
-function sample(seed: number, x: number, y: number): number {
+/**
+ * Smoothed noise at a tile, in [0, 1). Neighboring tiles change gradually.
+ *
+ * Seeded values sit every `heightPeriod` tiles. A tile blends the four around
+ * it: east–west along the row above and below, then north–south between those.
+ */
+export function sampleMeadowNoise(seed: number, x: number, y: number): number {
   const x0 = Math.floor(x / heightPeriod);
   const y0 = Math.floor(y / heightPeriod);
   const tx = (x % heightPeriod) / heightPeriod;
   const ty = (y % heightPeriod) / heightPeriod;
   const a = lerp(latticeValue(seed, x0, y0), latticeValue(seed, x0 + 1, y0), tx);
-  const b = lerp(latticeValue(seed, x0, y0 + 1), latticeValue(seed, x0 + 1, y0 + 1), ty);
+  const b = lerp(latticeValue(seed, x0, y0 + 1), latticeValue(seed, x0 + 1, y0 + 1), tx);
   return lerp(a, b, ty);
 }
 
 /** One noise value at a lattice point. The same seed and point always match. */
 function latticeValue(seed: number, x: number, y: number): number {
   const mixed = (seed ^ Math.imul(x + 1, 0x9e3779b1) ^ Math.imul(y + 1, 0x85ebca6b)) >>> 0;
-  return createRng(mixed).next();
+  return hashToUnit(mixed);
 }
 
 /** The blend from one noise sample to the next. */
@@ -141,7 +111,7 @@ function farthest(tiles: Terrain[], width: number, height: number, from: TilePoi
   let best = from;
   let bestDistance = -1;
   for (const point of pointsWhere(tiles, width, height, () => true)) {
-    const distance = tileDistance(from, point);
+    const distance = distanceBetweenTiles(from, point);
     if (distance > bestDistance) {
       best = point;
       bestDistance = distance;

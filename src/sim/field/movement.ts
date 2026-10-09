@@ -1,46 +1,6 @@
-import { isWalkable, type Terrain } from "./map";
-
-/** Field steps per second. */
-export const tickRate = 30;
-
-/** Tiles per second at a full stick press. */
-export const tilesPerSecond = 4;
-
-/** Full deflection of one stick axis. The input is an integer from −64 to 64. */
-export const stickLimit = 64;
-
-/** Radius of the hero's collision circle, in tiles. */
-export const heroRadius = 0.3;
-
-/**
- * How far the left stick is pushed.
- *
- * The keyboard and the gamepad both become this pair. It is not a position.
- */
-export type Stick = {
-  /** Horizontal push. −64 is full west, 64 is full east. */
-  x: number;
-  /** Vertical push. −64 is full south, 64 is full north. */
-  y: number;
-};
-
-/** Where the hero is standing, in tiles. */
-export type Position = {
-  /** Tiles east of the origin. */
-  x: number;
-  /** Tiles north of the origin. */
-  y: number;
-};
-
-/** The tile grid movement collides with. Tiles are row-major. */
-export type FieldGrid = {
-  /** Columns. */
-  width: number;
-  /** Rows. */
-  height: number;
-  /** Terrain in row-major order, `y * width + x`. */
-  tiles: readonly Terrain[];
-};
+import { isTerrainWalkable } from "./map";
+import { heroRadius, stickLimit, tickRate, tilesPerSecond } from "./movement.constants";
+import type { FieldGrid, Position, Stick } from "./movement.types";
 
 /**
  * Steps the hero along a stick vector.
@@ -50,7 +10,12 @@ export type FieldGrid = {
  * `ticks` repeats the same stick. With a map, the hero is a circle that
  * slides along blocked tiles instead of entering them.
  */
-export function move(position: Position, stick: Stick, ticks = 1, field?: FieldGrid): Position {
+export function moveHeroAlongStick(
+  position: Position,
+  stick: Stick,
+  ticks = 1,
+  field?: FieldGrid,
+): Position {
   const step = tickStep(stick);
   if (!field) {
     return { x: position.x + step.x * ticks, y: position.y + step.y * ticks };
@@ -105,7 +70,7 @@ function hitsBlocked(position: Position, field: FieldGrid): boolean {
 function isBlocked(field: FieldGrid, x: number, y: number): boolean {
   if (x < 0 || y < 0 || x >= field.width || y >= field.height) return true;
   const terrain = field.tiles[y * field.width + x];
-  return terrain === undefined || !isWalkable(terrain);
+  return terrain === undefined || !isTerrainWalkable(terrain);
 }
 
 /** True when the hero's circle overlaps the tile's square. Touching the edge does not count. */

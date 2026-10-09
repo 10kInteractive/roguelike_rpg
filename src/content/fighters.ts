@@ -1,17 +1,13 @@
-import type { EnemyAction, Fighter } from "../sim/combat/fight";
-import type { Bundle } from "./schema";
-
-type Mob = Bundle["mobs"]["mobs"][number];
-type Spell = Bundle["spells"]["spells"][number];
-type Hero = Bundle["hero"];
+import type { EnemyAction, Fighter } from "../sim/combat/fight.types";
+import type { BundleHero, BundleMob, BundleSpell } from "./fighters.types";
 
 /**
- * Turns one bundle mob into the enemy `fight` runs.
+ * Turns one bundle mob into the enemy a fight plays against.
  *
  * `attack` becomes Fight. A spell id is filled in from the spell list. Grind
  * keeps its multiplier.
  */
-export function toEnemy(mob: Mob, spells: readonly Spell[]): Fighter {
+export function enemyFighterFromMob(mob: BundleMob, spells: readonly BundleSpell[]): Fighter {
   return {
     id: mob.id,
     hp: mob.hp,
@@ -31,7 +27,7 @@ export function toEnemy(mob: Mob, spells: readonly Spell[]): Fighter {
 }
 
 /** Strider at level 1, with the potion stack from the hero file. */
-export function toHero(hero: Hero): Fighter {
+export function heroFighterFromBundle(hero: BundleHero): Fighter {
   const potions = hero.items.find((item) => item.id === "item.potion")?.count ?? 0;
   return {
     id: hero.id,
@@ -50,9 +46,10 @@ export function toHero(hero: Hero): Fighter {
   };
 }
 
+/** One bundle action as the fight's enemy action. A spell id gets its power and cost. */
 function toAction(
-  action: Mob["actions"][number],
-  spells: readonly Spell[],
+  action: BundleMob["actions"][number],
+  spells: readonly BundleSpell[],
   mobId: string,
 ): EnemyAction {
   if (action.type === "attack") return { type: "fight", weight: action.weight };
