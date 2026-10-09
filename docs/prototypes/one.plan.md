@@ -412,15 +412,91 @@ End-to-end (Playwright):
 
 ## Milestones
 
-Each milestone is built as a series of small stages, one commit each, following the `staged-delivery` skill.
+Each milestone is a series of small stages, one commit each, following the `staged-delivery` skill. The stage name is the commit summary. A stage is done when that commit is on the branch and its check (a test, a log line, the dev panel, or the running game) shows the change.
 
-1. **Tooling.** Vite, TypeScript, Biome, React, launcher, prototype one entry, CI. Remove `server.js`. Add the namespaced logger and the dev panel early, so every later stage has somewhere to show its output.
-2. **Sim core.** RNG, bundle schemas and loader, the prototype one bundle, combat engine, unit tests.
-3. **Harness.** Sim CLI, combat policies, sweep, replay. Combat is tunable before anything renders.
-4. **Field sim.** Map generation, fixed-step analog movement and collision, encounters by distance, miniboss, run stats. Walking policies.
-5. **View.** Renderer, fixed-timestep loop with interpolation, field scene, combat scene, sequencer, placeholder assets, lazy pack.
-6. **UI and input.** HUD, command window, turn order, log, end screens with stats, keyboard and gamepad.
-7. **Polish.** End-to-end tests, a first balance pass from sweeps toward the targets.
+### 1. Tooling
+
+Done. The logger and the dev panel landed here so later stages have somewhere to show their output.
+
+- `chore: add vite build tooling`
+- `chore: add typescript with strict config`
+- `chore: add biome lint and format`
+- `chore: add launcher and prototype one entry`
+- `feat: three.js canvas with backend log`
+- `feat: react overlay on the prototype canvas`
+- `feat: namespaced debug logger`
+- `feat: dev panel toggled with backtick`
+- `chore: add vitest and sim purity checks`
+- `chore: run checks on pull requests`
+
+### 2. Sim core
+
+Combat rules, then the data that feeds them. Tests are the check until the sim CLI exists.
+
+- `feat: seeded rng`. The same seed produces the same sequence. Done.
+- `feat: haste turn queue`. A faster actor takes more turns. Ties go to haste, then the hero, then list order.
+- `feat: fight action and damage`. A hero and one enemy trade hits until one reaches zero HP. The test lists every hit.
+- `feat: critical hits`. A physical attack can roll the crit chance and deal ×1.5.
+- `feat: ember and frost`. Fire and ice apply the weakness and resistance multipliers.
+- `feat: defend`. Damage is halved until that actor's next turn.
+- `feat: potions`. A potion heals and spends the turn.
+- `feat: flee`. The chance follows haste. A miniboss fight cannot be fled.
+- `feat: weighted enemy actions`. An enemy picks from its action list by weight.
+- `feat: xp and level up`. A win grants XP. Enough XP raises level and grows stats. A defeat ends the fight.
+- `feat: bundle schema`. A valid bundle loads. A broken reference fails.
+- `feat: prototype one bundle`. Strider, the spells, the potion, the four mobs, and the meadow numbers.
+
+### 3. Harness
+
+The CLI plays combat before anything walks. Field policies wait for the field sim.
+
+- `feat: sim cli`. `npm run sim -- --seed 42` prints a fight's events.
+- `feat: fighter policy`. Always Fight. Drink a potion below 30% HP.
+- `feat: caster policy`. Cast the spell the target is weak to, then Fight when MP runs out.
+- `feat: random policy`. Random legal combat actions, used to find crashes.
+- `feat: replay`. The same seed and action list produce the same event hash.
+- `feat: seed sweep`. Many seeds print one summary: win rate, fights, and deaths by mob.
+
+### 4. Field sim
+
+- `feat: meadow map`. Spawn and the miniboss are reachable on many seeds.
+- `feat: field movement`. The same inputs end at the same position. Diagonals are not faster.
+- `feat: tile collision`. The hero cannot enter a blocked tile and slides along its edge.
+- `feat: encounters by distance`. Each terrain rolls at its rate. Fights stay a minimum distance apart. A move batch stops when a fight starts.
+- `feat: miniboss contact`. Touching the miniboss starts a fight.
+- `feat: run stats`. The sim counts fights, damage, potions, distance, and the seed.
+- `feat: walking policies`. Fighter and caster wander. Grinder walks until the target level, then paths to the miniboss.
+- `feat: field sweep`. A 1000-seed grinder run prints the balance summary, including estimated play time.
+
+### 5. View
+
+The canvas, the WebGPU renderer, and the React overlay already exist from tooling.
+
+- `feat: fixed timestep`. The sim steps at 30 Hz. The view interpolates between the last two positions.
+- `feat: placeholder textures`. Generated pixel textures, with a sidecar for each file.
+- `feat: meadow field scene`. Tile columns, the hero, and the miniboss under a sun and a sky light. The hero turns to face movement.
+- `feat: follow camera`. A 3/4 camera stays with the hero.
+- `feat: combat scene`. Hero on one side, enemies on the other, meadow backdrop.
+- `feat: combat sequencer`. Events play in order (lunge, flash, damage number, defeat fade), then input unlocks.
+- `feat: lazy meadow pack`. The loader shows progress. The field appears when the pack is ready.
+
+### 6. UI and input
+
+- `feat: ui store`. A zustand store holds the latest snapshot and the events still waiting to play.
+- `feat: field hud`. Level, HP, and MP.
+- `feat: command window`. Fight, Magic, Item, Defend, Run, using keyboard actions only.
+- `feat: spell item and target menus`. Submenus for spells, potions, and which enemy.
+- `feat: turn order and message log`. The next actors, and a line for each event.
+- `feat: victory and game over`. Run stats and a restart. Restart creates a new sim with a new seed.
+- `feat: gamepad`. The same actions from a standard-mapping pad.
+
+### 7. Polish
+
+- `feat: boot end-to-end test`. The launcher opens prototype one and the loader finishes.
+- `feat: walk and fight end-to-end test`. An arrow key moves the hero. A forced encounter ends when Fight beats a weak enemy.
+- `feat: ending end-to-end test`. Victory and game over show stats, and restart works.
+- `feat: authored assets win`. A file dropped in `assets/authored/` replaces the placeholder with the same id, with no code change.
+- `feat: balance pass`. Tune the bundle numbers from the sweep toward the targets.
 
 ## Done when
 

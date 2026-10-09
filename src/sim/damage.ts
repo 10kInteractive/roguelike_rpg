@@ -1,0 +1,14 @@
+/**
+ * Physical damage for one hit.
+ *
+ * Attack minus half the target's defense, multiplied by `spread`, then rounded
+ * down. The result is at least 1, so a weak hit still lands.
+ *
+ * @param attack The attacker's STR.
+ * @param defense The target's DEF.
+ * @param spread Roll in the bundle's damage range, such as 0.9 to 1.1.
+ */
+export function physicalDamage(attack: number, defense: number, spread: number): number {
+  const raw = (attack - defense / 2) * spread;
+  return Math.max(1, Math.floor(raw));
+}
