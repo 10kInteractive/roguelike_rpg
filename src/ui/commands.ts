@@ -1,4 +1,5 @@
 import type { Action } from "../sim/game.types";
+import { nameFromId } from "./names";
 
 /** One row of a combat menu. Confirm opens `menu`, or sends `action`. */
 export type MenuRow = {
@@ -23,9 +24,12 @@ export function commandRows(actions: readonly Action[]): MenuRow[] {
   const find = (type: "defend" | "run") => actions.find((action) => action.type === type);
 
   return [
-    { label: "Fight", menu: fights.map((action) => ({ label: words(action.target), action })) },
+    {
+      label: "Fight",
+      menu: fights.map((action) => ({ label: nameFromId(action.target), action })),
+    },
     { label: "Magic", menu: spellRows(casts) },
-    { label: "Item", menu: items.map((action) => ({ label: words(action.item), action })) },
+    { label: "Item", menu: items.map((action) => ({ label: nameFromId(action.item), action })) },
     { label: "Defend", action: find("defend") },
     { label: "Run", action: find("run") },
   ];
@@ -43,18 +47,9 @@ function spellRows(casts: readonly Extract<Action, { type: "cast" }>[]): MenuRow
     if (!spells.includes(cast.spell)) spells.push(cast.spell);
   }
   return spells.map((spell) => ({
-    label: words(spell),
+    label: nameFromId(spell),
     menu: casts
       .filter((cast) => cast.spell === spell)
-      .map((cast) => ({ label: words(cast.target), action: cast })),
+      .map((cast) => ({ label: nameFromId(cast.target), action: cast })),
   }));
-}
-
-/** `mob.ember_imp` as `Ember Imp`, and `spell.frost` as `Frost`. */
-function words(id: string): string {
-  const rest = id.includes(".") ? id.slice(id.indexOf(".") + 1) : id;
-  return rest
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
 }

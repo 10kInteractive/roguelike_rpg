@@ -160,3 +160,18 @@ test("a spell, a drink, and a level write their points when they play", () => {
   store.played();
   expect(store.snapshot()?.hero).toMatchObject({ level: 2, hp: 36, maxHp: 36, mp: 12, str: 10 });
 });
+
+test("a played hit adds its line, and the log keeps the latest six", () => {
+  const store = new UiStoreController();
+  store.present(fighting);
+  const hits: SimEvent[] = [];
+  for (let count = 0; count < 7; count++) {
+    hits.push({ type: "attacked", actorId: enemy.id, targetId: hero.id });
+  }
+  store.enqueue(hits);
+
+  for (let count = 0; count < 7; count++) store.played();
+
+  expect(store.log()).toEqual(Array.from({ length: 6 }, () => "Ember Imp attacks"));
+  expect(store.snapshot()?.hero.hp).toBe(30);
+});

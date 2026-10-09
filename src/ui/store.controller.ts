@@ -2,7 +2,11 @@ import { useStore } from "zustand";
 import { createStore, type StoreApi } from "zustand/vanilla";
 import type { Action, CombatantView, SimEvent, Snapshot } from "../sim/game.types";
 import { commandRows } from "./commands";
+import { messageFor } from "./messages";
 import type { UiState } from "./store.types";
+
+/** How many lines the log keeps. Older ones drop off the top. */
+const logLimit = 6;
 
 /**
  * The overlay's copy of the run: the latest snapshot, and the events still
@@ -20,7 +24,12 @@ export class UiStoreController {
   private resolver: ((action: Action) => void) | null = null;
 
   constructor() {
-    this.store = createStore<UiState>(() => ({ snapshot: null, pending: [], commands: null }));
+    this.store = createStore<UiState>(() => ({
+      snapshot: null,
+      pending: [],
+      commands: null,
+      log: [],
+    }));
   }
 
   /** Replaces the snapshot with the sim's latest. */
@@ -41,16 +50,18 @@ export class UiStoreController {
 
   /**
    * The view finished the oldest waiting event.
-   * A hit, a spell, a drink, or a level updates the snapshot now, so the bar
-   * moves with that beat instead of with the whole action.
+   * A hit, a spell, a drink, or a level updates the snapshot now, and the log
+   * gains that event's line, so both move with the beat.
    */
   played(): void {
     this.store.setState((state) => {
       const event = state.pending[0];
       if (!event) return state;
+      const line = messageFor(event);
       return {
         pending: state.pending.slice(1),
         snapshot: state.snapshot ? this.applied(state.snapshot, event) : state.snapshot,
+        log: line ? [...state.log, line].slice(-logLimit) : state.log,
       };
     });
   }
@@ -63,6 +74,11 @@ export class UiStoreController {
   /** Events still waiting to play, oldest first. */
   pending(): readonly SimEvent[] {
     return this.store.getState().pending;
+  }
+
+  /** The lines on the log, oldest first. */
+  log(): readonly string[] {
+    return this.store.getState().log;
   }
 
   /**
@@ -166,4 +182,9 @@ export function usePendingCount(): number {
 /** The command window's rows, or null while it is closed. */
 export function useCommands(): UiState["commands"] {
   return useStore(uiStore.api(), (state) => state.commands);
+}
+
+/** The lines on the log, oldest first. */
+export function useMessageLog(): readonly string[] {
+  return useStore(uiStore.api(), (state) => state.log);
 }

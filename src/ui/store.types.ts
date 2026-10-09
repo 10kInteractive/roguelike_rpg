@@ -9,4 +9,6 @@ export type UiState = {
   pending: SimEvent[];
   /** The command window's rows. Null while it is closed. */
   commands: MenuRow[] | null;
+  /** Lines the log is showing, oldest first. */
+  log: string[];
 };
