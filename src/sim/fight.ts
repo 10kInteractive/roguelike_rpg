@@ -1,4 +1,5 @@
 import { applyCritical, applyDefend, physicalDamage } from "./damage";
+import { fleeChance } from "./flee";
 import type { Rng } from "./rng";
 import { createTurnQueue } from "./turn-queue";
 
@@ -13,9 +14,11 @@ export type Fighter = {
   def: number;
   haste: number;
   hero?: boolean;
+  /** A miniboss fight cannot be fled. */
+  miniboss?: boolean;
 };
 
-export type TurnAction = "fight" | "defend" | "potion";
+export type TurnAction = "fight" | "defend" | "potion" | "flee";
 
 export type FightEvent =
   | { type: "attacked"; actorId: string; targetId: string }
@@ -28,6 +31,7 @@ export type FightEvent =
       hp: number;
       remaining: number;
     }
+  | { type: "fleeAttempted"; actorId: string; success: boolean; chance: number }
   | {
       type: "damaged";
       actorId: string;
@@ -55,6 +59,14 @@ export type FightInput = {
   defendMultiplier: number;
   /** HP restored by one potion, before the maximum. Prototype one uses 25. */
   potionHeal: number;
+  /** Flee chance before the haste bonus. Prototype one uses 0.5. */
+  fleeBase: number;
+  /** Added per point of hero haste over the enemy's haste. Prototype one uses 0.05. */
+  fleePerPoint: number;
+  /** Lowest flee chance. Prototype one uses 0.1. */
+  fleeMin: number;
+  /** Highest flee chance. Prototype one uses 0.9. */
+  fleeMax: number;
   /** One entry per hero turn. Turns past the end Fight. */
   heroActions?: TurnAction[];
   /** One entry per enemy turn. Turns past the end Fight. */
@@ -62,14 +74,16 @@ export type FightInput = {
 };
 
 /**
- * Runs a fight. Each turn is Fight, Defend, or a potion; omitted actions Fight.
+ * Runs a fight. Each turn is Fight, Defend, a potion, or Run; omitted actions Fight.
  *
  * Turns follow the haste queue. Fight emits `attacked` and `damaged`. Defend
  * emits `defended` and halves damage taken until that actor's next turn. A
  * potion emits `itemUsed`, restores HP up to the drinker's maximum, and spends
- * the turn. The fight stops when either HP reaches zero. Each hit rolls the
- * spread, then the crit chance. A crit multiplies that damage and rounds down
- * again, and Defend applies after that.
+ * the turn. Run emits `fleeAttempted`. Success ends the fight. Failure spends
+ * the turn. A miniboss attempt fails without a roll. The fight also stops when
+ * either HP reaches zero. Each hit rolls the spread, then the crit chance. A
+ * crit multiplies that damage and rounds down again, and Defend applies after
+ * that.
  */
 export function fight(input: FightInput): FightEvent[] {
   const hero = prepare(input.hero);
@@ -116,6 +130,22 @@ export function fight(input: FightInput): FightEvent[] {
         hp: actor.hp,
         remaining: actor.potions,
       });
+      continue;
+    }
+    if (action === "flee" && actor === hero) {
+      const chance = enemy.miniboss
+        ? 0
+        : fleeChance(
+            hero.haste,
+            enemy.haste,
+            input.fleeBase,
+            input.fleePerPoint,
+            input.fleeMin,
+            input.fleeMax,
+          );
+      const success = chance > 0 && input.rng.next() < chance;
+      events.push({ type: "fleeAttempted", actorId: hero.id, success, chance });
+      if (success) return events;
       continue;
     }
     const spread = input.spreadMin + input.rng.next() * (input.spreadMax - input.spreadMin);

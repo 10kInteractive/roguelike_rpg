@@ -151,6 +151,8 @@ Target for a ready, full clear: about 40–60 minutes.
 | Defend | Halve damage taken until your next turn. |
 | Run | Try to flee. Chance rises with your haste versus the enemies'. A failed attempt costs the turn. You can't run from a miniboss. |
 
+The Run chance is 50% plus 5% per point of hero haste over the enemies' average haste, clamped to 10%–90%. The attempt succeeds when the roll is below that chance. A roll equal to the chance fails. Success ends the fight. Failure costs the turn. A miniboss attempt fails without a roll and still costs the turn.
+
 #### Damage
 
 - **Physical:** attack power (STR) minus half the target's DEF, times a small random spread. The result is rounded down to an integer. Minimum 1.

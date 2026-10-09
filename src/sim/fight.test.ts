@@ -18,6 +18,10 @@ function heroVersusSlime(rng: Rng): FightEvent[] {
     critMultiplier: 1.5,
     defendMultiplier: 0.5,
     potionHeal: 25,
+    fleeBase: 0.5,
+    fleePerPoint: 0.05,
+    fleeMin: 0.1,
+    fleeMax: 0.9,
   });
 }
 
@@ -94,6 +98,10 @@ test("defend halves the next hit and ends on that actor's next turn", () => {
     critMultiplier: 1.5,
     defendMultiplier: 0.5,
     potionHeal: 25,
+    fleeBase: 0.5,
+    fleePerPoint: 0.05,
+    fleeMin: 0.1,
+    fleeMax: 0.9,
     heroActions: ["defend"],
   });
   expect(events.slice(0, 7)).toEqual([
@@ -140,6 +148,10 @@ test("a crit is halved while the target is defending", () => {
     critMultiplier: 1.5,
     defendMultiplier: 0.5,
     potionHeal: 25,
+    fleeBase: 0.5,
+    fleePerPoint: 0.05,
+    fleeMin: 0.1,
+    fleeMax: 0.9,
     heroActions: ["defend"],
   });
   expect(events[2]).toEqual({
@@ -164,6 +176,10 @@ test("a potion heals, spends the turn, and stops at maximum HP", () => {
     critMultiplier: 1.5,
     defendMultiplier: 0.5,
     potionHeal: 25,
+    fleeBase: 0.5,
+    fleePerPoint: 0.05,
+    fleeMin: 0.1,
+    fleeMax: 0.9,
     heroActions: ["potion", "potion"],
   });
   expect(events.slice(0, 4)).toEqual([
@@ -207,6 +223,10 @@ test("a potion at full HP is spent and restores nothing", () => {
     critMultiplier: 1.5,
     defendMultiplier: 0.5,
     potionHeal: 25,
+    fleeBase: 0.5,
+    fleePerPoint: 0.05,
+    fleeMin: 0.1,
+    fleeMax: 0.9,
     heroActions: ["potion"],
   });
   expect(events[0]).toEqual({
@@ -231,6 +251,10 @@ test("a potion with none left spends the turn and restores nothing", () => {
     critMultiplier: 1.5,
     defendMultiplier: 0.5,
     potionHeal: 25,
+    fleeBase: 0.5,
+    fleePerPoint: 0.05,
+    fleeMin: 0.1,
+    fleeMax: 0.9,
     heroActions: ["potion"],
   });
   expect(events.slice(0, 2)).toEqual([
@@ -243,5 +267,95 @@ test("a potion with none left spends the turn and restores nothing", () => {
       remaining: 0,
     },
     { type: "attacked", actorId: "slime", targetId: "hero" },
+  ]);
+});
+
+const fleeRules = {
+  turnBase: 100,
+  spreadMin: 1,
+  spreadMax: 1,
+  critChance: 0,
+  critMultiplier: 1.5,
+  defendMultiplier: 0.5,
+  potionHeal: 25,
+  fleeBase: 0.5,
+  fleePerPoint: 0.05,
+  fleeMin: 0.1,
+  fleeMax: 0.9,
+};
+
+test("a roll below the flee chance escapes and a roll of the chance does not", () => {
+  const fled = fight({
+    ...fleeRules,
+    hero,
+    enemy: slime,
+    rng: scripted([0]),
+    heroActions: ["flee"],
+  });
+  const stayed = fight({
+    ...fleeRules,
+    hero,
+    enemy: slime,
+    rng: scripted([0.65]),
+    heroActions: ["flee"],
+  });
+  expect(fled).toEqual([{ type: "fleeAttempted", actorId: "hero", success: true, chance: 0.65 }]);
+  expect(stayed.slice(0, 2)).toEqual([
+    { type: "fleeAttempted", actorId: "hero", success: false, chance: 0.65 },
+    { type: "attacked", actorId: "slime", targetId: "hero" },
+  ]);
+});
+
+test("flee chance stays between 10% and 90%", () => {
+  const capped = fight({
+    ...fleeRules,
+    hero: { ...hero, haste: 30 },
+    enemy: slime,
+    rng: scripted([0.9]),
+    heroActions: ["flee"],
+  });
+  const floored = fight({
+    ...fleeRules,
+    hero: { ...hero, haste: 1 },
+    enemy: { ...slime, haste: 20, str: 1 },
+    rng: scripted([0, 0, 0.09]),
+    heroActions: ["flee"],
+  });
+  expect(capped[0]).toEqual({
+    type: "fleeAttempted",
+    actorId: "hero",
+    success: false,
+    chance: 0.9,
+  });
+  expect(floored[2]).toEqual({
+    type: "fleeAttempted",
+    actorId: "hero",
+    success: true,
+    chance: 0.1,
+  });
+});
+
+test("a miniboss cannot be fled, and the attempt does not roll", () => {
+  const events = fight({
+    ...fleeRules,
+    hero,
+    enemy: { ...slime, miniboss: true },
+    rng: scripted([0, 0.5]),
+    spreadMin: 0.9,
+    spreadMax: 1.1,
+    critChance: 0.05,
+    heroActions: ["flee"],
+  });
+  expect(events.slice(0, 3)).toEqual([
+    { type: "fleeAttempted", actorId: "hero", success: false, chance: 0 },
+    { type: "attacked", actorId: "slime", targetId: "hero" },
+    {
+      type: "damaged",
+      actorId: "slime",
+      targetId: "hero",
+      amount: 3,
+      targetHp: 27,
+      critical: false,
+    },
   ]);
 });
