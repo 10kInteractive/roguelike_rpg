@@ -1,6 +1,7 @@
 import { useStore } from "zustand";
 import { createStore, type StoreApi } from "zustand/vanilla";
-import type { SimEvent, Snapshot } from "../sim/game.types";
+import type { Action, SimEvent, Snapshot } from "../sim/game.types";
+import { commandRows } from "./commands";
 import type { UiState } from "./store.types";
 
 /**
@@ -14,8 +15,11 @@ export class UiStoreController {
   /** The zustand store React subscribes to. */
   private readonly store: StoreApi<UiState>;
 
+  /** Resolves the command the window is waiting on. */
+  private resolver: ((action: Action) => void) | null = null;
+
   constructor() {
-    this.store = createStore<UiState>(() => ({ snapshot: null, pending: [] }));
+    this.store = createStore<UiState>(() => ({ snapshot: null, pending: [], commands: null }));
   }
 
   /** Replaces the snapshot with the sim's latest. */
@@ -50,6 +54,27 @@ export class UiStoreController {
     return this.store.getState().pending;
   }
 
+  /**
+   * Opens the command window and waits for a confirm.
+   *
+   * @param actions What the hero may do, from the sim.
+   */
+  requestCommand(actions: readonly Action[]): Promise<Action> {
+    this.store.setState({ commands: commandRows(actions) });
+    return new Promise((resolve) => {
+      this.resolver = resolve;
+    });
+  }
+
+  /** The window confirmed a command. Ignored when the window is closed. */
+  submit(action: Action): void {
+    const resolve = this.resolver;
+    if (!resolve) return;
+    this.resolver = null;
+    this.store.setState({ commands: null });
+    resolve(action);
+  }
+
   /** The zustand store, so a React hook can subscribe. */
   api(): StoreApi<UiState> {
     return this.store;
@@ -67,4 +92,9 @@ export function useUiSnapshot(): Snapshot | null {
 /** How many events the view has not played yet. */
 export function usePendingCount(): number {
   return useStore(uiStore.api(), (state) => state.pending.length);
+}
+
+/** The command window's rows, or null while it is closed. */
+export function useCommands(): UiState["commands"] {
+  return useStore(uiStore.api(), (state) => state.commands);
 }

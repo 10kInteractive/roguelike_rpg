@@ -10,7 +10,7 @@ import { FixedStepClock } from "./fixed-step.controller";
 import { FollowCameraController } from "./follow-camera.controller";
 import { PositionInterpolator } from "./interpolation.controller";
 import { FieldSceneController } from "./scene.controller";
-import type { StandInWalkController } from "./stand-in-walk.controller";
+import type { FieldWalker } from "./stand-in-walk.types";
 import { heroTurnRate, overviewOffset } from "./view.constants";
 import type { FieldCameraMode } from "./view.types";
 
@@ -31,8 +31,8 @@ export class FieldViewController {
   /** Whole sim steps from uneven display frames. */
   private readonly clock = new FixedStepClock(tickRate);
 
-  /** Moves the hero and rolls encounters until input exists. */
-  private readonly walk: StandInWalkController;
+  /** Moves the hero and rolls encounters. */
+  private readonly walk: FieldWalker;
 
   /** The hero's last two sim positions. */
   private readonly motion: PositionInterpolator;
@@ -70,7 +70,7 @@ export class FieldViewController {
     /** The run seed, shown on the dev panel. */
     seed: number;
     /** Moves the hero and rolls encounters. */
-    walk: StandInWalkController;
+    walk: FieldWalker;
     /** Follow the hero, or show the whole meadow. */
     cameraMode: FieldCameraMode;
   }) {

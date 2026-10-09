@@ -2,6 +2,7 @@ import type { Texture } from "three";
 import type { Bundle } from "../content/schema";
 import { debugLog } from "../debug/logger.controller";
 import { debugWatches } from "../debug/watch.controller";
+import { KeyboardController } from "../input/keyboard.controller";
 import { createSim } from "../sim";
 import { CombatActionPolicy } from "../sim/combat/policy.controller";
 import type { EncounterEvent } from "../sim/field/encounters.types";
@@ -12,21 +13,21 @@ import { SeededRandomGenerator } from "../sim/utils/rng.controller";
 import type { Rng } from "../sim/utils/rng.types";
 import { uiStore } from "../ui/store.controller";
 import { CombatViewController } from "../view/combat/view.controller";
+import { PlayerWalkController } from "../view/field/player-walk.controller";
 import { StandInWalkController } from "../view/field/stand-in-walk.controller";
 import { FieldViewController } from "../view/field/view.controller";
 import type { FieldCameraMode } from "../view/field/view.types";
 import type { RenderLoopController } from "../view/renderer.controller";
-import type { GameLoopPhase, RunEnd } from "./game-loop.types";
+import type { GameLoopMode, GameLoopPhase, RunEnd } from "./game-loop.types";
 
 const log = debugLog.create("runtime:loop");
 
 /**
- * One run that plays itself: walk the field, fight what the walk runs into,
- * then walk on from where the hero stood.
+ * One run: walk the field, fight what the walk runs into, then walk on.
  *
- * The grinder's policies stand in for the player. Each choice goes through
- * the sim's `act`, one decision at a time, and the view plays what came
- * back. The run ends when the miniboss falls or the hero does.
+ * The player walks with the keys and picks each combat command, unless the
+ * page asked for `ai`, in which case the grinder's policies stand in. Each
+ * choice goes through the sim's `act`, and the view plays what came back.
  */
 export class GameLoopController {
   /** Draws whichever scene is on. */
@@ -38,8 +39,8 @@ export class GameLoopController {
   /** The meadow, the hero walking it, and the camera over it. */
   private readonly field: FieldViewController;
 
-  /** The grinder's combat commands. It spends no rolls. */
-  private readonly combat: CombatActionPolicy;
+  /** The grinder's combat commands. Null when the player is choosing. */
+  private readonly combat: CombatActionPolicy | null;
 
   /** Terrain textures, shared by the field and every fight's backdrop. */
   private readonly textures: Partial<Record<Terrain, Texture>>;
@@ -58,6 +59,8 @@ export class GameLoopController {
     seed: number;
     /** Follow the hero, or show the whole meadow. */
     cameraMode: FieldCameraMode;
+    /** The player, or the stand-in. */
+    gameloop: GameLoopMode;
   }) {
     this.loop = input.loop;
     this.textures = input.textures;
@@ -73,7 +76,7 @@ export class GameLoopController {
         combat: new SeededRandomGenerator(input.seed),
       },
     });
-    this.combat = new CombatActionPolicy([], choiceRng);
+    this.combat = input.gameloop === "ai" ? new CombatActionPolicy([], choiceRng) : null;
 
     const snapshot = this.sim.observe();
     this.field = new FieldViewController({
@@ -82,7 +85,10 @@ export class GameLoopController {
       textures: this.textures,
       minibossId: snapshot.field.miniboss.id,
       seed: input.seed,
-      walk: new StandInWalkController(this.sim, choiceRng),
+      walk:
+        input.gameloop === "ai"
+          ? new StandInWalkController(this.sim, choiceRng)
+          : new PlayerWalkController(this.sim, new KeyboardController()),
       cameraMode: input.cameraMode,
     });
 
@@ -117,7 +123,7 @@ export class GameLoopController {
     }
   }
 
-  /** Shows the opening, then lets the grinder answer each hero turn. */
+  /** Shows the opening, then takes a command for each hero turn. */
   private async playFight(opening: readonly SimEvent[]): Promise<void> {
     const started = opening.find((event) => event.type === "encounterStarted");
     if (started?.type !== "encounterStarted")
@@ -133,7 +139,7 @@ export class GameLoopController {
     this.hand(opening);
     await view.show(opening);
     while (this.sim.observe().mode === "combat") {
-      const events = this.sim.act(this.command());
+      const events = this.sim.act(await this.command());
       this.hand(events);
       await view.show(events);
     }
@@ -145,13 +151,17 @@ export class GameLoopController {
     uiStore.present(this.sim.observe());
   }
 
-  /** The grinder's command for the open turn. A potion when badly hurt, otherwise Fight. */
-  private command(): Action {
+  /** The next combat command: the window's choice, or the grinder's. */
+  private command(): Promise<Action> {
+    const policy = this.combat;
+    if (!policy) return uiStore.requestCommand(this.sim.legalActions());
+
     const snapshot = this.sim.observe();
     const target = snapshot.combat?.mobId ?? "";
-    return this.combat.chooseFighter(snapshot.hero) === "potion"
-      ? { type: "item", item: "item.potion" }
-      : { type: "fight", target };
+    const choice = policy.chooseFighter(snapshot.hero);
+    return Promise.resolve(
+      choice === "potion" ? { type: "item", item: "item.potion" } : { type: "fight", target },
+    );
   }
 
   /** How the run ended, from the sim's scoreboard. */

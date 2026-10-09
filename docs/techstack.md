@@ -283,7 +283,7 @@ src/                shared engine
     field/          field scene, follow camera, fixed sim step, interpolation
     combat/         combat scene and sequencer
   ui/               React DOM menus, HUD, zustand store
-  input/            device to action mapping
+  input/            keyboard to a stick. Gamepad mapping is planned
   audio/            Web Audio mixer and music stems
   assets/           manifest resolver and loader service
   debug/            namespaced logger and dev panel

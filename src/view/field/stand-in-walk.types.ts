@@ -8,3 +8,11 @@ export type WalkStep = {
   /** What the move caused. Empty while the hero is still walking. */
   events: readonly SimEvent[];
 };
+
+/** Something that walks the hero one sim tick at a time. */
+export type FieldWalker = {
+  /** Where the hero stands before the first step. */
+  start(): Position;
+  /** One sim tick. */
+  step(): WalkStep;
+};

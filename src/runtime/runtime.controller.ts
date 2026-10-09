@@ -81,7 +81,8 @@ export class GameRuntimeController {
         });
         this.input.onStatus({ text: `${status} · pack ${result.outcome}` });
       } else {
-        const status = `Renderer backend: ${backend} · seed ${options.seed}`;
+        const who = options.gameloop === "ai" ? "ai" : "you";
+        const status = `Renderer backend: ${backend} · seed ${options.seed} · ${who}`;
         this.input.onStatus({ text: status });
         const end = await this.startField({ loop, bundle, textures, options });
         this.input.onStatus({ text: `${status} · ${this.describeEnd(end)}` });
@@ -126,6 +127,7 @@ export class GameRuntimeController {
       textures,
       seed: options.seed,
       cameraMode: options.camera,
+      gameloop: options.gameloop,
     }).play();
     log("run over", end);
     return end;
@@ -187,6 +189,7 @@ export class GameRuntimeController {
     return {
       seed: seed === null ? Math.floor(Math.random() * 2 ** 32) : Number(seed) >>> 0,
       camera: params.get("camera") === "overview" ? "overview" : "follow",
+      gameloop: params.get("gameloop") === "ai" ? "ai" : "human",
       combat: combat === null ? null : combat.split(",").filter((id) => id !== ""),
       forceWebGL: params.has("webgl"),
       assetDelayMs: import.meta.env.DEV ? Number(params.get("assetDelay") ?? 0) || 0 : 0,
