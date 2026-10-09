@@ -25,8 +25,11 @@ root.render(<Overlay status="Starting renderer…" />);
 
 try {
   // `?seed=7` replays a meadow. Without it, every page load rolls a new one.
-  const seedParam = new URLSearchParams(window.location.search).get("seed");
+  // `?camera=overview` shows the whole meadow instead of following the hero.
+  const params = new URLSearchParams(window.location.search);
+  const seedParam = params.get("seed");
   const seed = seedParam === null ? Math.floor(Math.random() * 2 ** 32) : Number(seedParam) >>> 0;
+  const cameraMode = params.get("camera") === "overview" ? "overview" : "follow";
 
   const bundle = loadBundle(bundleSource);
   const biome = bundle.biomes[0];
@@ -47,6 +50,7 @@ try {
     textures,
     seed,
     rng: new SeededRandomGenerator(seed),
+    cameraMode,
   });
   await field.start();
   root.render(<Overlay status={`Renderer backend: ${backend} · seed ${seed}`} />);

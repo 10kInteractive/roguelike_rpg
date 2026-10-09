@@ -7,7 +7,9 @@ import type { Position } from "../sim/field/movement.types";
 import type { Rng } from "../sim/utils/rng.types";
 import { FieldSceneController } from "./field-scene.controller";
 import { heroTurnRate, overviewOffset } from "./field-view.constants";
+import type { FieldCameraMode } from "./field-view.types";
 import { FixedStepClock } from "./fixed-step.controller";
+import { FollowCameraController } from "./follow-camera.controller";
 import { PositionInterpolator } from "./interpolation.controller";
 import type { RenderLoopController } from "./renderer.controller";
 import { StandInWalkController } from "./stand-in-walk.controller";
@@ -18,7 +20,8 @@ const log = debugLog.create("view:field");
  * The field on screen: the meadow scene, stepped at the sim's 30 Hz.
  *
  * Each display frame runs the sim steps that are due, then draws the hero
- * between its last two sim positions, turned toward the way it walks.
+ * between its last two sim positions, turned toward the way it walks, and
+ * lets the camera catch up.
  */
 export class FieldViewController {
   /** The meadow's Three.js objects. */
@@ -38,6 +41,9 @@ export class FieldViewController {
 
   /** The meadow, for reading the terrain under the hero. */
   private readonly map: MeadowMap;
+
+  /** Trails the hero. Null when the camera is fixed over the whole meadow. */
+  private readonly follow: FollowCameraController | null;
 
   /** Which way the hero faces now, in radians. 0 faces south. */
   private facing = 0;
@@ -59,6 +65,8 @@ export class FieldViewController {
     seed: number;
     /** Direction rolls for the stand-in walk. */
     rng: Rng;
+    /** Follow the hero, or show the whole meadow. */
+    cameraMode: FieldCameraMode;
   }) {
     this.loop = input.loop;
     this.map = input.map;
@@ -66,8 +74,18 @@ export class FieldViewController {
     this.walk = new StandInWalkController(input.map, input.rng);
     this.motion = new PositionInterpolator(this.walk.start());
     this.drawn = this.walk.start();
-    this.aimOverview();
-    log(`meadow ${input.map.width}×${input.map.height}, seed ${input.seed}`);
+    this.field.placeHero(this.drawn, this.facing);
+
+    if (input.cameraMode === "follow") {
+      this.follow = new FollowCameraController(this.loop.camera);
+      this.follow.snapTo(this.field.heroFeet());
+    } else {
+      this.follow = null;
+      this.aimOverview();
+    }
+    log(
+      `meadow ${input.map.width}×${input.map.height}, seed ${input.seed}, ${input.cameraMode} camera`,
+    );
 
     if (import.meta.env.DEV) {
       let ticksAtWindowStart = 0;
@@ -105,6 +123,7 @@ export class FieldViewController {
     this.drawn = this.motion.at(this.clock.blend);
     this.turnHero(elapsedSeconds);
     this.field.placeHero(this.drawn, this.facing);
+    this.follow?.follow(this.field.heroFeet(), elapsedSeconds);
   }
 
   /** Eases the hero toward the way its last sim step went. Standing still keeps the facing. */

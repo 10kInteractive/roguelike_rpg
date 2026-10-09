@@ -60,7 +60,8 @@ src/                        shared engine
     index.ts                planned: createSim, observe, legalActions, act
   harness/                  headless play of the sim: replay, combat sweep, field sweep
   content/                  zod schemas, the bundle loader, bundle rows into fighters
-  view/                     Three.js: RenderLoopController, FixedStepClock, FieldViewController, FieldSceneController.
+  view/                     Three.js: RenderLoopController, FixedStepClock, FieldViewController, FieldSceneController,
+                            FollowCameraController.
                             Planned: combat scene, sequencer
   ui/                       React DOM overlay. Planned: zustand store
   input/                    planned: keyboard and gamepad to actions

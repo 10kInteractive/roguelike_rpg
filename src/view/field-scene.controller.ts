@@ -10,6 +10,7 @@ import {
   MeshLambertMaterial,
   Scene,
   type Texture,
+  type Vector3,
 } from "three";
 import type { MeadowMap, Terrain, TilePoint } from "../sim/field/map.types";
 import type { Position } from "../sim/field/movement.types";
@@ -66,6 +67,11 @@ export class FieldSceneController {
   placeHero(position: Position, facing: number): void {
     this.hero.position.set(position.x, this.groundAt(position), -position.y);
     this.hero.rotation.y = facing;
+  }
+
+  /** Where the hero's feet are in the scene, as last placed. */
+  heroFeet(): Vector3 {
+    return this.hero.position.clone();
   }
 
   /** The middle of the meadow, at ground level, for the camera to aim at. */
