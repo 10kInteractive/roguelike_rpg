@@ -108,6 +108,7 @@ export const mobsSchema = z.object({
       str: z.number().int(),
       def: z.number().int(),
       mag: z.number().int().nonnegative(),
+      mp: z.number().int().nonnegative().optional(),
       haste: z.number().positive(),
       element: element.optional(),
       weak: element.optional(),

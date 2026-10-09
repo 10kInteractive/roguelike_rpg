@@ -515,3 +515,61 @@ test("a hero's defeat ends the fight and grants no XP", () => {
     { type: "actorDefeated", actorId: "hero" },
   ]);
 });
+
+test("defend halves a spell", () => {
+  const events = fight({
+    ...fleeRules,
+    hero: { ...hero, haste: 12 },
+    enemy: imp,
+    rng: scripted([0.6]),
+    heroActions: ["defend"],
+  });
+  expect(events.slice(0, 3)).toEqual([
+    { type: "defended", actorId: "hero" },
+    { type: "spellCast", actorId: "imp", spellId: "spell.ember", targetId: "hero", mp: 0 },
+    {
+      type: "damaged",
+      actorId: "imp",
+      targetId: "hero",
+      amount: 7,
+      targetHp: 23,
+      critical: false,
+    },
+  ]);
+});
+
+test("grind multiplies the hit by 1.5 after a crit", () => {
+  const sentinel = {
+    id: "sentinel",
+    hp: 90,
+    str: 6,
+    def: 8,
+    haste: 20,
+    actions: [{ type: "grind" as const, multiplier: 1.5, weight: 1 }],
+  };
+  const plain = fight({
+    ...fleeRules,
+    hero,
+    enemy: sentinel,
+    rng: scripted([]),
+  });
+  const crit = fight({
+    ...fleeRules,
+    hero,
+    enemy: sentinel,
+    rng: scripted([]),
+    critChance: 1,
+  });
+  expect(plain.slice(0, 2)).toEqual([
+    { type: "grind", actorId: "sentinel", targetId: "hero", multiplier: 1.5 },
+    {
+      type: "damaged",
+      actorId: "sentinel",
+      targetId: "hero",
+      amount: 6,
+      targetHp: 24,
+      critical: false,
+    },
+  ]);
+  expect(crit[1]).toMatchObject({ amount: 9, critical: true });
+});

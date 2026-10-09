@@ -158,12 +158,13 @@ The Run chance is 50% plus 5% per point of hero haste over the enemies' average 
 - **Physical:** attack power (STR) minus half the target's DEF, times a small random spread. The result is rounded down to an integer. Minimum 1.
 - **Magic:** spell power plus MAG, times the element multiplier, times a small random spread. The result is rounded down to an integer. Minimum 1. Ignores DEF. Spells do not crit.
 - **Critical hits:** a flat chance on physical attacks. Prototype one uses 5% and ×1.5. The spread is rolled first, then the crit chance. A crit multiplies that hit's damage by the multiplier and rounds down again.
-- **Defend:** incoming damage, including a crit, is multiplied by the defend multiplier and rounded down again. Minimum 1. Prototype one uses ×0.5. The effect ends at the start of that actor's next turn, before they act.
+- **Defend:** incoming damage, including a spell or a crit, is multiplied by the defend multiplier and rounded down again. Minimum 1. Prototype one uses ×0.5. The effect ends at the start of that actor's next turn, before they act.
+- **Grind:** a physical attack, then multiplied by the action's multiplier and rounded down again. Prototype one's sentinel uses ×1.5. The order is spread, crit, grind, then Defend.
 - All randomness comes from the run's seeded RNG.
 
 #### Enemies
 
-- Each mob has stats, an element, weaknesses and resistances, and a short list of actions with weights. The AI picks by weight and has no other tactics. One roll in [0, 1) is multiplied by the total weight and walks the list in order. Each action covers a slice of its weight, and a roll on a boundary belongs to the next action. A spell the actor cannot afford is Fight instead, without rolling again.
+- Each mob has stats, an element, weaknesses and resistances, MP, and a short list of actions with weights. The AI picks by weight and has no other tactics. One roll in [0, 1) is multiplied by the total weight and walks the list in order. Each action covers a slice of its weight, and a roll on a boundary belongs to the next action. A spell the actor cannot afford is Fight instead, without rolling again. Prototype one gives the ember imp and the frost moth 9 MP.
 
 #### Outcomes
 
