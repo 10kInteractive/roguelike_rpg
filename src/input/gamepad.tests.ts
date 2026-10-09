@@ -42,6 +42,14 @@ test("a menu direction registers at half a tilt, and opposites cancel", () => {
     confirm: false,
     cancel: false,
   });
+  expect(menuHeld({ ...still, axisX: 0.8, axisY: 0.8 })).toEqual({
+    up: false,
+    down: true,
+    confirm: false,
+    cancel: false,
+  });
+  expect(menuHeld({ ...still, axisX: 0.9, axisY: 0.5 }).confirm).toBe(true);
+  expect(menuHeld({ ...still, axisX: 0.9, axisY: 0.5 }).down).toBe(false);
 });
 
 test("a menu press fires when a direction becomes held, and not while it stays held", () => {

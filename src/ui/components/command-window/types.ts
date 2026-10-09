@@ -10,6 +10,8 @@ export type MenuFrame = {
 
 /** One row, ready to draw. */
 export type CommandRowView = {
+  /** Unique even when two rows share a label. */
+  key: string;
   /** The words on the row. */
   label: string;
   /** `▸` when the cursor is here, otherwise a blank. */

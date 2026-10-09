@@ -71,7 +71,7 @@ export class RunEndController {
       snapshot.mode === "gameOver" && stats.killedBy
         ? `\nDefeated by ${nameFromId(stats.killedBy)}\n`
         : "\n";
-    return `${title}${killed}\n${body}\n\nEnter to restart`;
+    return `${title}${killed}\n${body}\n\nA or Enter to restart`;
   }
 
   /** `playMs` as `m:ss`. */

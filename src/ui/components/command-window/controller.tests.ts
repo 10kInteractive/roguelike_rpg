@@ -38,3 +38,11 @@ test("confirm sends the row's action, and an empty menu does not", () => {
   menu.apply("down");
   expect(menu.apply("confirm")).toEqual({ type: "defend" });
 });
+
+test("two rows with the same name keep different keys", () => {
+  const menu = new CommandWindowController(() => {});
+  const slime: MenuRow = { label: "Slime", action: { type: "fight", target: "mob.slime" } };
+  menu.open([slime, slime]);
+  const keys = menu.view()?.rows.map((row) => row.key);
+  expect(keys).toEqual(["0:fight:mob.slime", "1:fight:mob.slime"]);
+});

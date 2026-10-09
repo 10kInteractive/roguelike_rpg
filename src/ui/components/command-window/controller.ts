@@ -41,7 +41,7 @@ export class CommandWindowController {
     const menu = this.menus[this.menus.length - 1];
     if (!menu) return null;
     return {
-      rows: menu.rows.map((row, index) => this.rowView(row, index === menu.index)),
+      rows: menu.rows.map((row, index) => this.rowView(row, index, index === menu.index)),
     };
   }
 
@@ -81,11 +81,30 @@ export class CommandWindowController {
   }
 
   /** One row with its cursor and its classes. */
-  private rowView(row: MenuRow, selected: boolean): CommandWindowView["rows"][number] {
+  private rowView(
+    row: MenuRow,
+    index: number,
+    selected: boolean,
+  ): CommandWindowView["rows"][number] {
     const names = ["command-row"];
     if (selected) names.push("selected");
     if (!rowUsable(row)) names.push("unavailable");
-    return { label: row.label, cursor: selected ? "▸" : " ", className: names.join(" ") };
+    return {
+      key: this.rowKey(row, index),
+      label: row.label,
+      cursor: selected ? "▸" : " ",
+      className: names.join(" "),
+    };
+  }
+
+  /** A key that stays unique when two rows wear the same name. */
+  private rowKey(row: MenuRow, index: number): string {
+    const action = row.action;
+    if (action?.type === "fight") return `${index}:fight:${action.target}`;
+    if (action?.type === "cast") return `${index}:cast:${action.spell}:${action.target}`;
+    if (action?.type === "item") return `${index}:${action.item}`;
+    if (action) return `${index}:${action.type}`;
+    return `${index}:${row.label}`;
   }
 
   /** Moves the cursor on the open menu, wrapping at the ends. */

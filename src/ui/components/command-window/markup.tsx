@@ -9,7 +9,7 @@ export function CommandWindow() {
   return (
     <div className="command-window">
       {view.rows.map((row) => (
-        <div key={row.label} className={row.className}>
+        <div key={row.key} className={row.className}>
           {row.cursor} {row.label}
         </div>
       ))}

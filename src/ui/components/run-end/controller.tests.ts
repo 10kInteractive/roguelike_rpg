@@ -20,6 +20,7 @@ test("victory lists the scoreboard, and game over names what killed you", () => 
   expect(victory?.text).toContain("Victory");
   expect(victory?.text).toContain("Time          1:05");
   expect(victory?.text).toContain("Seed          7");
+  expect(victory?.text).toContain("A or Enter to restart");
   expect(victory?.text).not.toContain("Defeated");
 
   const lost = ending.show({ mode: "gameOver", stats } as Snapshot, 0);

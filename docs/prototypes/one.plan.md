@@ -397,7 +397,7 @@ React DOM overlay over the canvas, NES-style bordered windows and a pixel font. 
 - Loader screen with progress.
 - Field HUD: level, HP, MP.
 - Combat: command window, spell and item submenus, target selection, enemy names and hero status, message log.
-- Victory and game over screens showing run stats (play time, fights won and fled, level, damage dealt and taken, potions used, distance walked, seed, and on game over what killed you), with a restart option. The sim counts everything except play time, which the UI clocks.
+- Victory and game over screens showing run stats (play time, fights won and fled, level, damage dealt and taken, potions used, distance walked, seed, and on game over what killed you), with a restart option. Confirm is A or Enter. The sim counts everything except play time, which the UI clocks. `?combat=` plays that pack, then the same ending screen, and confirm starts a new seed.
 - Menus are fully navigable with actions only.
 
 ## Input
@@ -409,7 +409,7 @@ React DOM overlay over the canvas, NES-style bordered windows and a pixel font. 
 | Confirm | Enter, Space, Z | A |
 | Cancel | Escape, Backspace, X | B |
 
-The input layer turns devices into one quantized move vector per tick plus discrete menu actions. Default bindings only. Rebinding comes later. A menu direction from the stick registers at half deflection, once, until the stick comes back. A direction already held when a menu opens does not count until it is released.
+The input layer turns devices into one quantized move vector per tick plus discrete menu actions. Default bindings only. Rebinding comes later. A key owns its axis, and the pad still moves the other one. A menu direction from the stick registers at half deflection, once, until the stick comes back. A diagonal keeps the stronger axis, and a tie moves the cursor. A direction already held when a menu opens does not count until it is released.
 
 ## Harness
 

@@ -47,6 +47,16 @@ export class UiStoreController {
     }));
   }
 
+  /**
+   * Drops the overlay and starts the play clock.
+   * The combat launcher calls this before a pack, which has no meadow to show.
+   */
+  beginFight(): void {
+    this.startedAt = this.now();
+    this.restartQueued = false;
+    this.store.setState({ snapshot: null, pending: [], commands: null, log: [], playMs: null });
+  }
+
   /** Replaces the snapshot with the sim's latest. A fight's log clears once it is over. */
   present(snapshot: Snapshot): void {
     const ended = this.ended(snapshot.mode);
