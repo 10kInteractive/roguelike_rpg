@@ -1,4 +1,4 @@
-import { useMessageLog } from "./store.controller";
+import { useMessageLog } from "../store.controller";
 
 /** The latest lines, oldest at the top. Hidden until something has happened. */
 export function MessageLog() {

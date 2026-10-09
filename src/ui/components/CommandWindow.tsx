@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import type { MenuRow } from "./commands";
-import { rowUsable } from "./commands";
-import { uiStore, useCommands } from "./store.controller";
+import type { MenuRow } from "../commands";
+import { rowUsable } from "../commands";
+import { uiStore, useCommands } from "../store.controller";
 
 /** Fight, Magic, Item, Defend, and Run, and the menus those open. Hidden until the hero's turn. */
 export function CommandWindow() {

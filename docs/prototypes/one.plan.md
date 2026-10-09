@@ -71,6 +71,7 @@ src/                        shared engine
     combat/                 CombatViewController, CombatSceneController, CombatSequencerController,
                             TweenController, FloatingTextController
   ui/                       React DOM overlay. UiStoreController: the latest snapshot and the events waiting to play
+    components/             CommandWindow, FieldHud, MessageLog
   input/                    KeyboardController: held keys as a stick. Gamepad is planned
   assets/                   AssetLoaderController: loads a manifest pack with progress. Built URLs for
                             every file under /assets, so production builds ship them
