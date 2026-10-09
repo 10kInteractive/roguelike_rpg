@@ -1,4 +1,7 @@
 import type { Texture } from "three";
+import { AssetLoaderController } from "../assets/loader.controller";
+import type { LoadedPack } from "../assets/loader.types";
+import { bundledAssetUrls } from "../assets/urls.constants";
 import { heroFighterFromBundle } from "../content/fighters";
 import { loadBundle } from "../content/load";
 import {
@@ -12,7 +15,7 @@ import { debugLog } from "../debug/logger.controller";
 import { createSeededMeadow } from "../sim/field/map";
 import type { Terrain } from "../sim/field/map.types";
 import { SeededRandomGenerator } from "../sim/utils/rng.controller";
-import { TerrainTextureLoader } from "../view/art/terrain-textures.controller";
+import { terrainTextureIds } from "../view/art/terrain-textures.constants";
 import { CombatViewController } from "../view/combat/view.controller";
 import { FieldViewController } from "../view/field/view.controller";
 import { RenderLoopController } from "../view/renderer.controller";
@@ -22,7 +25,8 @@ const log = debugLog.create("runtime");
 
 /**
  * Starts the game on a page: reads the launch options, loads the bundle,
- * starts the renderer and the textures, then opens the field or a fight.
+ * starts the renderer, loads the biome's asset pack with progress, then
+ * opens the field or a fight.
  *
  * One per page. The page only says where to draw, which bundle to run, and
  * where status goes. Everything about the content is decided here.
@@ -38,7 +42,7 @@ export class GameRuntimeController {
 
   /** Runs until the page closes. A failure is reported through `onStatus`, not thrown. */
   async start(): Promise<void> {
-    this.input.onStatus("Starting renderer…");
+    this.input.onStatus({ text: "Starting renderer…" });
     try {
       const options = this.readOptions(new URLSearchParams(window.location.search));
       const bundle = loadBundle(this.input.bundleSource);
@@ -47,23 +51,52 @@ export class GameRuntimeController {
 
       const loop = new RenderLoopController(this.input.view, options.forceWebGL);
       const backend = await loop.init();
-      const textures = await new TerrainTextureLoader(
-        bundle.assets,
-        import.meta.env.BASE_URL,
-      ).load();
+      // The biome's pack shares its id, and loads only now that the biome is needed.
+      const assets = new AssetLoaderController({
+        manifest: bundle.assets,
+        urls: bundledAssetUrls,
+        delayMs: options.assetDelayMs,
+      });
+      const pack = await assets.loadPack(biome.id, ({ packId, settled, total }) => {
+        this.input.onStatus({
+          text: `Loading ${packId}… ${settled}/${total}`,
+          progress: settled / total,
+        });
+      });
+      const textures = this.terrainTextures(pack);
 
       if (options.combat) {
         await this.startCombat({ loop, bundle, biome, textures, options, mobIds: options.combat });
-        this.input.onStatus(`Renderer backend: ${backend} · combat · seed ${options.seed}`);
+        this.input.onStatus({
+          text: `Renderer backend: ${backend} · combat · seed ${options.seed}`,
+        });
       } else {
         await this.startField({ loop, bundle, biome, textures, options });
-        this.input.onStatus(`Renderer backend: ${backend} · seed ${options.seed}`);
+        this.input.onStatus({ text: `Renderer backend: ${backend} · seed ${options.seed}` });
       }
     } catch (error) {
       console.error("[runtime] start failed", error);
       const message = error instanceof Error ? error.message : "Unknown renderer error";
-      this.input.onStatus(`Renderer failed: ${message}`);
+      this.input.onStatus({ text: `Renderer failed: ${message}` });
     }
+  }
+
+  /**
+   * Each terrain's texture from the loaded pack. A terrain without one draws its fallback color.
+   * A file that failed is a real problem and warns. Missing and skipped files are placeholders not made yet.
+   */
+  private terrainTextures(pack: LoadedPack): Partial<Record<Terrain, Texture>> {
+    if (pack.failed.length > 0) console.warn(`[runtime] ${pack.id} failed:`, pack.failed);
+    log(`${pack.id}: ${pack.textures.size} loaded`, {
+      missing: pack.missing,
+      skipped: pack.skipped,
+    });
+    const textures: Partial<Record<Terrain, Texture>> = {};
+    for (const [terrain, id] of Object.entries(terrainTextureIds) as [Terrain, string][]) {
+      const texture = pack.textures.get(id);
+      if (texture) textures[terrain] = texture;
+    }
+    return textures;
   }
 
   /** The seeded meadow, with the stand-in walk. */
@@ -131,6 +164,7 @@ export class GameRuntimeController {
       camera: params.get("camera") === "overview" ? "overview" : "follow",
       combat: combat === null ? null : combat.split(",").filter((id) => id !== ""),
       forceWebGL: params.has("webgl"),
+      assetDelayMs: import.meta.env.DEV ? Number(params.get("assetDelay") ?? 0) || 0 : 0,
     };
   }
 }

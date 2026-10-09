@@ -63,14 +63,15 @@ src/                        shared engine
   runtime/                  GameRuntimeController: reads `?seed`, `?camera`, `?combat`, `?webgl`, loads the
                             bundle, starts the renderer, and opens the field or a fight
   view/                     Three.js. RenderLoopController owns the canvas, the camera, and the one render loop.
-    art/                    shared by both scenes: placeholder models, sun and sky, terrain textures
+    art/                    shared by both scenes: placeholder models, sun and sky, terrain texture ids
     field/                  FieldViewController, FieldSceneController, FollowCameraController,
                             FixedStepClock, PositionInterpolator, StandInWalkController
     combat/                 CombatViewController, CombatSceneController, CombatSequencerController,
                             TweenController, FloatingTextController
   ui/                       React DOM overlay. Planned: zustand store
   input/                    planned: keyboard and gamepad to actions
-  assets/                   planned: manifest resolver and loader service
+  assets/                   AssetLoaderController: loads a manifest pack with progress. Built URLs for
+                            every file under /assets, so production builds ship them
   debug/                    DebugLogController, DebugWatchController, dev panel
 prototypes/
   one/
