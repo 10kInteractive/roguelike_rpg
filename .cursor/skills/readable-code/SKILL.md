@@ -3,7 +3,7 @@ name: readable-code
 description: >-
   Keeps TypeScript readable as procedures grow. Use when writing or editing
   functions and classes in this project, especially src/sim, and when the user
-  mentions readability, comments, grouping, classes, or fight.ts.
+  mentions readability, comments, JSDoc, grouping, classes, or fight.ts.
 ---
 
 # Readable code
@@ -35,6 +35,17 @@ A comment that restates the syntax does not help:
 // Delete the id from the set.
 defending.delete(actor.id);
 ```
+
+## JSDoc
+
+Every new function, type, and member gets a JSDoc comment. Say what it means in the game. Do not restate the signature.
+
+```ts
+/** Tile the miniboss occupies. The circle is centered in that tile. */
+tile: TilePoint;
+```
+
+Backfilling older declarations is its own cleanup, not part of a feature stage.
 
 ## When a function is no longer one procedure
 

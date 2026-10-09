@@ -1,8 +1,8 @@
 import { expect, test } from "vitest";
+import type { Rng } from "../rng";
+import { createRng } from "../rng";
 import { type FightEvent, fight } from "./fight";
 import { casterAction, fighterAction, type KnownSpell, randomAction } from "./policy";
-import type { Rng } from "./rng";
-import { createRng } from "./rng";
 
 const hero = { id: "hero", hp: 30, str: 8, def: 4, haste: 8, hero: true };
 const slime = { id: "slime", hp: 12, str: 6, def: 2, haste: 5 };

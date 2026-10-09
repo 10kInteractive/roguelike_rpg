@@ -112,11 +112,15 @@ Target for a ready, full clear: about 40–60 minutes.
 - **One procedural biome** generated from the run seed: a grid of tiles with height, rendered as 3D low-poly terrain with pixel textures.
 - Terrain types: grass, forest, path (walkable); water, mountain (blocked). Each walkable type has its own encounter rate.
 - **Free analog movement.** The hero moves continuously in any direction: full analog on a gamepad stick, eight directions on a keyboard. The map is still a tile grid underneath (for generation, terrain type, and collision), but the hero's position is continuous and collides with blocked tiles.
-- The simulation advances movement in **fixed time steps** so it stays deterministic and replayable; the view smooths between steps.
+- The simulation advances movement in **fixed time steps** so it stays deterministic and replayable; the view smooths between steps. The field steps at 30 ticks per second. A full stick moves the hero 4 tiles per second. The stick is an integer pair from −64 to 64. A vector longer than 1 is normalized, so a diagonal step covers the same distance as a step along an axis.
+- The hero is a circle of radius 0.3 tiles. Water, mountain, and the ground outside the map are blocked. A step that would enter blocked ground is taken along the free axis, so the hero slides along the edge.
 - **3/4 camera** that follows the hero.
-- **Random encounters by distance:** every tile's worth of distance walked rolls against the current terrain's rate. A minimum distance between fights prevents back-to-back encounters. The bundle's encounter table picks a pack of 1–3 mobs.
-- **Visible miniboss:** placed far from the spawn on reachable ground. It stands still. Touch it to fight. Walk around it to avoid it.
-- The generator guarantees the miniboss is reachable from the spawn.
+- **Random encounters by distance:** every tile's worth of distance walked rolls against the current terrain's rate. The roll succeeds when it is below the rate. A roll equal to the rate does not. Prototype one leaves 4 tiles between fights, and tiles inside that gap do not roll. A success picks a pack by weight, then each group rolls a count from its minimum through its maximum. A move of several ticks stops on the tick the fight starts.
+- **Visible miniboss:** placed far from the spawn on reachable ground. It stands still. It is a circle of radius 0.8 around the center of its tile. The fight starts when the hero's circle touches that circle, and that step ends the move. Walk around it to avoid it.
+- **Walking policies:** the fighter and the caster wander. One roll picks one of eight directions, and they hold that stick for 30 ticks, one second. Roll 0 is east, then the compass turns counterclockwise: northeast, north, northwest, west, southwest, south, southeast. A roll on a boundary belongs to the next direction. The grinder wanders the same way until level 5, then walks to the miniboss. That route is the shortest path on the walkable tile grid, four directions, one tile per step. An earlier tile wins a tie. Each batch of 30 ticks steers toward the center of the next tile. If the miniboss cannot be reached, the grinder wanders. In a fight the grinder uses the fighter's choices: Fight, and a potion below 30% HP.
+- **A pack is fought one mob at a time.** The hero's HP, MP, potions, and XP carry to the next mob. A flee or a defeat ends the pack. A flee grants nothing. After a win, a regular mob drops a potion when the roll is below its drop chance. A roll equal to the chance does not.
+- **A field sweep** plays seeds 1 through N with the grinder and prints the miniboss win rate, the average level when that fight starts, fights per run, distance walked, estimated play time, potions drunk, and deaths by mob. Play time is an estimate: 3 seconds per hero decision, 1.5 seconds per enemy action, 2 seconds per fight, plus the distance walked divided by 4 tiles per second. Encounter rolls and potion drops use one generator. Wander and enemy picks use a second. Combat rolls use a third. All three start from the run seed.
+- The generator guarantees the miniboss is reachable from the spawn. Height noise below 0.38 is water and above 0.70 is mountain. The band between is grass, and a second noise layer turns grass into forest above 0.55. The spawn is a walkable tile. The miniboss stands at least its distance away, 20 tiles in the meadow. A path of path tiles runs from the spawn to the miniboss, so the two stay connected when the noise would wall them off.
 
 ### North star
 
@@ -175,6 +179,8 @@ The Run chance is 50% plus 5% per point of hero haste over the enemies' average 
 #### Run stats
 
 Shown on both the victory and game over screens: play time, fights won, fights fled, level reached, damage dealt and taken, potions used, distance walked, the seed, and (on game over) what killed you.
+
+The sim counts these as the run goes. Each walk adds the distance actually moved, including a walk that stops for a fight. Each finished fight adds the hero's damage dealt and taken, every potion the hero drank (a drink at full HP still counts), and whether the fight was a win or a flee. A defeat records the mob that landed it and leaves the level where it was. Play time is the one number the UI clocks.
 
 ### North star
 

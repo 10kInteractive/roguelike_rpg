@@ -1,8 +1,8 @@
 import { expect, test } from "vitest";
-import { fight } from "./fight";
-import { type KnownSpell, randomAction } from "./policy";
+import { fight } from "../combat/fight";
+import { type KnownSpell, randomAction } from "../combat/policy";
+import { createRng } from "../rng";
 import { actionsFrom, eventHash, outcomeFrom, toScript } from "./replay";
-import { createRng } from "./rng";
 
 const hero = {
   id: "hero",

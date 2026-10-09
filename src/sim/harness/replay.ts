@@ -1,5 +1,5 @@
-import type { FightEvent, ScriptedAction } from "./fight";
-import type { KnownSpell } from "./policy";
+import type { FightEvent, ScriptedAction } from "../combat/fight";
+import type { KnownSpell } from "../combat/policy";
 
 export type LoggedAction =
   | "fight"
