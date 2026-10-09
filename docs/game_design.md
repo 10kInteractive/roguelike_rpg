@@ -163,7 +163,7 @@ The Run chance is 50% plus 5% per point of hero haste over the enemies' average 
 
 #### Enemies
 
-- Each mob has stats, an element, weaknesses and resistances, and a short list of actions with weights. The AI picks by weight; no deep tactics yet.
+- Each mob has stats, an element, weaknesses and resistances, and a short list of actions with weights. The AI picks by weight and has no other tactics. One roll in [0, 1) is multiplied by the total weight and walks the list in order. Each action covers a slice of its weight, and a roll on a boundary belongs to the next action. A spell the actor cannot afford is Fight instead, without rolling again.
 
 #### Outcomes
 

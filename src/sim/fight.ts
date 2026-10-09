@@ -1,7 +1,15 @@
-import { applyCritical, applyDefend, physicalDamage } from "./damage";
+import {
+  applyCritical,
+  applyDefend,
+  type Element,
+  elementMultiplier,
+  magicDamage,
+  physicalDamage,
+} from "./damage";
 import { fleeChance } from "./flee";
 import type { Rng } from "./rng";
 import { createTurnQueue } from "./turn-queue";
+import { pickWeighted, type Weighted } from "./weighted";
 
 export type Fighter = {
   id: string;
@@ -10,15 +18,33 @@ export type Fighter = {
   maxHp?: number;
   /** Potions carried. Defaults to zero. */
   potions?: number;
+  /** Spell damage. Defaults to zero. */
+  mag?: number;
+  /** Magic points. Defaults to zero. */
+  mp?: number;
   str: number;
   def: number;
   haste: number;
+  weak?: Element;
+  resists?: Element;
+  /** Used when this actor has no scripted action for the turn. */
+  actions?: EnemyAction[];
   hero?: boolean;
   /** A miniboss fight cannot be fled. */
   miniboss?: boolean;
 };
 
 export type TurnAction = "fight" | "defend" | "potion" | "flee";
+
+export type EnemyAction =
+  | ({ type: "fight" | "defend" } & Weighted)
+  | ({
+      type: "spell";
+      spellId: "spell.ember" | "spell.frost";
+      element: Element;
+      power: number;
+      cost: number;
+    } & Weighted);
 
 export type FightEvent =
   | { type: "attacked"; actorId: string; targetId: string }
@@ -32,6 +58,13 @@ export type FightEvent =
       remaining: number;
     }
   | { type: "fleeAttempted"; actorId: string; success: boolean; chance: number }
+  | {
+      type: "spellCast";
+      actorId: string;
+      spellId: "spell.ember" | "spell.frost";
+      targetId: string;
+      mp: number;
+    }
   | {
       type: "damaged";
       actorId: string;
@@ -67,6 +100,10 @@ export type FightInput = {
   fleeMin: number;
   /** Highest flee chance. Prototype one uses 0.9. */
   fleeMax: number;
+  /** Magic damage multiplier against a weakness. Prototype one uses 1.5. */
+  weaknessMultiplier: number;
+  /** Magic damage multiplier against a resistance. Prototype one uses 0.5. */
+  resistanceMultiplier: number;
   /** One entry per hero turn. Turns past the end Fight. */
   heroActions?: TurnAction[];
   /** One entry per enemy turn. Turns past the end Fight. */
@@ -80,7 +117,9 @@ export type FightInput = {
  * emits `defended` and halves damage taken until that actor's next turn. A
  * potion emits `itemUsed`, restores HP up to the drinker's maximum, and spends
  * the turn. Run emits `fleeAttempted`. Success ends the fight. Failure spends
- * the turn. A miniboss attempt fails without a roll. The fight also stops when
+ * the turn. A miniboss attempt fails without a roll. An enemy with an action
+ * list picks one by weight when that turn is not scripted. A spell it cannot
+ * afford is Fight instead. The fight also stops when
  * either HP reaches zero. Each hit rolls the spread, then the crit chance. A
  * crit multiplies that damage and rounds down again, and Defend applies after
  * that.
@@ -110,7 +149,41 @@ export function fight(input: FightInput): FightEvent[] {
     const turn = taken.get(actor.id) ?? 0;
     taken.set(actor.id, turn + 1);
     const script = actor === hero ? input.heroActions : input.enemyActions;
-    const action = script?.[turn] ?? "fight";
+    const scripted = script?.[turn];
+    let action: TurnAction = scripted ?? "fight";
+    if (scripted === undefined && actor === enemy && enemy.actions && enemy.actions.length > 0) {
+      const picked = pickWeighted(enemy.actions, input.rng.next());
+      if (picked.type === "spell" && actor.mp >= picked.cost) {
+        actor.mp -= picked.cost;
+        const spread = input.spreadMin + input.rng.next() * (input.spreadMax - input.spreadMin);
+        const multiplier = elementMultiplier(
+          picked.element,
+          target.weak,
+          target.resists,
+          input.weaknessMultiplier,
+          input.resistanceMultiplier,
+        );
+        const amount = magicDamage(picked.power, actor.mag, multiplier, spread);
+        target.hp = Math.max(0, target.hp - amount);
+        events.push({
+          type: "spellCast",
+          actorId: actor.id,
+          spellId: picked.spellId,
+          targetId: target.id,
+          mp: actor.mp,
+        });
+        events.push({
+          type: "damaged",
+          actorId: actor.id,
+          targetId: target.id,
+          amount,
+          targetHp: target.hp,
+          critical: false,
+        });
+        continue;
+      }
+      action = picked.type === "spell" ? "fight" : picked.type;
+    }
     if (action === "defend") {
       defending.add(actor.id);
       events.push({ type: "defended", actorId: actor.id });
@@ -168,6 +241,14 @@ export function fight(input: FightInput): FightEvent[] {
   return events;
 }
 
-function prepare(fighter: Fighter): Fighter & { maxHp: number; potions: number } {
-  return { ...fighter, maxHp: fighter.maxHp ?? fighter.hp, potions: fighter.potions ?? 0 };
+function prepare(
+  fighter: Fighter,
+): Fighter & { maxHp: number; potions: number; mag: number; mp: number } {
+  return {
+    ...fighter,
+    maxHp: fighter.maxHp ?? fighter.hp,
+    potions: fighter.potions ?? 0,
+    mag: fighter.mag ?? 0,
+    mp: fighter.mp ?? 0,
+  };
 }

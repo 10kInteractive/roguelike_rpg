@@ -17,6 +17,8 @@ function heroVersusSlime(rng: Rng): FightEvent[] {
     critChance: 0.05,
     critMultiplier: 1.5,
     defendMultiplier: 0.5,
+    weaknessMultiplier: 1.5,
+    resistanceMultiplier: 0.5,
     potionHeal: 25,
     fleeBase: 0.5,
     fleePerPoint: 0.05,
@@ -97,6 +99,8 @@ test("defend halves the next hit and ends on that actor's next turn", () => {
     critChance: 0,
     critMultiplier: 1.5,
     defendMultiplier: 0.5,
+    weaknessMultiplier: 1.5,
+    resistanceMultiplier: 0.5,
     potionHeal: 25,
     fleeBase: 0.5,
     fleePerPoint: 0.05,
@@ -147,6 +151,8 @@ test("a crit is halved while the target is defending", () => {
     critChance: 1,
     critMultiplier: 1.5,
     defendMultiplier: 0.5,
+    weaknessMultiplier: 1.5,
+    resistanceMultiplier: 0.5,
     potionHeal: 25,
     fleeBase: 0.5,
     fleePerPoint: 0.05,
@@ -175,6 +181,8 @@ test("a potion heals, spends the turn, and stops at maximum HP", () => {
     critChance: 0,
     critMultiplier: 1.5,
     defendMultiplier: 0.5,
+    weaknessMultiplier: 1.5,
+    resistanceMultiplier: 0.5,
     potionHeal: 25,
     fleeBase: 0.5,
     fleePerPoint: 0.05,
@@ -222,6 +230,8 @@ test("a potion at full HP is spent and restores nothing", () => {
     critChance: 0,
     critMultiplier: 1.5,
     defendMultiplier: 0.5,
+    weaknessMultiplier: 1.5,
+    resistanceMultiplier: 0.5,
     potionHeal: 25,
     fleeBase: 0.5,
     fleePerPoint: 0.05,
@@ -250,6 +260,8 @@ test("a potion with none left spends the turn and restores nothing", () => {
     critChance: 0,
     critMultiplier: 1.5,
     defendMultiplier: 0.5,
+    weaknessMultiplier: 1.5,
+    resistanceMultiplier: 0.5,
     potionHeal: 25,
     fleeBase: 0.5,
     fleePerPoint: 0.05,
@@ -277,6 +289,8 @@ const fleeRules = {
   critChance: 0,
   critMultiplier: 1.5,
   defendMultiplier: 0.5,
+  weaknessMultiplier: 1.5,
+  resistanceMultiplier: 0.5,
   potionHeal: 25,
   fleeBase: 0.5,
   fleePerPoint: 0.05,
@@ -355,6 +369,84 @@ test("a miniboss cannot be fled, and the attempt does not roll", () => {
       targetId: "hero",
       amount: 3,
       targetHp: 27,
+      critical: false,
+    },
+  ]);
+});
+
+const ember = {
+  type: "spell" as const,
+  spellId: "spell.ember" as const,
+  element: "fire" as const,
+  power: 8,
+  cost: 3,
+  weight: 40,
+};
+
+const imp = {
+  id: "imp",
+  hp: 14,
+  str: 6,
+  def: 3,
+  mag: 6,
+  mp: 3,
+  haste: 9,
+  actions: [{ type: "fight" as const, weight: 60 }, ember],
+};
+
+test("an enemy rolls its action list, so 60/40 is attack then ember", () => {
+  const attack = fight({
+    ...fleeRules,
+    hero,
+    enemy: imp,
+    rng: scripted([0]),
+  });
+  const cast = fight({
+    ...fleeRules,
+    hero,
+    enemy: imp,
+    rng: scripted([0.6]),
+  });
+  expect(attack[0]).toEqual({ type: "attacked", actorId: "imp", targetId: "hero" });
+  expect(cast.slice(0, 2)).toEqual([
+    { type: "spellCast", actorId: "imp", spellId: "spell.ember", targetId: "hero", mp: 0 },
+    {
+      type: "damaged",
+      actorId: "imp",
+      targetId: "hero",
+      amount: 14,
+      targetHp: 16,
+      critical: false,
+    },
+  ]);
+});
+
+test("an ember the enemy cannot afford is a fight instead", () => {
+  const events = fight({
+    ...fleeRules,
+    hero,
+    enemy: imp,
+    rng: scripted([0.6, 0, 0.6, 0, 0]),
+    heroActions: ["potion"],
+  });
+  expect(events.slice(0, 5)).toEqual([
+    { type: "spellCast", actorId: "imp", spellId: "spell.ember", targetId: "hero", mp: 0 },
+    {
+      type: "damaged",
+      actorId: "imp",
+      targetId: "hero",
+      amount: 14,
+      targetHp: 16,
+      critical: false,
+    },
+    { type: "itemUsed", actorId: "hero", itemId: "item.potion", amount: 0, hp: 16, remaining: 0 },
+    { type: "attacked", actorId: "imp", targetId: "hero" },
+    {
+      type: "damaged",
+      actorId: "imp",
+      targetId: "hero",
+      amount: 4,
+      targetHp: 12,
       critical: false,
     },
   ]);
