@@ -10,6 +10,10 @@ import {
   type KnownSpell,
   randomAction,
 } from "../src/sim/combat/policy.ts";
+import type { EncounterTables } from "../src/sim/field/encounters.ts";
+import { createMeadow } from "../src/sim/field/map.ts";
+import { type RunMob, runField } from "../src/sim/field/run.ts";
+import { fieldSweepSummary } from "../src/sim/harness/field-sweep.ts";
 import {
   actionsFrom,
   eventHash,
@@ -42,6 +46,15 @@ const enemyId = flag("enemy") ?? "mob.slime";
 const policy = flag("policy") ?? "fighter";
 const outPath = flag("out");
 const policyOk = policy === "fighter" || policy === "caster" || policy === "random";
+if (runs !== undefined && policy === "grinder") {
+  if (seed !== undefined || !/^[1-9]\d*$/.test(runs)) {
+    console.error("Usage: npm run sim -- --policy grinder --runs 1000");
+    process.exit(1);
+  }
+  const bundle = loadBundle(await readBundle(path.resolve("prototypes/one/bundle")));
+  console.log(sweepGrinder(bundle, Number(runs)));
+  process.exit(0);
+}
 if (runs !== undefined) {
   if (seed !== undefined || !/^[1-9]\d*$/.test(runs) || !policyOk) {
     console.error(
@@ -72,6 +85,7 @@ if (seed === undefined || !/^\d+$/.test(seed) || !policyOk) {
   console.error(
     "       npm run sim -- --runs 1000 [--enemy mob.slime] [--policy fighter|caster|random]",
   );
+  console.error("       npm run sim -- --policy grinder --runs 1000");
   console.error("       npm run sim -- --replay runs/42.json");
   process.exit(1);
 }
@@ -199,6 +213,83 @@ function knownSpells(bundle: Bundle): KnownSpell[] {
     if (!spell || (spell.id !== "spell.ember" && spell.id !== "spell.frost")) return [];
     return [{ id: spell.id, element: spell.element, power: spell.power, cost: spell.cost }];
   });
+}
+
+function sweepGrinder(bundle: Bundle, runs: number): string {
+  const biome = bundle.biomes[0];
+  if (!biome) throw new Error("The bundle has no biome");
+  const potion = bundle.items.items.find((item) => item.id === "item.potion");
+  const mobs = new Map<string, RunMob>();
+  for (const mob of bundle.mobs.mobs) {
+    mobs.set(mob.id, {
+      fighter: toEnemy(mob, bundle.spells.spells),
+      potionDrop: mob.potionDrop,
+    });
+  }
+  const combat = {
+    turnBase: bundle.rules.turnBase,
+    spreadMin: bundle.rules.spreadMin,
+    spreadMax: bundle.rules.spreadMax,
+    critChance: bundle.rules.critChance,
+    critMultiplier: bundle.rules.critMultiplier,
+    defendMultiplier: bundle.rules.defendMultiplier,
+    potionHeal: potion?.heal ?? 0,
+    fleeBase: bundle.rules.fleeBase,
+    fleePerPoint: bundle.rules.fleePerPoint,
+    fleeMin: bundle.rules.fleeMin,
+    fleeMax: bundle.rules.fleeMax,
+    weaknessMultiplier: bundle.rules.weaknessMultiplier,
+    resistanceMultiplier: bundle.rules.resistanceMultiplier,
+  };
+  const leveling = {
+    xpPerLevel: bundle.rules.xpPerLevel,
+    levelCap: bundle.rules.levelCap,
+    growth: bundle.hero.growth,
+  };
+  const tables = encounterTables(bundle);
+  const results = [];
+  for (let next = 1; next <= runs; next++) {
+    const map = createMeadow({
+      seed: next,
+      width: biome.width,
+      height: biome.height,
+      minibossDistance: biome.minibossDistance,
+    });
+    results.push(
+      runField({
+        seed: next,
+        map,
+        miniboss: { tile: map.miniboss, radius: biome.minibossRadius, id: biome.miniboss },
+        tables,
+        minDistance: bundle.rules.minEncounterDistance,
+        hero: toHero(bundle.hero),
+        mobs,
+        combat,
+        leveling,
+      }),
+    );
+  }
+  return fieldSweepSummary(results);
+}
+
+function encounterTables(bundle: Bundle): EncounterTables {
+  const tables: EncounterTables = {};
+  for (const terrain of bundle.encounters.terrains) {
+    const name = terrain.id.slice("terrain.".length);
+    if (name !== "grass" && name !== "forest" && name !== "path") continue;
+    tables[name] = {
+      rate: terrain.rate,
+      packs: terrain.packs.map((pack) => ({
+        weight: pack.weight,
+        groups: pack.groups.map((group) => ({
+          id: group.id,
+          min: group.min,
+          max: group.max,
+        })),
+      })),
+    };
+  }
+  return tables;
 }
 
 function flag(name: string): string | undefined {
