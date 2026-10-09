@@ -95,9 +95,9 @@ Target for a ready, full clear: about 40–60 minutes.
 
 ### Prototype
 
-- Every defeated enemy gives XP. Enough XP raises the level, which raises stats by a fixed amount per stat.
-- Level-ups fully restore HP and MP. A small reward that makes grinding feel good.
-- Level cap set by the bundle (low, around 10).
+- Every defeated enemy gives its XP reward. The fight ends when either side reaches zero HP, and that side is defeated. Dying or fleeing grants no XP.
+- The XP to leave the current level is 6 × that level. One grant can raise several levels. Each level adds HP +6, MP +2, STR +2, DEF +1, MAG +1, and HST +1, then fully restores HP and MP.
+- The level cap is 10. At the cap, a win still grants XP and does not raise the level or stats.
 
 ### North star
 

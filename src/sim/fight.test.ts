@@ -81,6 +81,7 @@ test("a hero and a slime trade hits until the slime reaches zero", () => {
       targetHp: 0,
       critical: false,
     },
+    { type: "actorDefeated", actorId: "slime" },
   ]);
 });
 
@@ -449,5 +450,68 @@ test("an ember the enemy cannot afford is a fight instead", () => {
       targetHp: 12,
       critical: false,
     },
+  ]);
+});
+
+const leveling = {
+  xpPerLevel: 6,
+  levelCap: 10,
+  growth: { hp: 6, mp: 2, str: 2, def: 1, mag: 1, haste: 1 },
+};
+
+test("a win grants XP, and 6 XP raises a level", () => {
+  const events = fight({
+    ...fleeRules,
+    hero: { ...hero, xp: 3, mp: 1, maxMp: 10, mag: 6 },
+    enemy: { ...slime, hp: 7, xpReward: 3 },
+    rng: scripted([]),
+    leveling,
+  });
+  expect(events).toEqual([
+    { type: "attacked", actorId: "hero", targetId: "slime" },
+    {
+      type: "damaged",
+      actorId: "hero",
+      targetId: "slime",
+      amount: 7,
+      targetHp: 0,
+      critical: false,
+    },
+    { type: "actorDefeated", actorId: "slime" },
+    { type: "xpGained", amount: 3, xp: 6, level: 1 },
+    {
+      type: "levelUp",
+      level: 2,
+      hp: 36,
+      maxHp: 36,
+      mp: 12,
+      maxMp: 12,
+      str: 10,
+      def: 5,
+      mag: 7,
+      haste: 9,
+    },
+  ]);
+});
+
+test("a hero's defeat ends the fight and grants no XP", () => {
+  const events = fight({
+    ...fleeRules,
+    hero: { ...hero, hp: 1, xp: 3 },
+    enemy: { ...slime, haste: 20, xpReward: 3 },
+    rng: scripted([]),
+    leveling,
+  });
+  expect(events).toEqual([
+    { type: "attacked", actorId: "slime", targetId: "hero" },
+    {
+      type: "damaged",
+      actorId: "slime",
+      targetId: "hero",
+      amount: 4,
+      targetHp: 0,
+      critical: false,
+    },
+    { type: "actorDefeated", actorId: "hero" },
   ]);
 });

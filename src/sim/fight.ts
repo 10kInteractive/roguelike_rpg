@@ -7,6 +7,7 @@ import {
   physicalDamage,
 } from "./damage";
 import { fleeChance } from "./flee";
+import { gainXp, type HeroProgress, type LevelEvent, type LevelRules } from "./level";
 import type { Rng } from "./rng";
 import { createTurnQueue } from "./turn-queue";
 import { pickWeighted, type Weighted } from "./weighted";
@@ -22,6 +23,14 @@ export type Fighter = {
   mag?: number;
   /** Magic points. Defaults to zero. */
   mp?: number;
+  /** Healing MP stops here. Defaults to the starting MP. */
+  maxMp?: number;
+  /** Defaults to 1. */
+  level?: number;
+  /** Defaults to zero. */
+  xp?: number;
+  /** Granted when this actor is defeated. Defaults to zero. */
+  xpReward?: number;
   str: number;
   def: number;
   haste: number;
@@ -72,7 +81,9 @@ export type FightEvent =
       amount: number;
       targetHp: number;
       critical: boolean;
-    };
+    }
+  | { type: "actorDefeated"; actorId: string }
+  | LevelEvent;
 
 export type FightInput = {
   hero: Fighter;
@@ -104,6 +115,8 @@ export type FightInput = {
   weaknessMultiplier: number;
   /** Magic damage multiplier against a resistance. Prototype one uses 0.5. */
   resistanceMultiplier: number;
+  /** When set, a defeated enemy grants XP and may level the hero. */
+  leveling?: LevelRules;
   /** One entry per hero turn. Turns past the end Fight. */
   heroActions?: TurnAction[];
   /** One entry per enemy turn. Turns past the end Fight. */
@@ -119,7 +132,8 @@ export type FightInput = {
  * the turn. Run emits `fleeAttempted`. Success ends the fight. Failure spends
  * the turn. A miniboss attempt fails without a roll. An enemy with an action
  * list picks one by weight when that turn is not scripted. A spell it cannot
- * afford is Fight instead. The fight stops when either HP reaches zero. Each
+ * afford is Fight instead. The fight stops when either HP reaches zero, and that
+ * actor is defeated. A fallen enemy grants its XP. Each
  * hit rolls the spread, then the crit chance. A crit multiplies that damage
  * and rounds down again, and Defend applies after that.
  */
@@ -188,6 +202,7 @@ export function fight(input: FightInput): FightEvent[] {
           targetHp: target.hp,
           critical: false,
         });
+        defeatIfDown(events, hero, enemy, target, input.leveling);
         continue;
       }
 
@@ -253,19 +268,67 @@ export function fight(input: FightInput): FightEvent[] {
       targetHp: target.hp,
       critical,
     });
+    defeatIfDown(events, hero, enemy, target, input.leveling);
   }
 
   return events;
 }
 
-function prepare(
-  fighter: Fighter,
-): Fighter & { maxHp: number; potions: number; mag: number; mp: number } {
+type Prepared = Fighter & {
+  maxHp: number;
+  maxMp: number;
+  potions: number;
+  mag: number;
+  mp: number;
+  level: number;
+  xp: number;
+  xpReward: number;
+};
+
+function prepare(fighter: Fighter): Prepared {
+  const mp = fighter.mp ?? 0;
   return {
     ...fighter,
     maxHp: fighter.maxHp ?? fighter.hp,
+    maxMp: fighter.maxMp ?? mp,
     potions: fighter.potions ?? 0,
     mag: fighter.mag ?? 0,
-    mp: fighter.mp ?? 0,
+    mp,
+    level: fighter.level ?? 1,
+    xp: fighter.xp ?? 0,
+    xpReward: fighter.xpReward ?? 0,
+  };
+}
+
+// Zero HP defeats that actor and ends the fight. Only a fallen enemy grants XP.
+function defeatIfDown(
+  events: FightEvent[],
+  hero: Prepared,
+  enemy: Prepared,
+  target: Prepared,
+  leveling: LevelRules | undefined,
+): void {
+  if (target.hp > 0) return;
+
+  events.push({ type: "actorDefeated", actorId: target.id });
+  if (target !== enemy || enemy.xpReward <= 0 || !leveling) return;
+
+  const gained = gainXp(progressOf(hero), enemy.xpReward, leveling);
+  Object.assign(hero, gained.hero);
+  events.push(...gained.events);
+}
+
+function progressOf(hero: Prepared): HeroProgress {
+  return {
+    level: hero.level,
+    xp: hero.xp,
+    hp: hero.hp,
+    maxHp: hero.maxHp,
+    mp: hero.mp,
+    maxMp: hero.maxMp,
+    str: hero.str,
+    def: hero.def,
+    mag: hero.mag,
+    haste: hero.haste,
   };
 }
