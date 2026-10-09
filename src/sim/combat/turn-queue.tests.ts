@@ -1,10 +1,10 @@
 import { expect, test } from "vitest";
-import { createTurnQueue, type TurnActor } from "./turn-queue";
+import { HasteTurnQueue, type TurnActor } from "./turn-queue";
 
 const turnBase = 100;
 
 function take(actors: readonly TurnActor[], count: number): string[] {
-  return createTurnQueue(actors, turnBase).upcoming(count);
+  return new HasteTurnQueue(actors, turnBase).upcoming(count);
 }
 
 const hero: TurnActor = { id: "hero", haste: 2, hero: true };
@@ -87,7 +87,7 @@ test("a fast moth acts ahead of the hero, who acts ahead of a slime", () => {
 });
 
 test("upcoming previews turns without spending them", () => {
-  const queue = createTurnQueue([hero, imp], turnBase);
+  const queue = new HasteTurnQueue([hero, imp], turnBase);
   expect(queue.upcoming(4)).toEqual(queue.upcoming(4));
   expect(queue.act()).toBe("hero");
   expect(queue.upcoming(1)).toEqual(["imp"]);

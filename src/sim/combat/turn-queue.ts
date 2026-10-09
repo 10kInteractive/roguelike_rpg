@@ -1,19 +1,4 @@
-/** Someone who takes turns in a fight. */
-export type TurnActor = {
-  /** Id written on this actor's events. */
-  id: string;
-  /** How quickly this actor's turn comes back around. Must be above zero. */
-  haste: number;
-  /** Wins a tie that haste does not already decide. */
-  hero?: boolean;
-};
-
-export type TurnQueue = {
-  /** The actor who acts next. Advances that actor's time. */
-  act(): string;
-  /** The next `count` actors to act, soonest first. Does not advance the queue. */
-  upcoming(count: number): string[];
-};
+import type { TurnActor } from "./turn-queue.types";
 
 /** One actor waiting in the haste queue. */
 type QueuedActor = {
@@ -33,41 +18,52 @@ type QueuedActor = {
  * Orders combat turns by next-turn time.
  *
  * Everyone starts at time 0. The lowest time acts. A tie goes to the higher
- * haste, then the hero, then the earlier entry in `actors`. After an action,
- * that actor's time increases by `turnBase / haste`, so twice the haste means
- * half the wait and twice the turns.
- *
- * @param actors Fighters in list order. Each haste must be above zero.
- * @param turnBase Time added per action before dividing by haste.
+ * haste, then the hero, then the earlier entry in the constructor list. After
+ * an action, that actor's time increases by `turnBase / haste`, so twice the
+ * haste means half the wait and twice the turns.
  */
-export function createTurnQueue(actors: readonly TurnActor[], turnBase: number): TurnQueue {
-  if (actors.length === 0) {
-    throw new Error("A turn queue needs at least one actor");
-  }
-  if (turnBase <= 0) {
-    throw new Error("Turn base must be above zero");
-  }
+export class HasteTurnQueue {
+  /** Actors still waiting, in the order they were given. */
+  private readonly waiting: QueuedActor[];
 
-  const queued = actors.map((actor, order) => {
-    if (actor.haste <= 0) {
-      throw new Error(`Haste must be above zero for ${actor.id}`);
+  /** Time added per action before dividing by haste. */
+  private readonly turnBase: number;
+
+  /**
+   * @param actors Fighters in list order. Each haste must be above zero.
+   * @param turnBase Time added per action before dividing by haste.
+   */
+  constructor(actors: readonly TurnActor[], turnBase: number) {
+    if (actors.length === 0) {
+      throw new Error("A turn queue needs at least one actor");
     }
-    return { id: actor.id, haste: actor.haste, hero: actor.hero === true, time: 0, order };
-  });
+    if (turnBase <= 0) {
+      throw new Error("Turn base must be above zero");
+    }
 
-  return {
-    act() {
-      return step(queued, turnBase);
-    },
-    upcoming(count) {
-      const copy = queued.map((actor) => ({ ...actor }));
-      const ids: string[] = [];
-      for (let i = 0; i < count; i++) {
-        ids.push(step(copy, turnBase));
+    this.turnBase = turnBase;
+    this.waiting = actors.map((actor, order) => {
+      if (actor.haste <= 0) {
+        throw new Error(`Haste must be above zero for ${actor.id}`);
       }
-      return ids;
-    },
-  };
+      return { id: actor.id, haste: actor.haste, hero: actor.hero === true, time: 0, order };
+    });
+  }
+
+  /** The actor who acts next. Advances that actor's time. */
+  act(): string {
+    return step(this.waiting, this.turnBase);
+  }
+
+  /** The next `count` actors to act, soonest first. Does not advance the queue. */
+  upcoming(count: number): string[] {
+    const copy = this.waiting.map((actor) => ({ ...actor }));
+    const ids: string[] = [];
+    for (let i = 0; i < count; i++) {
+      ids.push(step(copy, this.turnBase));
+    }
+    return ids;
+  }
 }
 
 /** The actor who goes now. Their next turn is pushed back by the turn base. */
@@ -104,3 +100,5 @@ function comesBefore(a: QueuedActor, b: QueuedActor): boolean {
   }
   return a.order < b.order;
 }
+
+export type { TurnActor } from "./turn-queue.types";

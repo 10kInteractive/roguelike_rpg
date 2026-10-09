@@ -10,7 +10,7 @@ import {
 import { fleeChance } from "./flee";
 import { gainXp, type HeroProgress, type LevelEvent, type LevelRules } from "./level";
 import type { HeroVitals, SpellChoice } from "./policy";
-import { createTurnQueue } from "./turn-queue";
+import { HasteTurnQueue } from "./turn-queue";
 import { pickWeighted, type Weighted } from "./weighted";
 
 /** One combatant, the hero or a mob, as a fight sees them. */
@@ -222,7 +222,7 @@ export type ScriptedAction = TurnAction | SpellChoice | { type: "grind"; multipl
 export function fight(input: FightInput): FightEvent[] {
   const hero = prepare(input.hero);
   const enemy = prepare(input.enemy);
-  const queue = createTurnQueue(
+  const queue = new HasteTurnQueue(
     [
       { id: hero.id, haste: hero.haste, hero: hero.hero },
       { id: enemy.id, haste: enemy.haste, hero: enemy.hero },

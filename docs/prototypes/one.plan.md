@@ -609,7 +609,7 @@ The class name is the noun, so the method can be a short verb. `OneOnOneFightCon
 | `RunStatistics` | The scoreboard for one run: fights, damage, potions, distance, level, killer. | `createRunStats`, `recordWalk`, `recordFight`. | `addWalk(distance)`, `addFight(events, enemyId)` |
 | `GrinderFieldRunController` | The hero carried between fights, the three generators, and the meadow. | `runField`. | `play()` |
 
-`SeededRandomGenerator` and `HasteTurnQueue` already return objects with methods. The housekeeping pass turns those objects into classes so the state they close over is a field.
+`SeededRandomGenerator` and `HasteTurnQueue` are classes. Each owns the state the old factory closed over.
 
 Two policy classes group the choices a controller asks for. They have no fields. The fight controller and the run controller call them.
 
