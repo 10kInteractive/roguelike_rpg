@@ -5,17 +5,29 @@ import { createTurnQueue } from "./turn-queue";
 export type Fighter = {
   id: string;
   hp: number;
+  /** Healing stops here. Defaults to the starting HP. */
+  maxHp?: number;
+  /** Potions carried. Defaults to zero. */
+  potions?: number;
   str: number;
   def: number;
   haste: number;
   hero?: boolean;
 };
 
-export type TurnAction = "fight" | "defend";
+export type TurnAction = "fight" | "defend" | "potion";
 
 export type FightEvent =
   | { type: "attacked"; actorId: string; targetId: string }
   | { type: "defended"; actorId: string }
+  | {
+      type: "itemUsed";
+      actorId: string;
+      itemId: "item.potion";
+      amount: number;
+      hp: number;
+      remaining: number;
+    }
   | {
       type: "damaged";
       actorId: string;
@@ -41,6 +53,8 @@ export type FightInput = {
   critMultiplier: number;
   /** Applied to damage taken while defending, then rounded down. Prototype one uses 0.5. */
   defendMultiplier: number;
+  /** HP restored by one potion, before the maximum. Prototype one uses 25. */
+  potionHeal: number;
   /** One entry per hero turn. Turns past the end Fight. */
   heroActions?: TurnAction[];
   /** One entry per enemy turn. Turns past the end Fight. */
@@ -48,17 +62,18 @@ export type FightInput = {
 };
 
 /**
- * Runs a fight. Each turn is Fight or Defend; omitted actions Fight.
+ * Runs a fight. Each turn is Fight, Defend, or a potion; omitted actions Fight.
  *
  * Turns follow the haste queue. Fight emits `attacked` and `damaged`. Defend
- * emits `defended` and halves damage taken until that actor's next turn. The
- * fight stops when either HP reaches zero. Each hit rolls the spread, then the
- * crit chance. A crit multiplies that damage and rounds down again, and Defend
- * applies after that.
+ * emits `defended` and halves damage taken until that actor's next turn. A
+ * potion emits `itemUsed`, restores HP up to the drinker's maximum, and spends
+ * the turn. The fight stops when either HP reaches zero. Each hit rolls the
+ * spread, then the crit chance. A crit multiplies that damage and rounds down
+ * again, and Defend applies after that.
  */
 export function fight(input: FightInput): FightEvent[] {
-  const hero = { ...input.hero };
-  const enemy = { ...input.enemy };
+  const hero = prepare(input.hero);
+  const enemy = prepare(input.enemy);
   const queue = createTurnQueue(
     [
       { id: hero.id, haste: hero.haste, hero: hero.hero },
@@ -81,9 +96,26 @@ export function fight(input: FightInput): FightEvent[] {
     const turn = taken.get(actor.id) ?? 0;
     taken.set(actor.id, turn + 1);
     const script = actor === hero ? input.heroActions : input.enemyActions;
-    if ((script?.[turn] ?? "fight") === "defend") {
+    const action = script?.[turn] ?? "fight";
+    if (action === "defend") {
       defending.add(actor.id);
       events.push({ type: "defended", actorId: actor.id });
+      continue;
+    }
+    if (action === "potion") {
+      const before = actor.hp;
+      if (actor.potions > 0) {
+        actor.potions -= 1;
+        actor.hp = Math.min(actor.maxHp, actor.hp + input.potionHeal);
+      }
+      events.push({
+        type: "itemUsed",
+        actorId: actor.id,
+        itemId: "item.potion",
+        amount: actor.hp - before,
+        hp: actor.hp,
+        remaining: actor.potions,
+      });
       continue;
     }
     const spread = input.spreadMin + input.rng.next() * (input.spreadMax - input.spreadMin);
@@ -104,4 +136,8 @@ export function fight(input: FightInput): FightEvent[] {
   }
 
   return events;
+}
+
+function prepare(fighter: Fighter): Fighter & { maxHp: number; potions: number } {
+  return { ...fighter, maxHp: fighter.maxHp ?? fighter.hp, potions: fighter.potions ?? 0 };
 }

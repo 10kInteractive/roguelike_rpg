@@ -203,6 +203,7 @@ Shown on both the victory and game over screens: play time, fights won, fights f
 
 - Consumables only: potions that restore HP. Mobs can drop them.
 - A small carried stack, no inventory screen beyond the Item command.
+- A potion restores a fixed amount of HP, up to the drinker's maximum. Prototype one restores 25. Drinking spends one potion and the turn. At full HP it still spends both and restores nothing. With none left, the turn passes and nothing is restored.
 
 ### North star
 

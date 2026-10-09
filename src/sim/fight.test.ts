@@ -17,6 +17,7 @@ function heroVersusSlime(rng: Rng): FightEvent[] {
     critChance: 0.05,
     critMultiplier: 1.5,
     defendMultiplier: 0.5,
+    potionHeal: 25,
   });
 }
 
@@ -92,6 +93,7 @@ test("defend halves the next hit and ends on that actor's next turn", () => {
     critChance: 0,
     critMultiplier: 1.5,
     defendMultiplier: 0.5,
+    potionHeal: 25,
     heroActions: ["defend"],
   });
   expect(events.slice(0, 7)).toEqual([
@@ -137,6 +139,7 @@ test("a crit is halved while the target is defending", () => {
     critChance: 1,
     critMultiplier: 1.5,
     defendMultiplier: 0.5,
+    potionHeal: 25,
     heroActions: ["defend"],
   });
   expect(events[2]).toEqual({
@@ -147,4 +150,98 @@ test("a crit is halved while the target is defending", () => {
     targetHp: 27,
     critical: true,
   });
+});
+
+test("a potion heals, spends the turn, and stops at maximum HP", () => {
+  const events = fight({
+    hero: { ...hero, hp: 5, maxHp: 30, potions: 2 },
+    enemy: slime,
+    rng: scripted([]),
+    turnBase: 100,
+    spreadMin: 1,
+    spreadMax: 1,
+    critChance: 0,
+    critMultiplier: 1.5,
+    defendMultiplier: 0.5,
+    potionHeal: 25,
+    heroActions: ["potion", "potion"],
+  });
+  expect(events.slice(0, 4)).toEqual([
+    {
+      type: "itemUsed",
+      actorId: "hero",
+      itemId: "item.potion",
+      amount: 25,
+      hp: 30,
+      remaining: 1,
+    },
+    { type: "attacked", actorId: "slime", targetId: "hero" },
+    {
+      type: "damaged",
+      actorId: "slime",
+      targetId: "hero",
+      amount: 4,
+      targetHp: 26,
+      critical: false,
+    },
+    {
+      type: "itemUsed",
+      actorId: "hero",
+      itemId: "item.potion",
+      amount: 4,
+      hp: 30,
+      remaining: 0,
+    },
+  ]);
+});
+
+test("a potion at full HP is spent and restores nothing", () => {
+  const events = fight({
+    hero: { ...hero, potions: 1 },
+    enemy: slime,
+    rng: scripted([]),
+    turnBase: 100,
+    spreadMin: 1,
+    spreadMax: 1,
+    critChance: 0,
+    critMultiplier: 1.5,
+    defendMultiplier: 0.5,
+    potionHeal: 25,
+    heroActions: ["potion"],
+  });
+  expect(events[0]).toEqual({
+    type: "itemUsed",
+    actorId: "hero",
+    itemId: "item.potion",
+    amount: 0,
+    hp: 30,
+    remaining: 0,
+  });
+});
+
+test("a potion with none left spends the turn and restores nothing", () => {
+  const events = fight({
+    hero: { ...hero, hp: 5, maxHp: 30, potions: 0 },
+    enemy: slime,
+    rng: scripted([]),
+    turnBase: 100,
+    spreadMin: 1,
+    spreadMax: 1,
+    critChance: 0,
+    critMultiplier: 1.5,
+    defendMultiplier: 0.5,
+    potionHeal: 25,
+    heroActions: ["potion"],
+  });
+  expect(events.slice(0, 2)).toEqual([
+    {
+      type: "itemUsed",
+      actorId: "hero",
+      itemId: "item.potion",
+      amount: 0,
+      hp: 5,
+      remaining: 0,
+    },
+    { type: "attacked", actorId: "slime", targetId: "hero" },
+  ]);
 });
