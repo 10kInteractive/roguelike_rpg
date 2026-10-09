@@ -57,7 +57,8 @@ src/                        shared engine
       utils/                damage, flee chance, leveling formulas
     field/                  meadow generation, movement and collision, EncounterWalkController, FieldWalkPolicy
     run/                    GrinderFieldRunController, PackFightController, RunStatistics
-    index.ts                planned: createSim, observe, legalActions, act
+    game.controller.ts      GameSimController: one run, one action at a time
+    index.ts                createSim, observe, legalActions, act
   harness/                  headless play of the sim: replay, combat sweep, field sweep
   content/                  zod schemas, the bundle loader, bundle rows into fighters and fight rules
   runtime/                  GameRuntimeController: reads `?seed`, `?camera`, `?combat`, `?webgl`, loads the

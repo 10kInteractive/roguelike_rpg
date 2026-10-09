@@ -98,6 +98,21 @@ export class OneOnOneFightController {
     return this.over;
   }
 
+  /** The two fighters as the fight has them now. Copies, so the fight stays private. */
+  fighters(): { hero: PreparedFighter; enemy: PreparedFighter } {
+    return { hero: { ...this.hero }, enemy: { ...this.enemy } };
+  }
+
+  /**
+   * Who acts next, soonest first. Does not change whose turn it is.
+   * The actor whose turn is open has already been taken off the queue.
+   *
+   * @param count How many names to give.
+   */
+  upcoming(count: number): string[] {
+    return this.queue.upcoming(count);
+  }
+
   /**
    * Plays the hero's turn, then the enemy's turns until the hero must choose again.
    *

@@ -272,7 +272,7 @@ tsconfig.sim.json   src/sim only, no DOM library
 biome.json
 src/                shared engine
   boot/             loader screen, dynamic import of the game
-  sim/              rules, combat, procgen, RNG (pure TS)
+  sim/              rules, combat, procgen, RNG (pure TS). createSim plays one action at a time
     utils/          shared by more than one sim area: the seeded RNG, weighted picks
     combat/utils/   combat formulas: damage, flee chance, leveling
   harness/          headless play of the sim: replay, combat and field sweeps
