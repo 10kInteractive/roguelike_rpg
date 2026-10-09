@@ -1,3 +1,4 @@
+import { pickWeighted } from "../utils/weighted";
 import type { FightEvent, Fighter, FightInput, PreparedFighter, TurnAction } from "./fight.types";
 import type { SpellChoice } from "./policy.types";
 import { HasteTurnQueue } from "./turn-queue.controller";
@@ -11,7 +12,6 @@ import {
 import { fleeChance } from "./utils/flee";
 import { gainXp } from "./utils/level";
 import type { HeroProgress } from "./utils/level.types";
-import { pickWeighted } from "./weighted";
 
 /**
  * Plays one hero against one mob.

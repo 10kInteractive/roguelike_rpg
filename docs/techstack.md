@@ -273,7 +273,7 @@ biome.json
 src/                shared engine
   boot/             loader screen, dynamic import of the game
   sim/              rules, combat, procgen, RNG (pure TS)
-    utils/          shared by more than one sim area, such as the seeded RNG
+    utils/          shared by more than one sim area: the seeded RNG, weighted picks
     combat/utils/   combat formulas: damage, flee chance, leveling
   harness/          headless play of the sim: replay, combat and field sweeps
   content/          zod schemas and bundle loader

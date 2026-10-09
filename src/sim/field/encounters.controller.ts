@@ -1,5 +1,5 @@
-import { pickWeighted } from "../combat/weighted";
 import type { Rng } from "../utils/rng.types";
+import { pickWeighted } from "../utils/weighted";
 import type {
   EncounterEvent,
   EncounterGroup,

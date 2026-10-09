@@ -1,8 +1,4 @@
-/** An entry a weighted pick can choose. */
-export type Weighted = {
-  /** This entry's share of the roll. Must be above zero. */
-  weight: number;
-};
+import type { Weighted } from "./weighted.types";
 
 /**
  * Picks one entry from a weighted list.

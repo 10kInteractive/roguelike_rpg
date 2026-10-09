@@ -557,7 +557,7 @@ Combat rules are already in the right folder. The awkward files are the ones tha
 
 ```
 src/sim                 game rules only
-  utils/                shared by more than one sim area: SeededRandomGenerator
+  utils/                shared by more than one sim area: SeededRandomGenerator, pickWeighted
   combat/               HasteTurnQueue, CombatActionPolicy, OneOnOneFightController
     utils/              damage, flee chance, and leveling formulas
   field/                meadow, movement, EncounterWalkController, FieldWalkPolicy
