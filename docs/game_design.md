@@ -211,6 +211,7 @@ Shown on both the victory and game over screens: play time, fights won, fights f
 - The caster casts the known spell that matches the target's weakness, while MP can pay for it, then Fights. A target with no weakness is a Fight.
 - The random policy picks one legal action: Fight, Defend, Flee, a potion when one remains, or a known spell it can pay for. It is there to find crashes.
 - A run log records the seed, the bundle, every action, the outcome, and a hash of the events. Replay plays that action list again and checks the hash. Enemy picks and the random policy draw from a second generator started from the same seed, so the combat rolls stay put.
+- A seed sweep plays seeds 1 through N and prints the fight count, the win rate, and deaths by mob. A flee is neither a win nor a death.
 
 ### North star
 

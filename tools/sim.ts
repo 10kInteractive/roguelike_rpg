@@ -14,6 +14,7 @@ import {
   toScript,
 } from "../src/sim/replay.ts";
 import { createRng } from "../src/sim/rng.ts";
+import { type SweepFight, sweepSummary } from "../src/sim/sweep.ts";
 import { readBundle } from "./read-bundle.ts";
 
 const replayPath = flag("replay");
@@ -31,16 +32,40 @@ if (replayPath) {
 }
 
 const seed = flag("seed");
+const runs = flag("runs");
 const enemyId = flag("enemy") ?? "mob.slime";
 const policy = flag("policy") ?? "fighter";
 const outPath = flag("out");
-if (
-  seed === undefined ||
-  !/^\d+$/.test(seed) ||
-  (policy !== "fighter" && policy !== "caster" && policy !== "random")
-) {
+const policyOk = policy === "fighter" || policy === "caster" || policy === "random";
+if (runs !== undefined) {
+  if (seed !== undefined || !/^[1-9]\d*$/.test(runs) || !policyOk) {
+    console.error(
+      "Usage: npm run sim -- --runs 1000 [--enemy mob.slime] [--policy fighter|caster|random]",
+    );
+    process.exit(1);
+  }
+  const bundle = loadBundle(await readBundle(path.resolve("prototypes/one/bundle")));
+  const spells = knownSpells(bundle);
+  const fought: SweepFight[] = [];
+  for (let next = 1; next <= Number(runs); next++) {
+    const events = play(bundle, enemyId, next, undefined, {
+      combat: createRng(next),
+      choice: createRng(next),
+      policy,
+      spells,
+    });
+    fought.push({ enemyId, outcome: outcomeFrom(events, bundle.hero.id) });
+  }
+  console.log(sweepSummary(fought));
+  process.exit(0);
+}
+
+if (seed === undefined || !/^\d+$/.test(seed) || !policyOk) {
   console.error(
     "Usage: npm run sim -- --seed 42 [--enemy mob.slime] [--policy fighter|caster|random] [--out runs/42.json]",
+  );
+  console.error(
+    "       npm run sim -- --runs 1000 [--enemy mob.slime] [--policy fighter|caster|random]",
   );
   console.error("       npm run sim -- --replay runs/42.json");
   process.exit(1);
