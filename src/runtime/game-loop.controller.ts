@@ -96,8 +96,8 @@ export class GameLoopController {
       debugWatches.watch("run", () => this.phase);
       debugWatches.watch("level", () => this.sim.observe().hero.level);
       debugWatches.watch("hp", () => {
-        const hero = this.sim.observe().hero;
-        return `${hero.hp}/${hero.maxHp}`;
+        const hero = uiStore.snapshot()?.hero;
+        return hero ? `${hero.hp}/${hero.maxHp}` : "";
       });
       debugWatches.watch("fights", () => this.fought());
       debugWatches.watch("queue", () => uiStore.pending().length);
@@ -138,17 +138,18 @@ export class GameLoopController {
     });
     this.hand(opening);
     await view.show(opening);
+    uiStore.present(this.sim.observe());
     while (this.sim.observe().mode === "combat") {
       const events = this.sim.act(await this.command());
       this.hand(events);
       await view.show(events);
+      uiStore.present(this.sim.observe());
     }
   }
 
-  /** Queues the action's events and refreshes the snapshot behind them. */
+  /** Queues the action's events. The bar catches up as each one plays. */
   private hand(events: readonly SimEvent[]): void {
     uiStore.enqueue(events);
-    uiStore.present(this.sim.observe());
   }
 
   /** The next combat command: the window's choice, or the grinder's. */

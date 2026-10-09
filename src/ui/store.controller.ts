@@ -1,6 +1,6 @@
 import { useStore } from "zustand";
 import { createStore, type StoreApi } from "zustand/vanilla";
-import type { Action, SimEvent, Snapshot } from "../sim/game.types";
+import type { Action, CombatantView, SimEvent, Snapshot } from "../sim/game.types";
 import { commandRows } from "./commands";
 import type { UiState } from "./store.types";
 
@@ -9,7 +9,8 @@ import type { UiState } from "./store.types";
  * waiting to play.
  *
  * The sim decides outcomes. This store only remembers what the overlay and
- * the view are working through. One per page.
+ * the view are working through. Hit points move when that event plays, and
+ * `present` brings the rest in line once the view has caught up. One per page.
  */
 export class UiStoreController {
   /** The zustand store React subscribes to. */
@@ -38,10 +39,20 @@ export class UiStoreController {
     return this.store.getState().pending[0];
   }
 
-  /** The view finished the oldest waiting event. */
+  /**
+   * The view finished the oldest waiting event.
+   * A hit, a spell, a drink, or a level updates the snapshot now, so the bar
+   * moves with that beat instead of with the whole action.
+   */
   played(): void {
-    if (this.store.getState().pending.length === 0) return;
-    this.store.setState((state) => ({ pending: state.pending.slice(1) }));
+    this.store.setState((state) => {
+      const event = state.pending[0];
+      if (!event) return state;
+      return {
+        pending: state.pending.slice(1),
+        snapshot: state.snapshot ? this.applied(state.snapshot, event) : state.snapshot,
+      };
+    });
   }
 
   /** The snapshot the overlay is showing, or null before a run starts. */
@@ -78,6 +89,64 @@ export class UiStoreController {
   /** The zustand store, so a React hook can subscribe. */
   api(): StoreApi<UiState> {
     return this.store;
+  }
+
+  /** The snapshot with one played event's points written in. Unchanged events return it as it was. */
+  private applied(snapshot: Snapshot, event: SimEvent): Snapshot {
+    const hero = this.heroAfter(snapshot.hero, event);
+    const enemy = snapshot.combat ? this.enemyAfter(snapshot.combat.enemy, event) : undefined;
+    if (hero === snapshot.hero && enemy === snapshot.combat?.enemy) return snapshot;
+
+    return {
+      ...snapshot,
+      hero,
+      combat: snapshot.combat && enemy ? { ...snapshot.combat, enemy } : snapshot.combat,
+    };
+  }
+
+  /** The hero after this event. The same hero when it did not touch them. */
+  private heroAfter(hero: Snapshot["hero"], event: SimEvent): Snapshot["hero"] {
+    switch (event.type) {
+      case "damaged":
+        return event.targetId === hero.id ? { ...hero, hp: event.targetHp } : hero;
+      case "spellCast":
+        return event.actorId === hero.id ? { ...hero, mp: event.mp } : hero;
+      case "itemUsed":
+        return event.actorId === hero.id
+          ? { ...hero, hp: event.hp, potions: event.remaining }
+          : hero;
+      case "itemDropped":
+        return { ...hero, potions: hero.potions + 1 };
+      case "xpGained":
+        return { ...hero, xp: event.xp, level: event.level };
+      case "levelUp":
+        return {
+          ...hero,
+          level: event.level,
+          hp: event.hp,
+          maxHp: event.maxHp,
+          mp: event.mp,
+          maxMp: event.maxMp,
+          str: event.str,
+          def: event.def,
+          mag: event.mag,
+          haste: event.haste,
+        };
+      default:
+        return hero;
+    }
+  }
+
+  /** The mob after this event. The same mob when it did not touch them. */
+  private enemyAfter(enemy: CombatantView, event: SimEvent): CombatantView {
+    switch (event.type) {
+      case "damaged":
+        return event.targetId === enemy.id ? { ...enemy, hp: event.targetHp } : enemy;
+      case "spellCast":
+        return event.actorId === enemy.id ? { ...enemy, mp: event.mp } : enemy;
+      default:
+        return enemy;
+    }
   }
 }
 

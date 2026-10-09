@@ -102,23 +102,19 @@ export class CombatViewController {
       await this.tweens.wait(betweenFightsSeconds);
     }
 
-    const batch: FightEvent[] = [];
     for (const event of events) {
-      if (event.type === "combatEnded") {
-        await this.playBatch(batch.splice(0));
-        this.outcome = event.outcome;
-        if (event.outcome === "win" && this.mobIndex + 1 < this.mobCount) {
-          this.mobIndex += 1;
-          this.combat.focus(this.mobIndex);
-          await this.tweens.wait(betweenFightsSeconds);
-        }
-        this.onPlayed();
-        continue;
+      if (this.isBeat(event)) await this.sequencer.play([event]);
+      this.onPlayed();
+
+      // The next mob steps out before its own opening plays.
+      if (event.type !== "combatEnded") continue;
+      this.outcome = event.outcome;
+      if (event.outcome === "win" && this.mobIndex + 1 < this.mobCount) {
+        this.mobIndex += 1;
+        this.combat.focus(this.mobIndex);
+        await this.tweens.wait(betweenFightsSeconds);
       }
-      if (this.isBeat(event)) batch.push(event);
-      else this.onPlayed();
     }
-    await this.playBatch(batch);
 
     // The pack is over when no next turn is waiting.
     const over =
@@ -126,14 +122,6 @@ export class CombatViewController {
       (events.some((event) => event.type === "combatEnded") &&
         !events.some((event) => event.type === "turnStarted"));
     if (over) await this.tweens.wait(afterPackSeconds);
-  }
-
-  /** Plays each beat, then tells the UI that event is done. */
-  private async playBatch(events: readonly FightEvent[]): Promise<void> {
-    for (const event of events) {
-      await this.sequencer.play([event]);
-      this.onPlayed();
-    }
   }
 
   /** True when the sequencer has a beat for this event. The rest are for the UI. */
