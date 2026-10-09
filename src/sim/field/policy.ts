@@ -2,11 +2,11 @@ import type { Rng } from "../rng";
 import { isWalkable, type TilePoint } from "./map";
 import { type FieldGrid, type Position, type Stick, stickLimit } from "./movement";
 
-/** How long a walking policy holds one stick. Thirty ticks is one second. */
-export const walkBatch = 30;
+/** How many ticks a walking policy holds one stick. Thirty ticks is one second. */
+export const stickHoldTicks = 30;
 
 /** The grinder heads for the miniboss once the hero reaches this level. */
-export const grinderLevel = 5;
+export const grinderTargetLevel = 5;
 
 /** A stick held for a batch of field ticks. */
 export type WalkChoice = {
@@ -27,7 +27,8 @@ const directions: readonly Stick[] = [
   { x: stickLimit, y: -stickLimit },
 ];
 
-const steps: readonly TilePoint[] = [
+/** The four tiles a path may step to: east, north, west, then south. */
+const neighbors: readonly TilePoint[] = [
   { x: 1, y: 0 },
   { x: 0, y: 1 },
   { x: -1, y: 0 },
@@ -71,20 +72,20 @@ export function grinderWalk(input: {
   /** Direction rolls while the grinder is still wandering. */
   rng: Rng;
 }): WalkChoice {
-  if (input.level < grinderLevel) return wander(input.rng);
+  if (input.level < grinderTargetLevel) return wander(input.rng);
 
   const here = { x: Math.floor(input.position.x), y: Math.floor(input.position.y) };
   const path = pathTo(input.field, here, input.miniboss);
   const next = path[1] ?? path[0];
   if (!next) return wander(input.rng);
-  return { stick: steer(input.position, next), ticks: walkBatch };
+  return { stick: steer(input.position, next), ticks: stickHoldTicks };
 }
 
 /** One of the eight directions, held for a second. */
 function wander(rng: Rng): WalkChoice {
   const index = Math.floor(rng.next() * directions.length);
   const stick = directions[index] ?? { x: stickLimit, y: 0 };
-  return { stick, ticks: walkBatch };
+  return { stick, ticks: stickHoldTicks };
 }
 
 /**
@@ -95,10 +96,10 @@ function wander(rng: Rng): WalkChoice {
  * the hero cannot stand on the start or the goal.
  */
 function pathTo(field: FieldGrid, from: TilePoint, goal: TilePoint): TilePoint[] {
-  if (!open(field, from.x, from.y) || !open(field, goal.x, goal.y)) return [];
+  if (!canStand(field, from.x, from.y) || !canStand(field, goal.x, goal.y)) return [];
   if (from.x === goal.x && from.y === goal.y) return [from];
 
-  const start = key(field.width, from.x, from.y);
+  const start = tileKey(field.width, from.x, from.y);
   const openSet: { x: number; y: number; g: number; f: number }[] = [
     { x: from.x, y: from.y, g: 0, f: manhattan(from, goal) },
   ];
@@ -115,20 +116,20 @@ function pathTo(field: FieldGrid, from: TilePoint, goal: TilePoint): TilePoint[]
     const current = openSet.splice(pick, 1)[0];
     if (!current) break;
     if (current.x === goal.x && current.y === goal.y) {
-      return rebuild(cameFrom, key(field.width, goal.x, goal.y), field.width);
+      return rebuild(cameFrom, tileKey(field.width, goal.x, goal.y), field.width);
     }
-    if (current.g !== best.get(key(field.width, current.x, current.y))) continue;
+    if (current.g !== best.get(tileKey(field.width, current.x, current.y))) continue;
 
     // One step to each walkable neighbor.
-    for (const step of steps) {
+    for (const step of neighbors) {
       const x = current.x + step.x;
       const y = current.y + step.y;
-      if (!open(field, x, y)) continue;
+      if (!canStand(field, x, y)) continue;
       const g = current.g + 1;
-      const id = key(field.width, x, y);
+      const id = tileKey(field.width, x, y);
       if (g >= (best.get(id) ?? Number.POSITIVE_INFINITY)) continue;
       best.set(id, g);
-      cameFrom.set(id, key(field.width, current.x, current.y));
+      cameFrom.set(id, tileKey(field.width, current.x, current.y));
       openSet.push({ x, y, g, f: g + manhattan({ x, y }, goal) });
     }
   }
@@ -148,20 +149,24 @@ function steer(position: Position, tile: TilePoint): Stick {
   };
 }
 
-function open(field: FieldGrid, x: number, y: number): boolean {
+/** True when the hero can stand on this tile. Water, mountain, and the void cannot. */
+function canStand(field: FieldGrid, x: number, y: number): boolean {
   if (x < 0 || y < 0 || x >= field.width || y >= field.height) return false;
   const terrain = field.tiles[y * field.width + x];
   return terrain !== undefined && isWalkable(terrain);
 }
 
+/** Tiles of walking if the hero only steps to the four neighbors. */
 function manhattan(from: TilePoint, to: TilePoint): number {
   return Math.abs(from.x - to.x) + Math.abs(from.y - to.y);
 }
 
-function key(width: number, x: number, y: number): number {
+/** One number for a tile, so the search can remember where it came from. */
+function tileKey(width: number, x: number, y: number): number {
   return y * width + x;
 }
 
+/** The tiles from the hero to the goal, following each step's parent. */
 function rebuild(cameFrom: Map<number, number>, goalKey: number, width: number): TilePoint[] {
   const tiles: TilePoint[] = [];
   let current: number | undefined = goalKey;

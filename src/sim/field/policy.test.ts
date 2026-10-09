@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import { createRng, type Rng } from "../rng";
 import type { FieldGrid } from "./movement";
-import { casterWalk, fighterWalk, grinderLevel, grinderWalk, walkBatch } from "./policy";
+import { casterWalk, fighterWalk, grinderTargetLevel, grinderWalk, stickHoldTicks } from "./policy";
 
 function rolls(values: number[]): Rng {
   let index = 0;
@@ -24,8 +24,8 @@ function meadow(rows: readonly string[]): FieldGrid {
 }
 
 test("the fighter and the caster hold one direction for a second", () => {
-  const east = { stick: { x: 64, y: 0 }, ticks: walkBatch };
-  const northeast = { stick: { x: 64, y: 64 }, ticks: walkBatch };
+  const east = { stick: { x: 64, y: 0 }, ticks: stickHoldTicks };
+  const northeast = { stick: { x: 64, y: 64 }, ticks: stickHoldTicks };
   expect(fighterWalk(rolls([0]))).toEqual(east);
   expect(casterWalk(rolls([0]))).toEqual(east);
   expect(fighterWalk(rolls([0.124]))).toEqual(east);
@@ -42,17 +42,17 @@ test("the grinder wanders until level 5, then walks around water to the miniboss
     position: beside,
     field,
     miniboss,
-    level: grinderLevel - 1,
+    level: grinderTargetLevel - 1,
     rng: rolls([0]),
   });
-  expect(wandering).toEqual({ stick: { x: 64, y: 0 }, ticks: walkBatch });
+  expect(wandering).toEqual({ stick: { x: 64, y: 0 }, ticks: stickHoldTicks });
 
   let pulls = 0;
   const heading = grinderWalk({
     position: beside,
     field,
     miniboss,
-    level: grinderLevel,
+    level: grinderTargetLevel,
     rng: {
       next() {
         pulls += 1;
@@ -60,14 +60,14 @@ test("the grinder wanders until level 5, then walks around water to the miniboss
       },
     },
   });
-  expect(heading).toEqual({ stick: { x: 0, y: 64 }, ticks: walkBatch });
+  expect(heading).toEqual({ stick: { x: 0, y: 64 }, ticks: stickHoldTicks });
   expect(pulls).toBe(0);
 
   const along = grinderWalk({
     position: { x: 1.5, y: 2.5 },
     field,
     miniboss,
-    level: grinderLevel,
+    level: grinderTargetLevel,
     rng: rolls([]),
   });
   expect(along.stick).toEqual({ x: 64, y: 0 });
@@ -76,7 +76,7 @@ test("the grinder wanders until level 5, then walks around water to the miniboss
       position: beside,
       field,
       miniboss,
-      level: grinderLevel,
+      level: grinderTargetLevel,
       rng: rolls([]),
     }),
   ).toEqual(heading);
@@ -88,8 +88,8 @@ test("an unreachable miniboss sends the grinder wandering", () => {
     position: { x: 0.5, y: 0.5 },
     field,
     miniboss: { x: 1, y: 0 },
-    level: grinderLevel,
+    level: grinderTargetLevel,
     rng: rolls([0]),
   });
-  expect(choice).toEqual({ stick: { x: 64, y: 0 }, ticks: walkBatch });
+  expect(choice).toEqual({ stick: { x: 64, y: 0 }, ticks: stickHoldTicks });
 });

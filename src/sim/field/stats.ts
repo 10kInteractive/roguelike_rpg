@@ -37,7 +37,7 @@ export function createRunStats(seed: number, level: number): RunStats {
 }
 
 /** Adds the tiles of one walk. A step into a wall adds nothing. */
-export function noteWalk(stats: RunStats, distance: number): RunStats {
+export function recordWalk(stats: RunStats, distance: number): RunStats {
   return { ...stats, distance: stats.distance + distance };
 }
 
@@ -48,7 +48,7 @@ export function noteWalk(stats: RunStats, distance: number): RunStats {
  * drank counts, including one that healed nothing. A win or a flee adds one to
  * that tally. A defeat records the mob and leaves the level where it was.
  */
-export function noteFight(
+export function recordFight(
   stats: RunStats,
   events: readonly FightEvent[],
   heroId: string,

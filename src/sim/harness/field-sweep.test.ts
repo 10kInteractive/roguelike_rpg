@@ -9,7 +9,7 @@ test("a field sweep averages the runs and lists deaths by mob", () => {
     fights: 10,
     distance: 80,
     playSeconds: 600,
-    potions: 1,
+    potionsUsed: 1,
   };
   const loss: FieldRunResult = {
     outcome: "lose",
@@ -17,7 +17,7 @@ test("a field sweep averages the runs and lists deaths by mob", () => {
     fights: 8,
     distance: 40,
     playSeconds: 300,
-    potions: 3,
+    potionsUsed: 3,
     killedBy: "mob.rust_sentinel",
   };
   const early: FieldRunResult = {
@@ -25,7 +25,7 @@ test("a field sweep averages the runs and lists deaths by mob", () => {
     fights: 2,
     distance: 10,
     playSeconds: 60,
-    potions: 0,
+    potionsUsed: 0,
     killedBy: "mob.slime",
   };
 

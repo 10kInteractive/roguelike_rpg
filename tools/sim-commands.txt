@@ -1,0 +1,26 @@
+# Copy one line. Do not run this file.
+# Default fight is the fighter against mob.slime. Policies: fighter, caster, random.
+
+# One fight. Events print as JSON, one per line.
+npm run sim -- --seed 42
+
+# Caster against an ember imp.
+npm run sim -- --seed 42 --policy caster --enemy mob.ember_imp
+
+# Random actions, the crash-finding policy, against a frost moth.
+npm run sim -- --seed 42 --policy random --enemy mob.frost_moth
+
+# Fighter against the rust sentinel.
+npm run sim -- --seed 42 --policy fighter --enemy mob.rust_sentinel
+
+# Write a run log, then replay it. Replay prints "replay ok <hash>" or exits 1.
+npm run sim -- --seed 42 --out runs/42.json
+npm run sim -- --replay runs/42.json
+
+# Combat sweep. Seeds 1 through N. A flee is neither a win nor a death.
+npm run sim -- --runs 1000 --policy fighter --enemy mob.slime
+npm run sim -- --runs 200 --policy caster --enemy mob.ember_imp
+npm run sim -- --runs 200 --policy fighter --enemy mob.rust_sentinel
+
+# Field sweep. The grinder walks the meadow. Prints win rate, boss level, and estimated play time.
+npm run sim -- --policy grinder --runs 1000
