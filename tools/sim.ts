@@ -20,7 +20,7 @@ import {
   type FightOutcome,
   type LoggedAction,
   outcomeFrom,
-  toScript,
+  toScriptedActions,
 } from "../src/sim/harness/replay.ts";
 import { type SweepFight, sweepSummary } from "../src/sim/harness/sweep.ts";
 import { createRng } from "../src/sim/rng.ts";
@@ -149,8 +149,8 @@ function play(
   }
   const potion = bundle.items.items.find((item) => item.id === "item.potion");
   const spells = live?.spells ?? knownSpells(bundle);
-  const recorded = actions ? toScript(actions.hero, spells) : undefined;
-  const enemyActions = actions ? toScript(actions.enemy, spells) : undefined;
+  const recorded = actions ? toScriptedActions(actions.hero, spells) : undefined;
+  const enemyActions = actions ? toScriptedActions(actions.enemy, spells) : undefined;
   return fight({
     hero: toHero(bundle.hero),
     enemy: toEnemy(mob, bundle.spells.spells),

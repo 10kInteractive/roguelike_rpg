@@ -1,14 +1,31 @@
 import type { FightEvent, ScriptedAction } from "../combat/fight";
 import type { KnownSpell } from "../combat/policy";
 
+/**
+ * One action as a run log stores it.
+ *
+ * Fight, Defend, a potion, and Run are the word. A spell keeps its id, and a
+ * grind keeps its multiplier. Power and cost are filled back in on replay.
+ */
 export type LoggedAction =
   | "fight"
   | "defend"
   | "potion"
   | "flee"
-  | { type: "spell"; spellId: KnownSpell["id"] }
-  | { type: "grind"; multiplier: number };
+  | {
+      /** A cast. Power and cost are filled in on replay. */
+      type: "spell";
+      /** Which spell. */
+      spellId: KnownSpell["id"];
+    }
+  | {
+      /** A grind. The multiplier is part of the action. */
+      type: "grind";
+      /** Applied after the crit, before Defend. */
+      multiplier: number;
+    };
 
+/** How a fight ended. A flee is neither a win nor a loss. */
 export type FightOutcome = "win" | "lose" | "flee";
 
 /**
@@ -42,7 +59,11 @@ export function actionsFrom(
   return { hero, enemy };
 }
 
-/** Win when the enemy falls, flee when the hero escapes, lose when the hero falls. */
+/**
+ * Win when an enemy falls, flee when the hero escapes, lose when the hero falls.
+ *
+ * A fight that records none of those is a loss.
+ */
 export function outcomeFrom(events: readonly FightEvent[], heroId: string): FightOutcome {
   for (const event of events) {
     if (event.type === "fleeAttempted" && event.success) return "flee";
@@ -52,7 +73,7 @@ export function outcomeFrom(events: readonly FightEvent[], heroId: string): Figh
 }
 
 /** Fills in spell power and cost so a logged action can be played again. */
-export function toScript(
+export function toScriptedActions(
   actions: readonly LoggedAction[],
   spells: readonly KnownSpell[],
 ): ScriptedAction[] {
@@ -70,6 +91,7 @@ export function toScript(
   });
 }
 
+/** The log entry for one event, or nothing if the event is not an action. */
 function loggedAction(event: FightEvent): LoggedAction | undefined {
   switch (event.type) {
     case "attacked":

@@ -1,16 +1,44 @@
 import { isWalkable, type Terrain } from "./map";
 
+/** Field steps per second. */
 export const tickRate = 30;
+
+/** Tiles per second at a full stick press. */
 export const tilesPerSecond = 4;
+
+/** Full deflection of one stick axis. The input is an integer from −64 to 64. */
 export const stickLimit = 64;
+
+/** Radius of the hero's collision circle, in tiles. */
 export const heroRadius = 0.3;
 
-export type Stick = { x: number; y: number };
-export type Position = { x: number; y: number };
+/**
+ * How far the left stick is pushed.
+ *
+ * The keyboard and the gamepad both become this pair. It is not a position.
+ */
+export type Stick = {
+  /** Horizontal push. −64 is full west, 64 is full east. */
+  x: number;
+  /** Vertical push. −64 is full south, 64 is full north. */
+  y: number;
+};
 
+/** Where the hero is standing, in tiles. */
+export type Position = {
+  /** Tiles east of the origin. */
+  x: number;
+  /** Tiles north of the origin. */
+  y: number;
+};
+
+/** The tile grid movement collides with. Tiles are row-major. */
 export type FieldGrid = {
+  /** Columns. */
   width: number;
+  /** Rows. */
   height: number;
+  /** Terrain in row-major order, `y * width + x`. */
   tiles: readonly Terrain[];
 };
 
@@ -34,6 +62,7 @@ export function move(position: Position, stick: Stick, ticks = 1, field?: FieldG
   return current;
 }
 
+/** How far one tick of this stick moves the hero, before walls. */
 function tickStep(stick: Stick): Position {
   // Keep the stick inside its range, then scale it to a direction of length at most 1.
   const dx = clamp(stick.x, -stickLimit, stickLimit) / stickLimit;
@@ -44,6 +73,7 @@ function tickStep(stick: Stick): Position {
   return { x: dx * distance, y: dy * distance };
 }
 
+/** One tick that slides along a blocked edge instead of entering it. */
 function slide(position: Position, step: Position, field: FieldGrid): Position {
   const ahead = { x: position.x + step.x, y: position.y + step.y };
   if (!hitsBlocked(ahead, field)) return ahead;
@@ -56,6 +86,7 @@ function slide(position: Position, step: Position, field: FieldGrid): Position {
   return position;
 }
 
+/** True when the hero's circle overlaps water, mountain, or the ground outside the map. */
 function hitsBlocked(position: Position, field: FieldGrid): boolean {
   const x0 = Math.floor(position.x - heroRadius);
   const x1 = Math.floor(position.x + heroRadius);
@@ -70,12 +101,14 @@ function hitsBlocked(position: Position, field: FieldGrid): boolean {
   return false;
 }
 
+/** True when this tile index is water, mountain, or off the map. */
 function isBlocked(field: FieldGrid, x: number, y: number): boolean {
   if (x < 0 || y < 0 || x >= field.width || y >= field.height) return true;
   const terrain = field.tiles[y * field.width + x];
   return terrain === undefined || !isWalkable(terrain);
 }
 
+/** True when the hero's circle overlaps the tile's square. Touching the edge does not count. */
 function circleHitsTile(position: Position, tileX: number, tileY: number): boolean {
   const closestX = clamp(position.x, tileX, tileX + 1);
   const closestY = clamp(position.y, tileY, tileY + 1);
@@ -84,6 +117,7 @@ function circleHitsTile(position: Position, tileX: number, tileY: number): boole
   return dx * dx + dy * dy < heroRadius * heroRadius;
 }
 
+/** Pulls a stick axis or a circle test back inside its range. */
 function clamp(value: number, min: number, max: number): number {
   if (value < min) return min;
   if (value > max) return max;

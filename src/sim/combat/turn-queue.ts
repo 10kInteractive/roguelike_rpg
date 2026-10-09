@@ -1,5 +1,8 @@
+/** Someone who takes turns in a fight. */
 export type TurnActor = {
+  /** Id written on this actor's events. */
   id: string;
+  /** How quickly this actor's turn comes back around. Must be above zero. */
   haste: number;
   /** Wins a tie that haste does not already decide. */
   hero?: boolean;
@@ -12,11 +15,17 @@ export type TurnQueue = {
   upcoming(count: number): string[];
 };
 
+/** One actor waiting in the haste queue. */
 type QueuedActor = {
+  /** Id written on this actor's events. */
   id: string;
+  /** How quickly this actor's turn comes back around. */
   haste: number;
+  /** Wins a tie that haste does not already decide. */
   hero: boolean;
+  /** When this actor may act again. Lower goes first. */
   time: number;
+  /** Place in the original list. Breaks a tie the hero flag does not. */
   order: number;
 };
 
@@ -61,12 +70,14 @@ export function createTurnQueue(actors: readonly TurnActor[], turnBase: number):
   };
 }
 
+/** The actor who goes now. Their next turn is pushed back by the turn base. */
 function step(queued: QueuedActor[], turnBase: number): string {
   const actor = soonest(queued);
   actor.time += turnBase / actor.haste;
   return actor.id;
 }
 
+/** The actor whose turn is due first. */
 function soonest(queued: readonly QueuedActor[]): QueuedActor {
   let best = queued[0];
   if (!best) {
@@ -80,6 +91,7 @@ function soonest(queued: readonly QueuedActor[]): QueuedActor {
   return best;
 }
 
+/** True when `a` should act before `b`: sooner time, then higher haste, then the hero. */
 function comesBefore(a: QueuedActor, b: QueuedActor): boolean {
   if (a.time !== b.time) {
     return a.time < b.time;

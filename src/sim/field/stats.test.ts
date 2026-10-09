@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 import { fight } from "../combat/fight";
 import { createRng, type Rng } from "../rng";
 import { createEncounterState, walk } from "./encounters";
-import { createRunStats, noteFight, noteWalk } from "./stats";
+import { createRunStats, recordFight, recordWalk } from "./stats";
 
 const rules = {
   turnBase: 100,
@@ -51,8 +51,8 @@ test("a walk and a won fight record distance, damage, and the seed", () => {
     state: createEncounterState(4),
   });
   const events = fight({ ...rules, hero, enemy: slime, rng: createRng(1) });
-  const stats = noteFight(
-    noteWalk(createRunStats(42, 1), walked.distance),
+  const stats = recordFight(
+    recordWalk(createRunStats(42, 1), walked.distance),
     events,
     "hero",
     "mob.slime",
@@ -95,15 +95,15 @@ test("a drink at full HP counts, a flee counts, and a defeat names the mob", () 
     rng: rolls([]),
   });
 
-  const afterDrink = noteFight(createRunStats(7, 1), drank, "hero", "mob.slime");
+  const afterDrink = recordFight(createRunStats(7, 1), drank, "hero", "mob.slime");
   expect(afterDrink.potionsUsed).toBe(1);
 
-  const afterFlee = noteFight(afterDrink, fled, "hero", "mob.slime");
+  const afterFlee = recordFight(afterDrink, fled, "hero", "mob.slime");
   expect(afterFlee.fightsFled).toBe(1);
   expect(afterFlee.fightsWon).toBe(afterDrink.fightsWon);
   expect(afterFlee.killedBy).toBeUndefined();
 
-  const dead = noteFight(createRunStats(7, 1), lost, "hero", "mob.slime");
+  const dead = recordFight(createRunStats(7, 1), lost, "hero", "mob.slime");
   expect(dead.killedBy).toBe("mob.slime");
   expect(dead.fightsWon).toBe(0);
   expect(dead.fightsFled).toBe(0);
@@ -126,7 +126,7 @@ test("a win that pays for a level records the new level", () => {
       growth: { hp: 6, mp: 2, str: 2, def: 1, mag: 1, haste: 1 },
     },
   });
-  const stats = noteFight(createRunStats(7, 1), events, "hero", "mob.slime");
+  const stats = recordFight(createRunStats(7, 1), events, "hero", "mob.slime");
   expect(stats.level).toBe(2);
   expect(stats.fightsWon).toBe(1);
   expect(stats.damageDealt).toBe(7);

@@ -37,42 +37,70 @@ export type FieldRunResult = {
   /** Estimated seconds, from decisions, enemy actions, fights, and walking. */
   playSeconds: number;
   /** Potions the hero drank. */
-  potions: number;
+  potionsUsed: number;
   /** Mob that defeated the hero. */
   killedBy?: string;
 };
 
+/** The hero as the run carries them from one fight to the next. */
 type HeroState = {
+  /** Id written on the hero's events. */
   id: string;
+  /** Hit points right now. */
   hp: number;
+  /** Hit points a heal or a level-up fills to. */
   maxHp: number;
+  /** Magic points right now. */
   mp: number;
+  /** Magic points a level-up fills to. */
   maxMp: number;
+  /** Strength. */
   str: number;
+  /** Defense. */
   def: number;
+  /** Magic. */
   mag: number;
+  /** How quickly the hero's turn comes back around. */
   haste: number;
+  /** Potions still carried. */
   potions: number;
+  /** Current level. */
   level: number;
+  /** XP toward the next level. */
   xp: number;
 };
 
+/** Damage, flee, and potion numbers copied from the bundle for each fight. */
 type CombatRules = {
+  /** Time added per action before dividing by haste. */
   turnBase: number;
+  /** Inclusive lower bound of the damage spread. */
   spreadMin: number;
+  /** Exclusive upper bound of the damage spread. */
   spreadMax: number;
+  /** A hit crits when the roll is below this. */
   critChance: number;
+  /** Applied to a crit, then rounded down. */
   critMultiplier: number;
+  /** Applied to damage taken while defending, then rounded down. */
   defendMultiplier: number;
+  /** Hit points restored by one potion, before the maximum. */
   potionHeal: number;
+  /** Flee chance before the haste bonus. */
   fleeBase: number;
+  /** Added per point of hero haste over the enemy's haste. */
   fleePerPoint: number;
+  /** Lowest flee chance. */
   fleeMin: number;
+  /** Highest flee chance. */
   fleeMax: number;
+  /** Magic damage multiplier against a weakness. */
   weaknessMultiplier: number;
+  /** Magic damage multiplier against a resistance. */
   resistanceMultiplier: number;
 };
 
+/** How many stick holds a run may take before it gives up. A finished run stops sooner. */
 const maxBatches = 20_000;
 
 /**
@@ -101,9 +129,16 @@ export function runField(input: {
   /** XP thresholds and growth. */
   leveling: LevelRules;
   /** Field, choice, and combat rolls. Defaults to three generators from `seed`. */
-  rngs?: { field: Rng; choice: Rng; combat: Rng };
+  rngs?: {
+    /** Encounter rates, pack picks, counts, and potion drops. */
+    field: Rng;
+    /** Wander directions and enemy action picks. */
+    choice: Rng;
+    /** Damage, crits, and flee rolls. */
+    combat: Rng;
+  };
 }): FieldRunResult {
-  const hero = heroState(input.hero);
+  const hero = copyHero(input.hero);
   const fieldRng = input.rngs?.field ?? createRng(input.seed);
   const choiceRng = input.rngs?.choice ?? createRng(input.seed);
   const combatRng = input.rngs?.combat ?? createRng(input.seed);
@@ -113,7 +148,7 @@ export function runField(input: {
   let fights = 0;
   let heroActions = 0;
   let enemyActions = 0;
-  let potions = 0;
+  let potionsUsed = 0;
   let bossLevel: number | undefined;
 
   for (let batch = 0; batch < maxBatches && hero.hp > 0; batch++) {
@@ -165,17 +200,17 @@ export function runField(input: {
         enemyActions += actions.enemy;
         const outcome = outcomeOf(events, hero.id);
         applyFight(hero, events, input.leveling);
-        potions += actions.potions;
+        potionsUsed += actions.potions;
 
         if (outcome === "lose") {
-          return finish({
+          return toFieldResult({
             outcome: "lose",
             bossLevel,
             fights,
             distance,
             heroActions,
             enemyActions,
-            potions,
+            potionsUsed,
             killedBy: group.id,
           });
         }
@@ -185,14 +220,14 @@ export function runField(input: {
         }
         if (mob.potionDrop !== undefined && fieldRng.next() < mob.potionDrop) hero.potions += 1;
         if (started.miniboss) {
-          return finish({
+          return toFieldResult({
             outcome: "win",
             bossLevel,
             fights,
             distance,
             heroActions,
             enemyActions,
-            potions,
+            potionsUsed,
           });
         }
       }
@@ -200,25 +235,26 @@ export function runField(input: {
     }
   }
 
-  return finish({
+  return toFieldResult({
     outcome: "lose",
     bossLevel,
     fights,
     distance,
     heroActions,
     enemyActions,
-    potions,
+    potionsUsed,
   });
 }
 
-function finish(run: {
+/** The sweep's row for this run, including the estimated play time. */
+function toFieldResult(run: {
   outcome: "win" | "lose";
   bossLevel?: number;
   fights: number;
   distance: number;
   heroActions: number;
   enemyActions: number;
-  potions: number;
+  potionsUsed: number;
   killedBy?: string;
 }): FieldRunResult {
   const playSeconds =
@@ -232,12 +268,13 @@ function finish(run: {
     fights: run.fights,
     distance: run.distance,
     playSeconds,
-    potions: run.potions,
+    potionsUsed: run.potionsUsed,
     killedBy: run.killedBy,
   };
 }
 
-function heroState(hero: Fighter): HeroState {
+/** The hero at the start of the run, with the defaults filled in. */
+function copyHero(hero: Fighter): HeroState {
   const mp = hero.mp ?? 0;
   return {
     id: hero.id,
@@ -283,6 +320,7 @@ function applyFight(hero: HeroState, events: readonly FightEvent[], rules: Level
   }
 }
 
+/** Hero decisions, enemy actions, and potions drunk in one fight. */
 function countActions(
   events: readonly FightEvent[],
   heroId: string,
@@ -309,6 +347,7 @@ function countActions(
   return { hero, enemy, potions };
 }
 
+/** Win when an enemy falls, flee when the hero escapes, lose when the hero falls. */
 function outcomeOf(events: readonly FightEvent[], heroId: string): "win" | "lose" | "flee" {
   for (const event of events) {
     if (event.type === "fleeAttempted" && event.success) return "flee";

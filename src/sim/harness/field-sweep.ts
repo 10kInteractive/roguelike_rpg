@@ -24,10 +24,10 @@ export function fieldSweepSummary(runs: readonly FieldRunResult[]): string {
     `runs ${count}`,
     `win rate ${(count === 0 ? 0 : wins / count).toFixed(3)}`,
     boss === undefined ? "boss level none" : `boss level ${boss.toFixed(3)}`,
-    `fights ${mean(runs.map((run) => run.fights))}`,
-    `distance ${mean(runs.map((run) => run.distance))}`,
-    `play time ${mean(runs.map((run) => run.playSeconds / 60))} min`,
-    `potions ${mean(runs.map((run) => run.potions))}`,
+    `fights ${formatAverage(runs.map((run) => run.fights))}`,
+    `distance ${formatAverage(runs.map((run) => run.distance))}`,
+    `play time ${formatAverage(runs.map((run) => run.playSeconds / 60))} min`,
+    `potions ${formatAverage(runs.map((run) => run.potionsUsed))}`,
   ];
   const killers = [...deaths.keys()].sort();
   if (killers.length === 0) lines.push("deaths none");
@@ -35,7 +35,8 @@ export function fieldSweepSummary(runs: readonly FieldRunResult[]): string {
   return lines.join("\n");
 }
 
-function mean(values: readonly number[]): string {
+/** The average of the runs, printed to three decimal places. An empty sweep is 0. */
+function formatAverage(values: readonly number[]): string {
   const total = values.reduce((sum, value) => sum + value, 0);
   return (values.length === 0 ? 0 : total / values.length).toFixed(3);
 }

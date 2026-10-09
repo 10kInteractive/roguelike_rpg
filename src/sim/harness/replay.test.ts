@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 import { fight } from "../combat/fight";
 import { type KnownSpell, randomAction } from "../combat/policy";
 import { createRng } from "../rng";
-import { actionsFrom, eventHash, outcomeFrom, toScript } from "./replay";
+import { actionsFrom, eventHash, outcomeFrom, toScriptedActions } from "./replay";
 
 const hero = {
   id: "hero",
@@ -86,8 +86,8 @@ test("a recorded fight replays to the same hash", () => {
     hero,
     enemy,
     rng: createRng(4),
-    heroActions: toScript(actions.hero, spells),
-    enemyActions: toScript(actions.enemy, spells),
+    heroActions: toScriptedActions(actions.hero, spells),
+    enemyActions: toScriptedActions(actions.enemy, spells),
   });
   expect(eventHash(replayed)).toBe(eventHash(events));
   expect(outcomeFrom(events, hero.id)).toBe(outcomeFrom(replayed, hero.id));

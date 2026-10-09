@@ -92,7 +92,7 @@ test("a slime's XP carries, and the run ends when the miniboss falls", () => {
   expect(played.outcome).toBe("win");
   expect(played.bossLevel).toBe(2);
   expect(played.fights).toBe(2);
-  expect(played.potions).toBe(0);
+  expect(played.potionsUsed).toBe(0);
   expect(played.killedBy).toBeUndefined();
   expect(played.playSeconds).toBeCloseTo(
     2 * heroDecisionSeconds + 2 * fightTransitionSeconds + played.distance / tilesPerSecond,
