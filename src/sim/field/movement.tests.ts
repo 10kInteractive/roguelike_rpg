@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import type { Terrain } from "./map.types";
-import { move } from "./movement";
+import { moveHeroAlongStick } from "./movement";
 import { heroRadius, tilesPerSecond } from "./movement.constants";
 import type { FieldGrid, Position, Stick } from "./movement.types";
 
@@ -16,16 +16,16 @@ test("the same sticks end at the same position", () => {
   expect(walk(origin, sticks)).toEqual(walk(origin, sticks));
 
   let stepped = origin;
-  for (let tick = 0; tick < 30; tick++) stepped = move(stepped, { x: 64, y: 32 });
-  expect(stepped).toEqual(move(origin, { x: 64, y: 32 }, 30));
+  for (let tick = 0; tick < 30; tick++) stepped = moveHeroAlongStick(stepped, { x: 64, y: 32 });
+  expect(stepped).toEqual(moveHeroAlongStick(origin, { x: 64, y: 32 }, 30));
 });
 
 test("a diagonal step covers the same distance as a straight one", () => {
-  const east = move(origin, { x: 64, y: 0 }, 30);
-  const northeast = move(origin, { x: 64, y: 64 }, 30);
+  const east = moveHeroAlongStick(origin, { x: 64, y: 0 }, 30);
+  const northeast = moveHeroAlongStick(origin, { x: 64, y: 64 }, 30);
   expect(east).toEqual({ x: tilesPerSecond, y: 0 });
   expect(Math.hypot(northeast.x, northeast.y)).toBeCloseTo(tilesPerSecond, 10);
-  expect(move(origin, { x: 128, y: 0 }, 30)).toEqual(east);
+  expect(moveHeroAlongStick(origin, { x: 128, y: 0 }, 30)).toEqual(east);
 });
 
 test("the hero slides along a blocked edge and does not enter it", () => {
@@ -40,14 +40,14 @@ test("the hero slides along a blocked edge and does not enter it", () => {
     "grass",
   ]);
   const start = { x: 0.5, y: 1.5 };
-  const slid = move(start, { x: 64, y: -64 }, 60, shore);
-  expect(slid).toEqual(move(start, { x: 64, y: -64 }, 60, shore));
+  const slid = moveHeroAlongStick(start, { x: 64, y: -64 }, 60, shore);
+  expect(slid).toEqual(moveHeroAlongStick(start, { x: 64, y: -64 }, 60, shore));
   expect(slid.x).toBeGreaterThan(start.x);
   expect(slid.y).toBeLessThan(start.y);
   expect(slid.y).toBeGreaterThanOrEqual(1 + heroRadius);
 
   const bank = grid(2, 1, ["grass", "water"]);
-  const stopped = move({ x: 0.5, y: 0.5 }, { x: 64, y: 0 }, 30, bank);
+  const stopped = moveHeroAlongStick({ x: 0.5, y: 0.5 }, { x: 64, y: 0 }, 30, bank);
   expect(stopped.y).toBe(0.5);
   expect(stopped.x).toBeGreaterThan(0.5);
   expect(stopped.x).toBeLessThanOrEqual(1 - heroRadius);
@@ -59,6 +59,6 @@ function grid(width: number, height: number, tiles: Terrain[]): FieldGrid {
 
 function walk(start: Position, sticks: Stick[]): Position {
   let position = start;
-  for (const stick of sticks) position = move(position, stick, 5);
+  for (const stick of sticks) position = moveHeroAlongStick(position, stick, 5);
   return position;
 }

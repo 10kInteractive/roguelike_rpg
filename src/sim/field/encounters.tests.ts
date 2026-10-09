@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 import type { Rng } from "../utils/rng.types";
 import { EncounterWalkController } from "./encounters.controller";
 import type { Terrain } from "./map.types";
-import { move } from "./movement";
+import { moveHeroAlongStick } from "./movement";
 import { heroRadius } from "./movement.constants";
 import type { Position } from "./movement.types";
 
@@ -30,7 +30,7 @@ test("each terrain rolls its own rate, and a matching roll does not start a figh
   });
   const fight = started.holdStick(east, 30);
   expect(fight.ticks).toBe(8);
-  expect(started.position).toEqual(move(start, east, 8, grass));
+  expect(started.position).toEqual(moveHeroAlongStick(start, east, 8, grass));
   expect(fight.events).toEqual([
     { type: "encounterStarted", terrain: "grass", groups: [{ id: "mob.slime", count: 1 }] },
   ]);
@@ -111,7 +111,7 @@ test("touching the miniboss starts its fight, and walking clear of it does not",
   expect(
     Math.hypot(touchedWalk.position.x - center.x, touchedWalk.position.y - center.y),
   ).toBeLessThanOrEqual(reach);
-  const before = move(start, east, touched.ticks - 1, field);
+  const before = moveHeroAlongStick(start, east, touched.ticks - 1, field);
   expect(Math.hypot(before.x - center.x, before.y - center.y)).toBeGreaterThan(reach);
 
   const meadow = {

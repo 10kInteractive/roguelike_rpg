@@ -181,7 +181,7 @@ Every change should be easy to see. Two tools, both in `src/debug`:
 
 **Namespaced logger**
 
-- `const log = createLogger("view:field"); log("hero entered forest", pos);`
+- `const log = debugLog.create("view:field"); log("hero entered forest", pos);`
 - Namespaces follow the folder: `boot`, `assets`, `input`, `view:field`, `view:combat`, `ui`, `sim:events`.
 - Off by default. Enable with a URL parameter, `?debug=view:*,sim:events`, or `localStorage.debug` for a sticky setting. `?debug=*` turns everything on.
 - Log calls stay in production builds but do nothing unless enabled, so they're safe to leave in.
@@ -190,7 +190,7 @@ Every change should be easy to see. Two tools, both in `src/debug`:
 
 - A small React overlay, only in dev builds, toggled with the backtick key.
 - Shows the seed, sim mode, hero position and stats, FPS, renderer backend (WebGPU or WebGL2), and the last few sim events.
-- Any module can add a live value: `watch("encounter distance", () => value)`.
+- Any module can add a live value: `debugWatches.watch("encounter distance", () => value)`.
 
 **The sim never logs.** It has no `console` (its tsconfig has no DOM or Node types). Its events and snapshots are logged at the boundary: by the browser under `sim:events`, and by the sim CLI, which prints events as readable lines with `--log`.
 

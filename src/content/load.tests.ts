@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
-import { BundleError, type BundleSource, loadBundle } from "./load";
+import { BundleError, loadBundle } from "./load";
+import type { BundleSource } from "./load.types";
 
 function valid(): BundleSource {
   return {

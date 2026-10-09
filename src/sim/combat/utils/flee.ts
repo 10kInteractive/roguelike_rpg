@@ -5,7 +5,7 @@
  * haste. The result is clamped to the bundle's minimum and maximum. A later
  * roll succeeds when it is below this chance.
  */
-export function fleeChance(
+export function calculateFleeChance(
   heroHaste: number,
   enemyHaste: number,
   base: number,

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { readWatches, type WatchRow } from "./watch";
+import { debugWatches } from "./watch.controller";
+import type { WatchRow } from "./watch.types";
 
 const sampleMs = 250;
 
@@ -28,7 +29,7 @@ function DevPanel() {
     if (!open) {
       return;
     }
-    const sample = () => setRows(readWatches());
+    const sample = () => setRows(debugWatches.rows());
     sample();
     const id = window.setInterval(sample, sampleMs);
     return () => window.clearInterval(id);

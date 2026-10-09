@@ -7,7 +7,11 @@ import type { HeroProgress, LevelEvent, LevelGain, LevelRules } from "./level.ty
  * Each level adds the growth, then restores HP and MP to the new maximum.
  * At the level cap, XP still accumulates and no further level is gained.
  */
-export function gainXp(hero: HeroProgress, amount: number, rules: LevelRules): LevelGain {
+export function grantExperienceAndRaiseLevels(
+  hero: HeroProgress,
+  amount: number,
+  rules: LevelRules,
+): LevelGain {
   const next = { ...hero, xp: hero.xp + amount };
   const events: LevelEvent[] = [{ type: "xpGained", amount, xp: next.xp, level: next.level }];
 

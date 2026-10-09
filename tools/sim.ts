@@ -1,25 +1,25 @@
 import fs from "node:fs";
 import path from "node:path";
-import { toEnemy, toHero } from "../src/content/fighters.ts";
+import { enemyFighterFromMob, heroFighterFromBundle } from "../src/content/fighters.ts";
 import { loadBundle } from "../src/content/load.ts";
 import type { Bundle } from "../src/content/schema.ts";
-import { sweepSummary } from "../src/harness/combat-sweep.ts";
+import { formatCombatSeedSweepSummary } from "../src/harness/combat-sweep.ts";
 import type { SweepFight } from "../src/harness/combat-sweep.types.ts";
-import { fieldSweepSummary } from "../src/harness/field-sweep.ts";
+import { formatGrinderFieldSweepSummary } from "../src/harness/field-sweep.ts";
 import {
-  actionsFrom,
-  eventHash,
+  expandLoggedActionsIntoFightScript,
   type FightOutcome,
+  hashFightEventList,
   type LoggedAction,
-  outcomeFrom,
-  toScriptedActions,
+  readFightOutcomeFromEvents,
+  readLoggedActionsFromFightEvents,
 } from "../src/harness/replay.ts";
 import { OneOnOneFightController } from "../src/sim/combat/fight.controller.ts";
 import type { FightEvent } from "../src/sim/combat/fight.types.ts";
 import { CombatActionPolicy } from "../src/sim/combat/policy.controller.ts";
 import type { KnownSpell } from "../src/sim/combat/policy.types.ts";
 import type { EncounterTables } from "../src/sim/field/encounters.types.ts";
-import { createMeadow } from "../src/sim/field/map.ts";
+import { createSeededMeadow } from "../src/sim/field/map.ts";
 import { GrinderFieldRunController } from "../src/sim/run/run.controller.ts";
 import type { RunMob } from "../src/sim/run/run.types.ts";
 import { SeededRandomGenerator } from "../src/sim/utils/rng.controller.ts";
@@ -30,7 +30,7 @@ if (replayPath) {
   const log = readLog(replayPath);
   const bundle = loadBundle(await readBundle(path.resolve("prototypes/one/bundle")));
   const events = play(bundle, log.enemyId, log.seed, log.actions);
-  const hash = eventHash(events);
+  const hash = hashFightEventList(events);
   if (hash !== log.hash) {
     console.error(`replay mismatch ${hash} ${log.hash}`);
     process.exit(1);
@@ -71,9 +71,9 @@ if (runs !== undefined) {
       policy,
       spells,
     });
-    fought.push({ enemyId, outcome: outcomeFrom(events, bundle.hero.id) });
+    fought.push({ enemyId, outcome: readFightOutcomeFromEvents(events, bundle.hero.id) });
   }
-  console.log(sweepSummary(fought));
+  console.log(formatCombatSeedSweepSummary(fought));
   process.exit(0);
 }
 
@@ -109,9 +109,9 @@ if (outPath) {
     bundleVersion: bundle.manifest.version,
     enemyId,
     policy,
-    actions: actionsFrom(events, bundle.hero.id),
-    outcome: outcomeFrom(events, bundle.hero.id),
-    hash: eventHash(events),
+    actions: readLoggedActionsFromFightEvents(events, bundle.hero.id),
+    outcome: readFightOutcomeFromEvents(events, bundle.hero.id),
+    hash: hashFightEventList(events),
   };
   fs.mkdirSync(path.dirname(path.resolve(outPath)), { recursive: true });
   fs.writeFileSync(path.resolve(outPath), `${JSON.stringify(log, null, 2)}\n`);
@@ -148,12 +148,14 @@ function play(
   }
   const potion = bundle.items.items.find((item) => item.id === "item.potion");
   const spells = live?.spells ?? knownSpells(bundle);
-  const recorded = actions ? toScriptedActions(actions.hero, spells) : undefined;
-  const enemyActions = actions ? toScriptedActions(actions.enemy, spells) : undefined;
+  const recorded = actions ? expandLoggedActionsIntoFightScript(actions.hero, spells) : undefined;
+  const enemyActions = actions
+    ? expandLoggedActionsIntoFightScript(actions.enemy, spells)
+    : undefined;
   const policy = new CombatActionPolicy(spells, live?.choice ?? new SeededRandomGenerator(seed));
   return new OneOnOneFightController({
-    hero: toHero(bundle.hero),
-    enemy: toEnemy(mob, bundle.spells.spells),
+    hero: heroFighterFromBundle(bundle.hero),
+    enemy: enemyFighterFromMob(mob, bundle.spells.spells),
     rng: live?.combat ?? new SeededRandomGenerator(seed),
     choiceRng: actions ? undefined : live?.choice,
     turnBase: bundle.rules.turnBase,
@@ -222,7 +224,7 @@ function sweepGrinder(bundle: Bundle, runs: number): string {
   const mobs = new Map<string, RunMob>();
   for (const mob of bundle.mobs.mobs) {
     mobs.set(mob.id, {
-      fighter: toEnemy(mob, bundle.spells.spells),
+      fighter: enemyFighterFromMob(mob, bundle.spells.spells),
       potionDrop: mob.potionDrop,
     });
   }
@@ -249,7 +251,7 @@ function sweepGrinder(bundle: Bundle, runs: number): string {
   const tables = encounterTables(bundle);
   const results = [];
   for (let next = 1; next <= runs; next++) {
-    const map = createMeadow({
+    const map = createSeededMeadow({
       seed: next,
       width: biome.width,
       height: biome.height,
@@ -262,14 +264,14 @@ function sweepGrinder(bundle: Bundle, runs: number): string {
         miniboss: { tile: map.miniboss, radius: biome.minibossRadius, id: biome.miniboss },
         tables,
         minDistance: bundle.rules.minEncounterDistance,
-        hero: toHero(bundle.hero),
+        hero: heroFighterFromBundle(bundle.hero),
         mobs,
         combat,
         leveling,
       }).play(),
     );
   }
-  return fieldSweepSummary(results);
+  return formatGrinderFieldSweepSummary(results);
 }
 
 function encounterTables(bundle: Bundle): EncounterTables {

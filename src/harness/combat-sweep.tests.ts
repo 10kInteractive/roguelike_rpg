@@ -1,8 +1,8 @@
 import { expect, test } from "vitest";
-import { sweepSummary } from "./combat-sweep";
+import { formatCombatSeedSweepSummary } from "./combat-sweep";
 
 test("a sweep counts fights, the win rate, and deaths by mob", () => {
-  const summary = sweepSummary([
+  const summary = formatCombatSeedSweepSummary([
     { enemyId: "mob.slime", outcome: "win" },
     { enemyId: "mob.slime", outcome: "flee" },
     { enemyId: "mob.rust_sentinel", outcome: "lose" },

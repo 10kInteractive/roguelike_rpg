@@ -7,7 +7,7 @@ import type { Weighted } from "./weighted.types";
  * walked in order. Each entry covers a slice of its weight. A roll on a
  * boundary belongs to the next entry. Every weight must be above zero.
  */
-export function pickWeighted<T extends Weighted>(options: readonly T[], roll: number): T {
+export function pickWeightedListEntry<T extends Weighted>(options: readonly T[], roll: number): T {
   if (options.length === 0) {
     throw new Error("A weighted list needs at least one entry");
   }

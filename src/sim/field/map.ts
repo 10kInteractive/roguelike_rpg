@@ -1,3 +1,4 @@
+import { hashToUnit } from "../utils/rng";
 import { SeededRandomGenerator } from "../utils/rng.controller";
 import type { Rng } from "../utils/rng.types";
 import { forestAbove, heightPeriod, mountainAbove, waterBelow } from "./map.constants";
@@ -10,7 +11,7 @@ import type { MeadowInput, MeadowMap, Terrain, TilePoint } from "./map.types";
  * some grass into forest. A path of path tiles joins the spawn to a miniboss
  * at least `minibossDistance` tiles away, so the miniboss is reachable.
  */
-export function createMeadow(input: MeadowInput): MeadowMap {
+export function createSeededMeadow(input: MeadowInput): MeadowMap {
   const { width, height } = input;
   const tiles: Terrain[] = [];
 
@@ -25,7 +26,7 @@ export function createMeadow(input: MeadowInput): MeadowMap {
 
   // The hero starts on walkable ground. A buried map gets a clearing at the center.
   const rng = new SeededRandomGenerator(input.seed);
-  const walkable = pointsWhere(tiles, width, height, (terrain) => isWalkable(terrain));
+  const walkable = pointsWhere(tiles, width, height, (terrain) => isTerrainWalkable(terrain));
   if (walkable.length === 0) {
     const center = { x: Math.floor(width / 2), y: Math.floor(height / 2) };
     tiles[tileIndex(width, center)] = "grass";
@@ -35,7 +36,7 @@ export function createMeadow(input: MeadowInput): MeadowMap {
 
   // The miniboss stands far from that spawn. A small map uses the farthest tile.
   const far = pointsWhere(tiles, width, height, (_terrain, point) => {
-    return point !== spawn && tileDistance(spawn, point) >= input.minibossDistance;
+    return point !== spawn && distanceBetweenTiles(spawn, point) >= input.minibossDistance;
   });
   const miniboss = far.length > 0 ? pickTile(far, rng) : farthest(tiles, width, height, spawn);
 
@@ -46,12 +47,12 @@ export function createMeadow(input: MeadowInput): MeadowMap {
 }
 
 /** Grass, forest, and path. Water and mountain stop the hero. */
-export function isWalkable(terrain: Terrain): boolean {
+export function isTerrainWalkable(terrain: Terrain): boolean {
   return terrain === "grass" || terrain === "forest" || terrain === "path";
 }
 
 /** Straight-line distance between two tiles, in tile widths. */
-export function tileDistance(from: TilePoint, to: TilePoint): number {
+export function distanceBetweenTiles(from: TilePoint, to: TilePoint): number {
   return Math.hypot(to.x - from.x, to.y - from.y);
 }
 
@@ -77,7 +78,7 @@ function sample(seed: number, x: number, y: number): number {
 /** One noise value at a lattice point. The same seed and point always match. */
 function latticeValue(seed: number, x: number, y: number): number {
   const mixed = (seed ^ Math.imul(x + 1, 0x9e3779b1) ^ Math.imul(y + 1, 0x85ebca6b)) >>> 0;
-  return new SeededRandomGenerator(mixed).next();
+  return hashToUnit(mixed);
 }
 
 /** The blend from one noise sample to the next. */
@@ -105,7 +106,7 @@ function farthest(tiles: Terrain[], width: number, height: number, from: TilePoi
   let best = from;
   let bestDistance = -1;
   for (const point of pointsWhere(tiles, width, height, () => true)) {
-    const distance = tileDistance(from, point);
+    const distance = distanceBetweenTiles(from, point);
     if (distance > bestDistance) {
       best = point;
       bestDistance = distance;

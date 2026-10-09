@@ -1,5 +1,5 @@
 import type { Rng } from "../utils/rng.types";
-import { isWalkable } from "./map";
+import { isTerrainWalkable } from "./map";
 import type { TilePoint } from "./map.types";
 import { stickLimit } from "./movement.constants";
 import type { FieldGrid, Position, Stick } from "./movement.types";
@@ -145,7 +145,7 @@ export class FieldWalkPolicy {
   private canStand(x: number, y: number): boolean {
     if (x < 0 || y < 0 || x >= this.field.width || y >= this.field.height) return false;
     const terrain = this.field.tiles[y * this.field.width + x];
-    return terrain !== undefined && isWalkable(terrain);
+    return terrain !== undefined && isTerrainWalkable(terrain);
   }
 
   /** Tiles of walking if the hero only steps to the four neighbors. */

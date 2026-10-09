@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import type { FieldRunResult } from "../sim/run/run.types";
-import { fieldSweepSummary } from "./field-sweep";
+import { formatGrinderFieldSweepSummary } from "./field-sweep";
 
 test("a field sweep averages the runs and lists deaths by mob", () => {
   const win: FieldRunResult = {
@@ -29,7 +29,7 @@ test("a field sweep averages the runs and lists deaths by mob", () => {
     killedBy: "mob.slime",
   };
 
-  expect(fieldSweepSummary([win, loss, early])).toBe(
+  expect(formatGrinderFieldSweepSummary([win, loss, early])).toBe(
     [
       "runs 3",
       "win rate 0.333",
@@ -42,5 +42,5 @@ test("a field sweep averages the runs and lists deaths by mob", () => {
       "deaths mob.slime 1",
     ].join("\n"),
   );
-  expect(fieldSweepSummary([])).toContain("boss level none");
+  expect(formatGrinderFieldSweepSummary([])).toContain("boss level none");
 });

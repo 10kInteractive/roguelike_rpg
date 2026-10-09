@@ -8,7 +8,7 @@ import items from "../../prototypes/one/bundle/items.json" with { type: "json" }
 import mobs from "../../prototypes/one/bundle/mobs.json" with { type: "json" };
 import rules from "../../prototypes/one/bundle/rules.json" with { type: "json" };
 import spells from "../../prototypes/one/bundle/spells.json" with { type: "json" };
-import { toEnemy, toHero } from "./fighters";
+import { enemyFighterFromMob, heroFighterFromBundle } from "./fighters";
 import { loadBundle } from "./load";
 
 test("prototype one loads Strider, the spells, the potion, the mobs, and the meadow", () => {
@@ -67,15 +67,19 @@ test("bundle actions become the actions a fight can run", () => {
   const sentinel = bundle.mobs.mobs[3];
   if (!imp || !sentinel) throw new Error("prototype one is missing a mob");
 
-  expect(toHero(bundle.hero)).toMatchObject({ id: "hero.strider", potions: 3, hero: true });
-  expect(toEnemy(imp, bundle.spells.spells)).toMatchObject({
+  expect(heroFighterFromBundle(bundle.hero)).toMatchObject({
+    id: "hero.strider",
+    potions: 3,
+    hero: true,
+  });
+  expect(enemyFighterFromMob(imp, bundle.spells.spells)).toMatchObject({
     mp: 9,
     actions: [
       { type: "fight", weight: 60 },
       { type: "spell", spellId: "spell.ember", element: "fire", power: 8, cost: 3, weight: 40 },
     ],
   });
-  expect(toEnemy(sentinel, bundle.spells.spells).actions).toEqual([
+  expect(enemyFighterFromMob(sentinel, bundle.spells.spells).actions).toEqual([
     { type: "fight", weight: 70 },
     { type: "grind", multiplier: 1.5, weight: 30 },
   ]);

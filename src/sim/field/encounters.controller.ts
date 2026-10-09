@@ -1,5 +1,5 @@
 import type { Rng } from "../utils/rng.types";
-import { pickWeighted } from "../utils/weighted";
+import { pickWeightedListEntry } from "../utils/weighted";
 import type {
   EncounterEvent,
   EncounterGroup,
@@ -9,7 +9,7 @@ import type {
   StickHold,
 } from "./encounters.types";
 import type { Terrain } from "./map.types";
-import { move } from "./movement";
+import { moveHeroAlongStick } from "./movement";
 import { heroRadius } from "./movement.constants";
 import type { FieldGrid, Position, Stick } from "./movement.types";
 
@@ -89,7 +89,7 @@ export class EncounterWalkController {
     }
 
     for (let tick = 0; tick < ticks; tick++) {
-      const next = move(this.position, stick, 1, this.field);
+      const next = moveHeroAlongStick(this.position, stick, 1, this.field);
       const step = Math.hypot(next.x - this.position.x, next.y - this.position.y);
       this.position = next;
       distance += step;
@@ -114,7 +114,7 @@ export class EncounterWalkController {
         const table = this.tables[terrain];
         if (!table || this.rng.next() >= table.rate) continue;
 
-        const pack = pickWeighted(table.packs, this.rng.next());
+        const pack = pickWeightedListEntry(table.packs, this.rng.next());
         this.state.distanceSinceFight = 0;
         events.push({
           type: "encounterStarted",

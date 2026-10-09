@@ -1,16 +1,16 @@
-import { pickWeighted } from "../utils/weighted";
+import { pickWeightedListEntry } from "../utils/weighted";
 import type { FightEvent, Fighter, FightInput, PreparedFighter, TurnAction } from "./fight.types";
 import type { SpellChoice } from "./policy.types";
 import { HasteTurnQueue } from "./turn-queue.controller";
 import {
-  applyCritical,
-  applyDefend,
-  elementMultiplier,
-  magicDamage,
-  physicalDamage,
+  applyCriticalHitDamage,
+  applyDefendingDamageReduction,
+  calculateElementDamageMultiplier,
+  calculateMagicDamage,
+  calculatePhysicalDamage,
 } from "./utils/damage";
-import { fleeChance } from "./utils/flee";
-import { gainXp } from "./utils/level";
+import { calculateFleeChance } from "./utils/flee";
+import { grantExperienceAndRaiseLevels } from "./utils/level";
 import type { HeroProgress } from "./utils/level.types";
 
 /**
@@ -73,20 +73,22 @@ export class OneOnOneFightController {
 
       // Defend halves whatever just landed, including a spell or a grind.
       const guarded = (amount: number) =>
-        defending.has(target.id) ? applyDefend(amount, input.defendMultiplier) : amount;
+        defending.has(target.id)
+          ? applyDefendingDamageReduction(amount, input.defendMultiplier)
+          : amount;
 
       // Pay for a spell and resolve it. The caller has already checked the MP.
       const castSpell = (spell: SpellChoice) => {
         actor.mp -= spell.cost;
         const spread = input.spreadMin + input.rng.next() * (input.spreadMax - input.spreadMin);
-        const multiplier = elementMultiplier(
+        const multiplier = calculateElementDamageMultiplier(
           spell.element,
           target.weak,
           target.resists,
           input.weaknessMultiplier,
           input.resistanceMultiplier,
         );
-        const amount = guarded(magicDamage(spell.power, actor.mag, multiplier, spread));
+        const amount = guarded(calculateMagicDamage(spell.power, actor.mag, multiplier, spread));
         target.hp = Math.max(0, target.hp - amount);
 
         events.push({
@@ -111,8 +113,8 @@ export class OneOnOneFightController {
       const resolveGrind = (multiplier: number) => {
         const spread = input.spreadMin + input.rng.next() * (input.spreadMax - input.spreadMin);
         const critical = input.rng.next() < input.critChance;
-        const hit = physicalDamage(actor.str, target.def, spread);
-        const rolled = critical ? applyCritical(hit, input.critMultiplier) : hit;
+        const hit = calculatePhysicalDamage(actor.str, target.def, spread);
+        const rolled = critical ? applyCriticalHitDamage(hit, input.critMultiplier) : hit;
         const scaled = Math.max(1, Math.floor(rolled * multiplier));
         const amount = guarded(scaled);
         target.hp = Math.max(0, target.hp - amount);
@@ -162,7 +164,7 @@ export class OneOnOneFightController {
           continue;
         }
       } else if (actor === enemy && enemy.actions && enemy.actions.length > 0) {
-        const picked = pickWeighted(enemy.actions, (input.choiceRng ?? input.rng).next());
+        const picked = pickWeightedListEntry(enemy.actions, (input.choiceRng ?? input.rng).next());
 
         // Pay for the spell and resolve it now. An unpaid spell falls through to Fight.
         if (picked.type === "spell" && actor.mp >= picked.cost) {
@@ -207,7 +209,7 @@ export class OneOnOneFightController {
       if (action === "flee" && actor === hero) {
         const chance = enemy.miniboss
           ? 0
-          : fleeChance(
+          : calculateFleeChance(
               hero.haste,
               enemy.haste,
               input.fleeBase,
@@ -224,8 +226,8 @@ export class OneOnOneFightController {
       // Physical hit: spread, then a crit, then halve it when the target is guarding.
       const spread = input.spreadMin + input.rng.next() * (input.spreadMax - input.spreadMin);
       const critical = input.rng.next() < input.critChance;
-      const hit = physicalDamage(actor.str, target.def, spread);
-      const rolled = critical ? applyCritical(hit, input.critMultiplier) : hit;
+      const hit = calculatePhysicalDamage(actor.str, target.def, spread);
+      const rolled = critical ? applyCriticalHitDamage(hit, input.critMultiplier) : hit;
       const amount = guarded(rolled);
       target.hp = Math.max(0, target.hp - amount);
       events.push({ type: "attacked", actorId: actor.id, targetId: target.id });
@@ -268,7 +270,7 @@ export class OneOnOneFightController {
     events.push({ type: "actorDefeated", actorId: target.id });
     if (target !== enemy || enemy.xpReward <= 0 || !leveling) return;
 
-    const gained = gainXp(this.progressOf(hero), enemy.xpReward, leveling);
+    const gained = grantExperienceAndRaiseLevels(this.progressOf(hero), enemy.xpReward, leveling);
     Object.assign(hero, gained.hero);
     events.push(...gained.events);
   }

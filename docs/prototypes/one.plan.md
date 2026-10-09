@@ -52,11 +52,13 @@ package.json
 src/                        shared engine
   boot/                     loader screen, dynamic import of the game
   sim/                      pure, seeded game rules
-    rng.ts                  seeded random number generator
-    combat/                 turn queue, actions, damage, fight, policies
-    field/                  map generation, fixed-step movement and collision, encounters
-    harness/                replay and seed sweeps
+    utils/                  seeded random number generator, weighted picks
+    combat/                 turn queue, fight, combat policy
+      utils/                damage, flee chance, leveling
+    field/                  meadow generation, movement and collision, encounters, walk policy
+    run/                    grinder run and run statistics
     sim.ts                  createSim, observe, legalActions, act
+  harness/                  replay and seed sweeps. Drives the sim. Not a rule.
   content/                  zod schemas and the bundle loader
   view/                     Three.js: renderer, field scene, combat scene, sequencer
   ui/                       React DOM overlay and zustand store
@@ -515,11 +517,11 @@ The canvas, the WebGPU renderer, and the React overlay already exist from toolin
 
 ## Addendum: housekeeping before the view
 
-Proposal only. The code stays as it is until this addendum is agreed. The agreed items then go out as one housekeeping pull request: file moves, controller classes, renames, and a root `README.md`. No mechanic changes.
+Done on branch `bozmak/housekeeping`: file moves, controller classes, renames, and a root `README.md`. No mechanic changed, and every sweep and replay prints what it did before.
 
-The sim, the content bundle, and the headless harness are in good enough shape to build on. The view, UI, and input folders are still thin, and their split (Three.js classes, React overlay, debug tools) should stay. The problem is inside `src/sim`: related rules share a file with their types and tuning numbers, the processes that keep state are loose functions, several public names are too short to say what they do, and the test harness lives in the same tree as the game rules.
+The two tables below describe the code before the housekeeping. The sim, the content bundle, and the headless harness were in good enough shape to build on. The view, UI, and input folders are still thin, and their split (Three.js classes, React overlay, debug tools) should stay. The problem is inside `src/sim`: related rules share a file with their types and tuning numbers, the processes that keep state are loose functions, several public names are too short to say what they do, and the test harness lives in the same tree as the game rules.
 
-### What each directory is today
+### What each directory was before
 
 | Path | Role |
 | --- | --- |
@@ -553,11 +555,11 @@ Combat rules are already in the right folder. The awkward files are the ones tha
 
 `run.ts` is the sharpest case. A finished run is not a field rule. It calls the meadow, the encounter walk, the combat policies, and `fight`, then estimates play time. It belongs beside combat and field, not inside field.
 
-### Proposed directories
+### Directories now
 
 ```
 src/sim                 game rules only
-  utils/                shared by more than one sim area: SeededRandomGenerator, pickWeighted
+  utils/                shared by more than one sim area: SeededRandomGenerator, hashToUnit, pickWeightedListEntry
   combat/               HasteTurnQueue, CombatActionPolicy, OneOnOneFightController
     utils/              damage, flee chance, and leveling formulas
   field/                meadow, movement, EncounterWalkController, FieldWalkPolicy
@@ -566,16 +568,16 @@ src/harness             headless play of the sim
   replay.ts             event hash, logged actions, outcome, replay script
   combat-sweep.ts       many one-off fights, win rate, deaths by mob
   field-sweep.ts        many grinder runs, including estimated play time
-src/content             unchanged
+src/content             schemas, bundle loading, bundle rows into fighters
 src/view                unchanged
 src/ui                  unchanged
-src/debug               unchanged
+src/debug               DebugLogController and DebugWatchController, one instance each
 tools/sim.ts            CLI only. Imports harness and sim. Does not own rules.
 ```
 
 `src/sim` stays on `tsconfig.sim.json` with no DOM library, and the purity check stays on that folder. The harness may import the sim. The sim does not import the harness. `tools/sim.ts` is the only place that prints.
 
-Content stays in `schema.ts` and `load.ts`. The Zod schemas are the content types. Splitting them into `schema.types.ts` would duplicate the source of truth.
+Content keeps its Zod schemas in `schema.ts`. The schemas are the content types, so splitting them into `schema.types.ts` would duplicate the source of truth. `load.types.ts` and `fighters.types.ts` hold only the types that are not schemas.
 
 ### File convention
 
@@ -585,7 +587,8 @@ For each rule file `{area}.ts`:
 - `{area}.constants.ts` holds the tuning numbers for that rule, when it has any.
 - `{area}.tests.ts` holds the tests for that file.
 - `{area}.controller.ts` holds a class: a controller, a policy, the generator, or the turn queue.
-- `{area}.ts` holds formulas only.
+- `{area}.ts` holds formulas and shared helpers only.
+- A `utils/` folder holds code shared across areas: `sim/utils/` for the generator and weighted picks, `sim/combat/utils/` for the combat formulas.
 - Area names are kebab-case and leave out the folder, so the field walk policy is `field/policy.controller.ts`.
 - Callers import types from `{area}.types.ts` directly. A controller file does not re-export them.
 
@@ -612,6 +615,8 @@ The class name is the noun, so the method can be a short verb. `OneOnOneFightCon
 | `EncounterWalkController` | Hero position, distance walked on each terrain, and distance since the last fight. | `createEncounterState` and `walk`. | `holdStick(stick, ticks)` |
 | `RunStatistics` | The scoreboard for one run: fights, damage, potions, distance, level, killer. | `createRunStats`, `recordWalk`, `recordFight`. | `addWalk(distance)`, `addFight(events, enemyId)`, `snapshot()` |
 | `GrinderFieldRunController` | The hero carried between fights, the three generators, and the meadow. | `runField`. | `play()` |
+| `DebugWatchController` | The dev panel's live readers. One instance, `debugWatches`. | `watch` and `readWatches`. | `watch(label, read)`, `rows()` |
+| `DebugLogController` | Which log namespaces are on. One instance, `debugLog`. | `createLogger`. | `create(namespace)` |
 
 `SeededRandomGenerator` and `HasteTurnQueue` are classes. Each owns the state the old factory closed over.
 
@@ -622,24 +627,25 @@ Two policy classes group the choices a controller asks for. Each is built once w
 | `CombatActionPolicy` | Known spells, and the roll for the random choice. | `chooseFighter`, `chooseCaster`, `chooseRandom` | `fighterAction`, `casterAction`, `randomAction` |
 | `FieldWalkPolicy` | The meadow, the miniboss tile, and the direction roll. | `chooseFighter`, `chooseCaster`, `chooseGrinder` | `fighterWalk`, `casterWalk`, `grinderWalk` |
 
-These stay single functions. Each one is a formula. It does not keep state between calls:
+These stay single functions. None of them keeps state between calls, and each rule formula has its own tests that pin the numbers in the design doc:
 
 - Damage, critical hits, defending, element multipliers, and magic damage.
 - Flee chance.
 - Weighted list picks.
 - Experience grants and level-ups.
 - Meadow generation, walkable terrain, and distance between tiles.
+- One noise value from a seed, `hashToUnit`. Map noise used to build a throwaway generator per sample. It now hashes, and the generator steps through the same hash.
 - One stick step and its collision slide. The encounter controller owns where the hero is standing and calls this for each tick.
 - Fight-log reads in the harness: hash, logged actions, outcome, and the replay script.
 - The two sweep summaries. Each one formats a list into text.
 
-`.cursor/skills/readable-code/SKILL.md` is updated in the same pull request. A controller is the shape for the rows above. A new formula stays a function until it starts owning state.
+`.cursor/skills/controller-classes/SKILL.md` holds the rule: logic that needs state is a class, a helper for one class is a private method, and rule formulas keep their own tested files.
 
 ### Public names
 
-Exported formulas should say the action and the thing they act on. Private helpers such as `clamp` and `lerp` stay short. Controller and policy methods use the short verbs in the tables above, so those old free functions are not also renamed. These formula renames are in the housekeeping pull request:
+Exported formulas should say the action and the thing they act on. Private helpers such as `clamp` and `lerp` stay short. Controller and policy methods use the short verbs in the tables above, so those old free functions are not also renamed. These formulas were renamed in the housekeeping:
 
-| Now | Proposed |
+| Before | After |
 | --- | --- |
 | `physicalDamage` | `calculatePhysicalDamage` |
 | `applyCritical` | `applyCriticalHitDamage` |
@@ -678,9 +684,6 @@ Mechanics stay in `docs/game_design.md`. This plan stays the build spec. The REA
 
 ### Housekeeping pull request
 
-After this addendum is agreed:
-
-- Branch `bozmak/housekeeping`.
-- Move files, introduce the controllers and policy classes, rename the formulas in the table, update the layout sketch above so it matches, and update the readable-code skill.
-- `npm run check` is the proof. Behavior and CLI output stay the same.
-- Suggested commit: `refactor: separate the harness and name the sim rules`.
+- Branch `bozmak/housekeeping`, one commit per stage.
+- `npm run check` passes. The caster replay at seed 42, the 200-fight random sweep, and the 1000-run grinder sweep print exactly what they did before.
+- Found along the way and left alone, because fixing it changes every meadow: the second blend in map noise uses the vertical weight `ty` where the horizontal weight `tx` belongs.

@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { gainXp } from "./level";
+import { grantExperienceAndRaiseLevels } from "./level";
 import type { HeroProgress, LevelRules } from "./level.types";
 
 const rules: LevelRules = {
@@ -22,7 +22,7 @@ const strider: HeroProgress = {
 };
 
 test("6 XP leaves level 1, grows stats, and restores HP and MP", () => {
-  const gained = gainXp({ ...strider, xp: 3 }, 3, rules);
+  const gained = grantExperienceAndRaiseLevels({ ...strider, xp: 3 }, 3, rules);
   expect(gained.events).toEqual([
     { type: "xpGained", amount: 3, xp: 6, level: 1 },
     {
@@ -42,7 +42,7 @@ test("6 XP leaves level 1, grows stats, and restores HP and MP", () => {
 });
 
 test("40 XP raises three levels and keeps the remainder", () => {
-  const gained = gainXp(strider, 40, rules);
+  const gained = grantExperienceAndRaiseLevels(strider, 40, rules);
   expect(gained.events.map((event) => event.type)).toEqual([
     "xpGained",
     "levelUp",
@@ -54,7 +54,7 @@ test("40 XP raises three levels and keeps the remainder", () => {
 
 test("at the level cap, XP accumulates and stats stay put", () => {
   const capped = { ...strider, level: 10, xp: 0, hp: 30, mp: 10 };
-  const gained = gainXp(capped, 100, rules);
+  const gained = grantExperienceAndRaiseLevels(capped, 100, rules);
   expect(gained.events).toEqual([{ type: "xpGained", amount: 100, xp: 100, level: 10 }]);
   expect(gained.hero).toMatchObject({ level: 10, xp: 100, maxHp: 30, str: 8 });
 });

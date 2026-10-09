@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { pickWeighted } from "./weighted";
+import { pickWeightedListEntry } from "./weighted";
 
 const actions = [
   { type: "fight", weight: 60 },
@@ -8,9 +8,9 @@ const actions = [
 ];
 
 test("a weighted roll walks the list, and a boundary belongs to the next action", () => {
-  expect(pickWeighted(actions, 0).type).toBe("fight");
-  expect(pickWeighted(actions, 0.5).type).toBe("fight");
-  expect(pickWeighted(actions, 0.6).type).toBe("defend");
-  expect(pickWeighted(actions, 0.9).type).toBe("potion");
-  expect(pickWeighted(actions, 0.99).type).toBe("potion");
+  expect(pickWeightedListEntry(actions, 0).type).toBe("fight");
+  expect(pickWeightedListEntry(actions, 0.5).type).toBe("fight");
+  expect(pickWeightedListEntry(actions, 0.6).type).toBe("defend");
+  expect(pickWeightedListEntry(actions, 0.9).type).toBe("potion");
+  expect(pickWeightedListEntry(actions, 0.99).type).toBe("potion");
 });

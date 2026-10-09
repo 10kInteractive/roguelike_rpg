@@ -24,6 +24,8 @@ State decides class or no class. State means values that change between calls an
 
 A singleton is right when the game has exactly one owner of something for the life of the page: the logger, the dev panel, the renderer, the input reader.
 
+The controller file exports the class and its one instance, so tests can still build a fresh one: `export const debugWatches = new DebugWatchController();`.
+
 `src/sim` has no singletons. A run uses three generators, a sweep plays a thousand seeds, and a replay starts fresh. Shared instance state there breaks determinism.
 
 ## The default: a class
@@ -43,14 +45,26 @@ A function may sit outside a class only when both are true:
 
 If either is false, it is a private method. When a second class starts needing a private method, move it out to `{area}.ts` at that point, and not before.
 
-React components in `src/ui` and `src/debug` stay function components. This rule is for logic, not JSX.
+Rule formulas are the one exception. Damage, flee chance, leveling, and movement stay in their own tested `{area}.ts` files even with one caller, because their tests pin the numbers in `docs/game_design.md`. A new formula joins them when it is a game rule with its own test. A helper that only tidies a controller is still a private method.
+
+Exempt from the class rule:
+
+- React components in `src/ui` and `src/debug`. This rule is for logic, not JSX.
+- `Error` subclasses. They sit beside the code that throws them.
+
+## Folders for shared code
+
+- `src/sim/utils/`: used by more than one sim area. The seeded generator and weighted picks.
+- `src/sim/combat/utils/`: combat rule formulas.
+
+Add a `utils/` folder when shared code appears, and record it in the layout in `docs/techstack.md`.
 
 ## Files
 
 | File | Holds |
 | --- | --- |
 | `{area}.controller.ts` | Every class: a controller, a policy, the generator, the turn queue. |
-| `{area}.ts` | Shared helpers that pass both tests above. |
+| `{area}.ts` | Shared helpers that pass both tests above, and rule formulas. |
 | `{area}.types.ts` | Exported types and their member comments. |
 | `{area}.constants.ts` | Tuning numbers and fixed tables for that area. |
 | `{area}.tests.ts` | Tests for that area. |

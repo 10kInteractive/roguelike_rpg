@@ -10,7 +10,7 @@ import type { Element } from "./damage.types";
  * @param defense The target's DEF.
  * @param spread Roll in the bundle's damage range, such as 0.9 to 1.1.
  */
-export function physicalDamage(attack: number, defense: number, spread: number): number {
+export function calculatePhysicalDamage(attack: number, defense: number, spread: number): number {
   const raw = (attack - defense / 2) * spread;
   return Math.max(1, Math.floor(raw));
 }
@@ -20,7 +20,7 @@ export function physicalDamage(attack: number, defense: number, spread: number):
  *
  * Multiplies an already rounded hit, then rounds down again.
  */
-export function applyCritical(damage: number, multiplier: number): number {
+export function applyCriticalHitDamage(damage: number, multiplier: number): number {
   return Math.max(1, Math.floor(damage * multiplier));
 }
 
@@ -29,7 +29,7 @@ export function applyCritical(damage: number, multiplier: number): number {
  *
  * Multiplies an already rounded hit, then rounds down again.
  */
-export function applyDefend(damage: number, multiplier: number): number {
+export function applyDefendingDamageReduction(damage: number, multiplier: number): number {
   return Math.max(1, Math.floor(damage * multiplier));
 }
 
@@ -38,7 +38,7 @@ export function applyDefend(damage: number, multiplier: number): number {
  *
  * A matching weakness wins over a matching resistance. Anything else is ×1.
  */
-export function elementMultiplier(
+export function calculateElementDamageMultiplier(
   element: Element,
   weak: Element | undefined,
   resists: Element | undefined,
@@ -57,7 +57,7 @@ export function elementMultiplier(
  * rounded down. The result is at least 1. Defense is ignored, and spells do
  * not crit.
  */
-export function magicDamage(
+export function calculateMagicDamage(
   power: number,
   mag: number,
   multiplier: number,

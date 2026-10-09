@@ -3,7 +3,12 @@ import { OneOnOneFightController } from "../sim/combat/fight.controller";
 import { CombatActionPolicy } from "../sim/combat/policy.controller";
 import type { KnownSpell } from "../sim/combat/policy.types";
 import { SeededRandomGenerator } from "../sim/utils/rng.controller";
-import { actionsFrom, eventHash, outcomeFrom, toScriptedActions } from "./replay";
+import {
+  expandLoggedActionsIntoFightScript,
+  hashFightEventList,
+  readFightOutcomeFromEvents,
+  readLoggedActionsFromFightEvents,
+} from "./replay";
 
 const hero = {
   id: "hero",
@@ -50,7 +55,7 @@ test("the same seed and action list hash the same, and a different action does n
     }).resolve();
   const once = played();
   const twice = played();
-  expect(eventHash(once)).toBe(eventHash(twice));
+  expect(hashFightEventList(once)).toBe(hashFightEventList(twice));
 
   const other = new OneOnOneFightController({
     ...rules,
@@ -60,7 +65,7 @@ test("the same seed and action list hash the same, and a different action does n
     heroActions: ["defend", "potion"],
     enemyActions: ["fight", "fight"],
   }).resolve();
-  expect(eventHash(other)).not.toBe(eventHash(once));
+  expect(hashFightEventList(other)).not.toBe(hashFightEventList(once));
 });
 
 test("a recorded fight replays to the same hash", () => {
@@ -81,15 +86,17 @@ test("a recorded fight replays to the same hash", () => {
     choiceRng: choice,
     heroPolicy: (actor) => new CombatActionPolicy(spells, choice).chooseRandom(actor),
   }).resolve();
-  const actions = actionsFrom(events, hero.id);
+  const actions = readLoggedActionsFromFightEvents(events, hero.id);
   const replayed = new OneOnOneFightController({
     ...rules,
     hero,
     enemy,
     rng: new SeededRandomGenerator(4),
-    heroActions: toScriptedActions(actions.hero, spells),
-    enemyActions: toScriptedActions(actions.enemy, spells),
+    heroActions: expandLoggedActionsIntoFightScript(actions.hero, spells),
+    enemyActions: expandLoggedActionsIntoFightScript(actions.enemy, spells),
   }).resolve();
-  expect(eventHash(replayed)).toBe(eventHash(events));
-  expect(outcomeFrom(events, hero.id)).toBe(outcomeFrom(replayed, hero.id));
+  expect(hashFightEventList(replayed)).toBe(hashFightEventList(events));
+  expect(readFightOutcomeFromEvents(events, hero.id)).toBe(
+    readFightOutcomeFromEvents(replayed, hero.id),
+  );
 });

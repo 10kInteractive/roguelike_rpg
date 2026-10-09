@@ -1,4 +1,5 @@
 import type * as z from "zod";
+import type { BundleSource } from "./load.types";
 import {
   assetsSchema,
   type Bundle,
@@ -12,24 +13,13 @@ import {
   spellsSchema,
 } from "./schema";
 
+/** A bundle that fails validation. The message lists every problem found. */
 export class BundleError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "BundleError";
   }
 }
-
-export type BundleSource = {
-  manifest: unknown;
-  rules: unknown;
-  hero: unknown;
-  spells: unknown;
-  items: unknown;
-  mobs: unknown;
-  encounters: unknown;
-  biomes: unknown[];
-  assets: unknown;
-};
 
 /**
  * Validates one bundle and resolves its references.

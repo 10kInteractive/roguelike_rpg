@@ -6,7 +6,7 @@ import type { FieldRunResult } from "../sim/run/run.types";
  * Win rate is miniboss kills divided by runs. Boss level averages only the
  * runs that started that fight. A flee is a fight, and it is not a death.
  */
-export function fieldSweepSummary(runs: readonly FieldRunResult[]): string {
+export function formatGrinderFieldSweepSummary(runs: readonly FieldRunResult[]): string {
   const count = runs.length;
   const wins = runs.filter((run) => run.outcome === "win").length;
   const arrived = runs.filter((run) => run.bossLevel !== undefined);

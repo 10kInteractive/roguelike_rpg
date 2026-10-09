@@ -7,7 +7,7 @@ import type { FightOutcome, LoggedAction, LoggedActions } from "./replay.types";
  *
  * The same events always hash the same, in Node and in the browser.
  */
-export function eventHash(events: readonly FightEvent[]): string {
+export function hashFightEventList(events: readonly FightEvent[]): string {
   let hash = 0xcbf29ce484222325n;
   const prime = 0x100000001b3n;
   const text = JSON.stringify(events);
@@ -19,7 +19,10 @@ export function eventHash(events: readonly FightEvent[]): string {
 }
 
 /** The hero's actions and the enemy's, in the order each of them acted. */
-export function actionsFrom(events: readonly FightEvent[], heroId: string): LoggedActions {
+export function readLoggedActionsFromFightEvents(
+  events: readonly FightEvent[],
+  heroId: string,
+): LoggedActions {
   const hero: LoggedAction[] = [];
   const enemy: LoggedAction[] = [];
   for (const event of events) {
@@ -35,7 +38,10 @@ export function actionsFrom(events: readonly FightEvent[], heroId: string): Logg
  *
  * A fight that records none of those is a loss.
  */
-export function outcomeFrom(events: readonly FightEvent[], heroId: string): FightOutcome {
+export function readFightOutcomeFromEvents(
+  events: readonly FightEvent[],
+  heroId: string,
+): FightOutcome {
   for (const event of events) {
     if (event.type === "fleeAttempted" && event.success) return "flee";
     if (event.type === "actorDefeated") return event.actorId === heroId ? "lose" : "win";
@@ -44,7 +50,7 @@ export function outcomeFrom(events: readonly FightEvent[], heroId: string): Figh
 }
 
 /** Fills in spell power and cost so a logged action can be played again. */
-export function toScriptedActions(
+export function expandLoggedActionsIntoFightScript(
   actions: readonly LoggedAction[],
   spells: readonly KnownSpell[],
 ): ScriptedAction[] {

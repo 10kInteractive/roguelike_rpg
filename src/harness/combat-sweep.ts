@@ -5,7 +5,7 @@ import type { SweepFight } from "./combat-sweep.types";
  *
  * A flee is neither a win nor a death. Win rate is wins divided by fights.
  */
-export function sweepSummary(fights: readonly SweepFight[]): string {
+export function formatCombatSeedSweepSummary(fights: readonly SweepFight[]): string {
   const wins = fights.filter((fight) => fight.outcome === "win").length;
   const rate = fights.length === 0 ? 0 : wins / fights.length;
   const deaths = new Map<string, number>();

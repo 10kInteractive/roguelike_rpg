@@ -1,21 +1,23 @@
 import { expect, test } from "vitest";
-import { createMeadow, isWalkable, tileDistance } from "./map";
+import { createSeededMeadow, distanceBetweenTiles, isTerrainWalkable } from "./map";
 import type { MeadowMap } from "./map.types";
 
 const meadow = { width: 48, height: 48, minibossDistance: 20 };
 
 test("the same seed builds the same meadow", () => {
-  const once = createMeadow({ seed: 7, ...meadow });
-  const twice = createMeadow({ seed: 7, ...meadow });
+  const once = createSeededMeadow({ seed: 7, ...meadow });
+  const twice = createSeededMeadow({ seed: 7, ...meadow });
   expect(twice).toEqual(once);
 });
 
 test("spawn and the miniboss are reachable on many seeds", () => {
   for (let seed = 1; seed <= 50; seed++) {
-    const map = createMeadow({ seed, ...meadow });
-    expect(tileDistance(map.spawn, map.miniboss)).toBeGreaterThanOrEqual(meadow.minibossDistance);
-    expect(isWalkable(tileAt(map, map.spawn))).toBe(true);
-    expect(isWalkable(tileAt(map, map.miniboss))).toBe(true);
+    const map = createSeededMeadow({ seed, ...meadow });
+    expect(distanceBetweenTiles(map.spawn, map.miniboss)).toBeGreaterThanOrEqual(
+      meadow.minibossDistance,
+    );
+    expect(isTerrainWalkable(tileAt(map, map.spawn))).toBe(true);
+    expect(isTerrainWalkable(tileAt(map, map.miniboss))).toBe(true);
     expect(reachable(map)).toBe(true);
   }
 });
@@ -48,7 +50,7 @@ function reachable(map: MeadowMap): boolean {
       if (nextX < 0 || nextY < 0 || nextX >= map.width || nextY >= map.height) continue;
       const next = nextY * map.width + nextX;
       const terrain = map.tiles[next];
-      if (seen.has(next) || terrain === undefined || !isWalkable(terrain)) continue;
+      if (seen.has(next) || terrain === undefined || !isTerrainWalkable(terrain)) continue;
       seen.add(next);
       queue.push(next);
     }
