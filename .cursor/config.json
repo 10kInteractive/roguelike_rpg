@@ -11,7 +11,7 @@
     "uiState": "zustand",
     "schemas": "zod",
     "tests": ["vitest", "playwright"],
-    "hosting": "joshbosworth.com/foo (private static server)"
+    "hosting": "joshbosworth.com/roguelike_rpg (private static server)"
   },
   "paths": {
     "docs": "docs",

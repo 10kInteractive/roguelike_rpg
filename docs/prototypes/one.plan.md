@@ -61,6 +61,7 @@ src/                        shared engine
   ui/                       React DOM overlay and zustand store
   input/                    keyboard and gamepad to actions
   assets/                   manifest resolver and loader service
+  debug/                    namespaced logger and dev panel
 prototypes/
   one/
     index.html              entry page
@@ -133,7 +134,7 @@ Dev dependencies:
 
 ### Config notes
 
-- **Vite:** multi-page inputs (launcher and `prototypes/one/index.html`). `base` comes from the `BASE_PATH` environment variable: `/foo/` for production builds, `/` locally.
+- **Vite:** multi-page inputs (launcher and `prototypes/one/index.html`). `base` comes from the `BASE_PATH` environment variable: `/roguelike_rpg/` for production builds, `/` locally.
 - **TypeScript:** strict mode. `tsconfig.sim.json` covers `src/sim` with only ES libraries, so DOM globals fail type-checking.
 - **Biome:** recommended rules. An override for `src/sim/**` restricts imports of `three`, `react`, `zustand`, and anything in `src/view`, `src/ui`, or `src/input`.
 - **`.gitignore` additions:** `runs/` (sim logs), `playwright-report/`, `test-results/`.
@@ -143,7 +144,7 @@ Dev dependencies:
 
 - On pull requests: `npm ci`, then `npm run check`, then `npm run build`.
 - **Prototype one is local only.** `npm run dev` for play, `npm run build && npm run preview` to check the production build.
-- Deploying to `joshbosworth.com/foo` comes later (see `docs/techstack.md`). The `BASE_PATH` setting is there from day one so the build is ready for it.
+- Deploying to `joshbosworth.com/roguelike_rpg` comes later (see `docs/techstack.md`). The `BASE_PATH` setting is there from day one so the build is ready for it.
 
 ## The simulation interface
 
@@ -409,7 +410,9 @@ End-to-end (Playwright):
 
 ## Milestones
 
-1. **Tooling.** Vite, TypeScript, Biome, React, launcher, prototype one entry, CI. Remove `server.js`.
+Each milestone is built as a series of small stages, one commit each, following the `staged-delivery` skill.
+
+1. **Tooling.** Vite, TypeScript, Biome, React, launcher, prototype one entry, CI. Remove `server.js`. Add the namespaced logger and the dev panel early, so every later stage has somewhere to show its output.
 2. **Sim core.** RNG, bundle schemas and loader, the prototype one bundle, combat engine, unit tests.
 3. **Harness.** Sim CLI, combat policies, sweep, replay. Combat is tunable before anything renders.
 4. **Field sim.** Map generation, fixed-step analog movement and collision, encounters by distance, miniboss, run stats. Walking policies.

@@ -25,7 +25,7 @@ Mechanics live in `docs/game_design.md`; this doc covers how we build them. Deci
 | Build | Vite, TypeScript strict. |
 | Lint and format | Biome only. |
 | Tests | Vitest (sim), headless sim CLI, LLM playtesters, Playwright (browser). |
-| Hosting | Josh's private server, served under `joshbosworth.com/foo`. |
+| Hosting | Josh's private server, served under `joshbosworth.com/roguelike_rpg`. |
 | Pixel look | Pixel textures on low-poly models. No low-resolution render target. |
 | Asset tools | GIMP, Blender, DAW to be decided. |
 
@@ -175,15 +175,34 @@ Every generated asset gets a sidecar file recording how it was made: generator s
 6. One loader service owns all fetches: progress events, caching, retry, and disposal of GPU resources when a pack unloads.
 7. Later: a service worker caches packs for repeat visits.
 
+## Observability
+
+Every change should be easy to see. Two tools, both in `src/debug`:
+
+**Namespaced logger**
+
+- `const log = createLogger("view:field"); log("hero entered forest", pos);`
+- Namespaces follow the folder: `boot`, `assets`, `input`, `view:field`, `view:combat`, `ui`, `sim:events`.
+- Off by default. Enable with a URL parameter, `?debug=view:*,sim:events`, or `localStorage.debug` for a sticky setting. `?debug=*` turns everything on.
+- Log calls stay in production builds but do nothing unless enabled, so they're safe to leave in.
+
+**Dev panel**
+
+- A small React overlay, only in dev builds, toggled with the backtick key.
+- Shows the seed, sim mode, hero position and stats, FPS, renderer backend (WebGPU or WebGL2), and the last few sim events.
+- Any module can add a live value: `watch("encounter distance", () => value)`.
+
+**The sim never logs.** It has no `console` (its tsconfig has no DOM or Node types). Its events and snapshots are logged at the boundary: by the browser under `sim:events`, and by the sim CLI, which prints events as readable lines with `--log`.
+
 ## Build, tooling, and deploy
 
 - **[Vite](https://vite.dev/)**. As of Vite 8 it builds with Rolldown (a Rust bundler): fast dev reloads, fast production builds, code splitting and asset hashing without config. Replaces our hand-written `server.js`.
 - **TypeScript** in strict mode. Vite strips types; `tsc --noEmit` type-checks in CI.
 - **[Biome](https://biomejs.dev/)** for linting and formatting. No ESLint or Prettier.
 - **Node 22** (installed locally: v22.14).
-- **Hosting on Josh's private server** at `joshbosworth.com/foo`. The build is plain static files, so the server only needs to serve `dist/` under that path.
-- Vite's `base` option is set from an environment variable (`BASE_PATH`, default `/foo/` for production builds, `/` locally), so the path can change without code edits.
-- **Deploy by git:** push to the remote, then on the server `git pull`, `npm ci`, and `BASE_PATH=/foo/ npm run build`. The web server serves the resulting `dist/`. Since `dist/` is never committed, the server builds it and needs Node 22. Something smarter (a CI job, a webhook) can come later.
+- **Hosting on Josh's private server** at `joshbosworth.com/roguelike_rpg`. The build is plain static files, so the server only needs to serve `dist/` under that path.
+- Vite's `base` option is set from an environment variable (`BASE_PATH`, default `/roguelike_rpg/` for production builds, `/` locally), so the path can change without code edits.
+- **Deploy by git:** push to the remote, then on the server `git pull`, `npm ci`, and `BASE_PATH=/roguelike_rpg/ npm run build`. The web server serves the resulting `dist/`. Since `dist/` is never committed, the server builds it and needs Node 22. Something smarter (a CI job, a webhook) can come later.
 - **Prototype one is local only.** Deploying starts after it.
 - **CI** on every pull request: type-check, lint, unit tests, content validation, sim purity check, a short headless sim smoke run, build.
 
@@ -232,6 +251,7 @@ Proposed starting set:
 
 | Skill | Does |
 | --- | --- |
+| `staged-delivery` | **In place.** Small, testable stages: each one observable (logs, dev panel, CLI, test), verified, reported, and committed separately when Josh says. |
 | `design-to-spec` | Turns brainstorm decisions into a `game_design.md` section and a prototype checklist. |
 | `add-content` | Adds a mob, item, boon, or biome as data, validates it, adds a unit test if it has new rules. |
 | `generate-asset` | Generates an asset with a tool or model, writes the sidecar, registers the logical ID. |
@@ -259,6 +279,7 @@ src/                shared engine
   input/            device to action mapping
   audio/            Web Audio mixer and music stems
   assets/           manifest resolver and loader service
+  debug/            namespaced logger and dev panel
 prototypes/
   <name>/           entry page, config, bundle/
 assets/
