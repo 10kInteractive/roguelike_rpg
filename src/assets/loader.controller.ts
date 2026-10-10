@@ -1,6 +1,15 @@
 import { NearestFilter, SRGBColorSpace, type Texture, TextureLoader } from "three";
 import type { Bundle } from "../content/schema";
+import { debugLog } from "../debug/logger.controller";
 import type { LoadedPack, PackProgress } from "./loader.types";
+
+const log = debugLog.create("assets");
+
+/** Where a hand-built file replaces the generated one of the same name. */
+const authoredRoot = "assets/authored/";
+
+/** Where the manifest's files live, until an authored file replaces one. */
+const generatedRoot = "assets/generated/";
 
 /**
  * The one place asset files are fetched: packs from a bundle's manifest, on demand.
@@ -74,12 +83,13 @@ export class AssetLoaderController {
 
     await Promise.all(
       pack.assets.map(async (asset, index) => {
-        const url = this.urls.get(asset.file);
+        const found = this.urlFor(asset.file);
         if (!asset.file.endsWith(".png")) skipped.push(asset.id);
-        else if (!url) missing.push(asset.id);
+        else if (!found) missing.push(asset.id);
         else {
           try {
-            textures.set(asset.id, this.pixelCrisp(await this.fetchTexture(url)));
+            textures.set(asset.id, this.pixelCrisp(await this.fetchTexture(found.url)));
+            if (found.authored) log(`${asset.id} authored`);
           } catch {
             failed.push(asset.id);
           }
@@ -93,6 +103,20 @@ export class AssetLoaderController {
     );
 
     return { id: packId, textures, missing, failed, skipped };
+  }
+
+  /**
+   * The URL to fetch, preferring a hand-built file of the same name.
+   *
+   * @param file The path the manifest names, under `assets/generated/`.
+   */
+  private urlFor(file: string): { url: string; authored: boolean } | undefined {
+    if (file.startsWith(generatedRoot)) {
+      const authored = this.urls.get(authoredRoot + file.slice(generatedRoot.length));
+      if (authored) return { url: authored, authored: true };
+    }
+    const generated = this.urls.get(file);
+    return generated ? { url: generated, authored: false } : undefined;
   }
 
   /** No smoothing up close, and colors read as sRGB. */

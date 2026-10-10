@@ -46,6 +46,29 @@ test("sorts a pack into loaded, missing, failed, and skipped, reporting each ste
   expect(progress.every((step) => step.total === 4 && step.packId === "biome.test")).toBe(true);
 });
 
+test("an authored file wins over the generated file of the same name", async () => {
+  const fetched: string[] = [];
+  const loader = new AssetLoaderController({
+    manifest,
+    urls: new Map([
+      ["assets/generated/grass.png", "/built/grass.generated.png"],
+      ["assets/authored/grass.png", "/built/grass.authored.png"],
+      ["assets/generated/water.png", "/built/water.generated.png"],
+    ]),
+    fetchTexture: async (url) => {
+      fetched.push(url);
+      return new Texture();
+    },
+  });
+  const pack = await loader.loadPack("biome.test");
+
+  expect([...pack.textures.keys()].sort()).toEqual([
+    "terrain.grass.texture",
+    "terrain.water.texture",
+  ]);
+  expect(fetched.sort()).toEqual(["/built/grass.authored.png", "/built/water.generated.png"]);
+});
+
 test("textures come out pixel-crisp", async () => {
   const loader = new AssetLoaderController({
     manifest,

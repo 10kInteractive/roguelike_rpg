@@ -85,7 +85,7 @@ prototypes/
     config.ts               planned: engine features this prototype uses
     bundle/                 content bundle (see below)
 assets/
-  authored/                 planned: hand-built, wins over generated
+  authored/                 hand-built, wins over a generated file of the same name
   generated/                tool output, each file with a `.json` provenance sidecar
 tools/                      Node scripts. Their tests run with the rest under `npm run test`
   sim.ts                    headless sim CLI. The only place that prints.
@@ -580,7 +580,7 @@ On the `bozmak/view` branch, not merged yet. The canvas, the WebGPU renderer, an
 - [x] `npm run check` passes and runs in CI.
 - [x] A 1000-seed sweep with the `grinder` policy completes and reports a summary.
 - [x] A recorded run replays to the same result.
-- [ ] Replacing a placeholder by dropping a same-ID file into `assets/authored/` changes it in game with no code change.
+- [x] Replacing a placeholder by dropping a same-ID file into `assets/authored/` changes it in game with no code change.
 
 ## Open questions
 
