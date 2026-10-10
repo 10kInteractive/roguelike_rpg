@@ -1,14 +1,17 @@
 import { debugLog } from "../../debug/logger.controller";
 import { debugWatches } from "../../debug/watch.controller";
+import { gamepad } from "../../input/gamepad.controller";
 import type { FightEvent } from "../../sim/combat/fight.types";
 import type { SimEvent } from "../../sim/game.types";
 import type { PackOutcome, PackResult } from "../../sim/run/pack.types";
+import { pause } from "../../ui/components/pause/controller";
 import { veil } from "../../ui/components/veil/controller";
 import type { RenderLoopController } from "../renderer.controller";
 import type { BackdropTextures, FightTerrain } from "./backdrops/backdrop.types";
 import { FloatingTextController } from "./floating-text.controller";
 import { combatCamera } from "./scene.constants";
 import { CombatSceneController } from "./scene.controller";
+import { MobSelectController } from "./select.controller";
 import { CombatSequencerController } from "./sequencer.controller";
 import { TweenController } from "./tween.controller";
 import { afterPackSeconds, betweenFightsSeconds, standInThinkSeconds } from "./view.constants";
@@ -19,9 +22,10 @@ const log = debugLog.create("view:combat");
  * A pack fight on screen. The camera looks at the center and drifts a little on its own.
  *
  * `show` plays one sim action: the hero's command, the enemy's turns, and
- * the next mob stepping out when this one falls. `play` plays a pack the
- * sim already resolved, for the `?combat` launcher. Until the command menu
- * exists, a short pause stands in for the player choosing.
+ * the ring moving to the next mob when this one falls. `choose` waits for the
+ * player to lock a living mob before the command window opens. The pack stays
+ * where it was placed. `play` plays a pack the sim already resolved, for the
+ * `?combat` launcher.
  */
 export class CombatViewController {
   /** The fight's Three.js objects. */
@@ -39,11 +43,8 @@ export class CombatViewController {
   /** How the pack ended, once it has played out. */
   private outcome: PackOutcome | "playing" = "playing";
 
-  /** How many mobs are on the stage. */
-  private readonly mobCount: number;
-
-  /** Which mob is stepped forward. */
-  private mobIndex = 0;
+  /** The pack in encounter order, one id per mob. */
+  private readonly mobIds: readonly string[];
 
   /** True once the stage is on screen. Later actions keep the camera where it is. */
   private shown = false;
@@ -66,7 +67,7 @@ export class CombatViewController {
     onPlayed?: () => void;
   }) {
     this.loop = input.loop;
-    this.mobCount = input.mobIds.length;
+    this.mobIds = input.mobIds;
     this.onPlayed = input.onPlayed ?? (() => {});
     this.combat = new CombatSceneController(input.mobIds, input.textures, input.terrain ?? "grass");
     this.sequencer = new CombatSequencerController({
@@ -79,8 +80,8 @@ export class CombatViewController {
     log(`${input.terrain ?? "grass"}: ${input.mobIds.join(", ")}`);
 
     if (import.meta.env.DEV) {
-      debugWatches.watch("pack", () => input.mobIds.join(", "));
-      debugWatches.watch("fighting", () => input.mobIds[this.combat.focusedIndex()] ?? "nobody");
+      debugWatches.watch("pack", () => this.mobIds.join(", "));
+      debugWatches.watch("fighting", () => this.mobIds[this.combat.focusedIndex()] ?? "nobody");
       debugWatches.watch("beat", () => this.sequencer.playing());
       debugWatches.watch("tweens", () => this.tweens.count());
       debugWatches.watch("outcome", () => this.outcome);
@@ -89,7 +90,8 @@ export class CombatViewController {
   }
 
   /**
-   * Plays one action's events. A fallen mob steps the next one out before its events play.
+   * Plays one action's events. A fallen mob leaves the others where they stand,
+   * and the ring moves to the next one before its events play.
    * The stage stays up, so the next action continues on it.
    *
    * @param events What `act` returned, through the next decision or the end of the pack.
@@ -107,14 +109,21 @@ export class CombatViewController {
       if (this.isBeat(event)) await this.sequencer.play([event]);
       this.onPlayed();
 
-      // The next mob steps out before its own opening plays.
+      // The ring moves to the next mob. The pack stays in its places.
       if (event.type !== "combatEnded") continue;
       this.outcome = event.outcome;
-      if (event.outcome === "win" && this.mobIndex + 1 < this.mobCount) {
-        this.mobIndex += 1;
-        this.combat.focus(this.mobIndex);
-        await this.tweens.wait(betweenFightsSeconds);
+      if (event.outcome !== "win") {
+        this.combat.ringAt(null);
+        continue;
       }
+      const next = this.combat.standing()[0];
+      if (next === undefined) {
+        this.combat.ringAt(null);
+        continue;
+      }
+      this.combat.ringAt(next);
+      log("ring", this.mobIds[next] ?? "nobody");
+      await this.tweens.wait(betweenFightsSeconds);
     }
 
     // The pack is over when no next turn is waiting.
@@ -123,6 +132,81 @@ export class CombatViewController {
       (events.some((event) => event.type === "combatEnded") &&
         !events.some((event) => event.type === "turnStarted"));
     if (over) await this.tweens.wait(afterPackSeconds);
+  }
+
+  /**
+   * Waits until the player locks a living mob.
+   * Up and down, and the pad's d-pad or stick, move the ring. A or Enter confirms it.
+   * The pack does not move.
+   *
+   * @param line Encounter indices still standing, front of the line first.
+   * @param focused The mob in focus last time.
+   */
+  choose(line: readonly number[], focused: number): Promise<number> {
+    const select = new MobSelectController(line, focused);
+    this.mark(select.chosen());
+    log("choosing", this.mobIds[select.chosen()] ?? "nobody");
+
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish = (index: number) => {
+        if (settled) return;
+        settled = true;
+        stop();
+        this.mark(index);
+        log("lock", this.mobIds[index] ?? "nobody");
+        resolve(index);
+      };
+      const onKey = (event: KeyboardEvent) => {
+        if (event.repeat || pause.isOpen() || settled) return;
+        const direction = this.direction(event.code);
+        if (!direction) return;
+        event.preventDefault();
+        if (direction === "up") this.step(select, -1);
+        if (direction === "down") this.step(select, 1);
+        if (direction === "confirm") finish(select.chosen());
+      };
+      const stopPad = gamepad.onMenu((action) => {
+        if (pause.isOpen() || settled) return;
+        if (action === "up") this.step(select, -1);
+        if (action === "down") this.step(select, 1);
+        if (action === "confirm") finish(select.chosen());
+      });
+      window.addEventListener("keydown", onKey);
+      const stop = () => {
+        window.removeEventListener("keydown", onKey);
+        stopPad();
+      };
+    });
+  }
+
+  /** Moves the ring along the line and logs who it sits under. The pack stays put. */
+  private step(select: MobSelectController, delta: number): void {
+    const index = select.move(delta);
+    this.mark(index);
+    log("focus", this.mobIds[index] ?? "nobody");
+  }
+
+  /** Puts the ring under that mob without moving the pack. */
+  private mark(index: number): void {
+    this.combat.ringAt(index);
+  }
+
+  /** Up, down, or confirm. Anything else is ignored while a mob is being chosen. */
+  private direction(code: string): "up" | "down" | "confirm" | null {
+    if (code === "ArrowUp" || code === "KeyW") return "up";
+    if (code === "ArrowDown" || code === "KeyS") return "down";
+    if (
+      code === "Enter" ||
+      code === "KeyA" ||
+      code === "Space" ||
+      code === "KeyZ" ||
+      code === "ArrowRight" ||
+      code === "KeyD"
+    ) {
+      return "confirm";
+    }
+    return null;
   }
 
   /** True when the sequencer has a beat for this event. The rest are for the UI. */
@@ -150,6 +234,7 @@ export class CombatViewController {
     this.aim();
     void this.loop.run(this.combat.scene, (elapsed) => this.frame(elapsed));
 
+    this.combat.ringAt(null);
     for (const [index, fight] of result.fights.entries()) {
       this.combat.focus(index);
       await this.tweens.wait(betweenFightsSeconds);

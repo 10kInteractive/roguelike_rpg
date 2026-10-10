@@ -32,8 +32,8 @@ export class UiStoreController {
   /** When the open pause began. Null while the run is going. */
   private pausedAt: number | null = null;
 
-  /** Resolves the command the window is waiting on. */
-  private resolver: ((action: Action) => void) | null = null;
+  /** Resolves the command the window is waiting on. Null means the window was cancelled. */
+  private resolver: ((action: Action | null) => void) | null = null;
 
   /** Resolves the restart the runtime is waiting on. */
   private restart: (() => void) | null = null;
@@ -156,10 +156,11 @@ export class UiStoreController {
 
   /**
    * Opens the command window and waits for a confirm.
+   * Resolves null when the window is cancelled, so the hero can choose a mob again.
    *
    * @param actions What the hero may do, from the sim.
    */
-  requestCommand(actions: readonly Action[]): Promise<Action> {
+  requestCommand(actions: readonly Action[]): Promise<Action | null> {
     this.store.setState({ commands: commandRows(actions) });
     return new Promise((resolve) => {
       this.resolver = resolve;
@@ -168,11 +169,12 @@ export class UiStoreController {
 
   /** The window confirmed a command. Ignored when the window is closed. */
   submit(action: Action): void {
-    const resolve = this.resolver;
-    if (!resolve) return;
-    this.resolver = null;
-    this.store.setState({ commands: null });
-    resolve(action);
+    this.settle(action);
+  }
+
+  /** The window closed without a command. Ignored when the window is closed. */
+  cancelCommand(): void {
+    this.settle(null);
   }
 
   /**
@@ -210,6 +212,15 @@ export class UiStoreController {
   /** The zustand store, so a React hook can subscribe. */
   api(): StoreApi<UiState> {
     return this.store;
+  }
+
+  /** Closes the window and answers whoever is waiting. */
+  private settle(action: Action | null): void {
+    const resolve = this.resolver;
+    if (!resolve) return;
+    this.resolver = null;
+    this.store.setState({ commands: null });
+    resolve(action);
   }
 
   /** Play time so far, with pauses taken out. */

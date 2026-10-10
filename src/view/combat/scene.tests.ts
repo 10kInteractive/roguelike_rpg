@@ -1,6 +1,6 @@
-import { Box3 } from "three";
+import { Box3, Mesh, type MeshBasicMaterial, PlaneGeometry } from "three";
 import { expect, test } from "vitest";
-import { combatStage, combatSway, combatSwaySeconds } from "./scene.constants";
+import { combatStage, combatSway, combatSwaySeconds, selectionRing } from "./scene.constants";
 import { CombatSceneController } from "./scene.controller";
 
 /** Children of one name, such as every `tree`. */
@@ -18,15 +18,29 @@ function packXs(combat: CombatSceneController, mobIds: string[]): number[] {
   return mobIds.map((id) => combat.scene.getObjectByName(id)?.position.x ?? Number.NaN);
 }
 
-test("the first mob steps out toward the hero, the rest wait staggered behind", () => {
+test("the pack stays in its slots, and the ring starts under the lead", () => {
   const mobIds = ["mob.frost_moth", "mob.ember_imp", "mob.slime"];
   const combat = new CombatSceneController(mobIds, {});
-  const { pack, packStagger, focusStep } = combatStage;
-  expect(packXs(combat, mobIds)).toEqual([
-    pack.x + focusStep,
-    pack.x - packStagger,
-    pack.x - 2 * packStagger,
-  ]);
+  const { pack, packStagger } = combatStage;
+  expect(packXs(combat, mobIds)).toEqual([pack.x, pack.x - packStagger, pack.x - 2 * packStagger]);
+  const ring = combat.scene.getObjectByName("selection-ring");
+  expect(ring?.position.x).toBeCloseTo(pack.x);
+  expect(ring?.position.z).toBeCloseTo(pack.z);
+  expect(ring?.position.y).toBeCloseTo(selectionRing.y);
+  expect(ring?.visible).toBe(true);
+  expect(ring).toBeInstanceOf(Mesh);
+  const mesh = ring as Mesh;
+  expect(mesh.geometry).toBeInstanceOf(PlaneGeometry);
+  const material = mesh.material as MeshBasicMaterial;
+  expect(material.transparent).toBe(true);
+  const image = material.map?.image as { data?: Uint8Array } | undefined;
+  const pixels = image?.data;
+  if (!pixels) throw new Error("the ring texture is missing");
+  const line = Math.round(selectionRing.alpha * 255);
+  let marked = 0;
+  for (let i = 3; i < pixels.length; i += 4) if (pixels[i] === line) marked += 1;
+  expect(marked).toBeGreaterThan(0);
+  expect(marked).toBeLessThan(pixels.length / 8);
 });
 
 test("focusing another mob sends the first one back", () => {
@@ -36,6 +50,24 @@ test("focusing another mob sends the first one back", () => {
   const { pack, packStagger, focusStep } = combatStage;
   expect(packXs(combat, mobIds)).toEqual([pack.x, pack.x - packStagger + focusStep]);
   expect(combat.focusedIndex()).toBe(1);
+});
+
+test("the ring moves under a back mob and the pack stays put", () => {
+  const mobIds = ["mob.frost_moth", "mob.ember_imp", "mob.slime"];
+  const combat = new CombatSceneController(mobIds, {});
+  const before = packXs(combat, mobIds);
+  const { pack, packStagger, packSpacing } = combatStage;
+
+  combat.ringAt(2);
+  expect(packXs(combat, mobIds)).toEqual(before);
+  const ring = combat.scene.getObjectByName("selection-ring");
+  expect(ring?.position.x).toBeCloseTo(pack.x - 2 * packStagger);
+  expect(ring?.position.z).toBeCloseTo(pack.z - 2 * packSpacing);
+  expect(combat.focusedIndex()).toBe(2);
+
+  combat.ringAt(null);
+  expect(ring?.visible).toBe(false);
+  expect(packXs(combat, mobIds)).toEqual(before);
 });
 
 test("set pieces sit off to the sides, on the near ground", () => {

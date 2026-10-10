@@ -14,20 +14,20 @@ export type MenuRow = {
 /**
  * Fight, Magic, Item, Defend, and Run.
  *
- * Fight and a spell ask which enemy. Magic lists the spells the hero can pay
- * for. Item lists the potion, when one is carried.
+ * One enemy locks Fight and each spell onto that enemy. Several enemies ask
+ * which one. Magic lists the spells the hero can pay for. Item lists the
+ * potion, when one is carried.
  */
 export function commandRows(actions: readonly Action[]): MenuRow[] {
   const fights = actions.filter((action) => action.type === "fight");
   const casts = actions.filter((action) => action.type === "cast");
   const items = actions.filter((action) => action.type === "item");
   const find = (type: "defend" | "run") => actions.find((action) => action.type === type);
+  const targets = fights.map((action) => ({ label: nameFromId(action.target), action }));
+  const only = targets.length === 1 ? targets[0] : undefined;
 
   return [
-    {
-      label: "Fight",
-      menu: fights.map((action) => ({ label: nameFromId(action.target), action })),
-    },
+    only ? { label: "Fight", action: only.action } : { label: "Fight", menu: targets },
     { label: "Magic", menu: spellRows(casts) },
     { label: "Item", menu: items.map((action) => ({ label: nameFromId(action.item), action })) },
     { label: "Defend", action: find("defend") },
@@ -46,10 +46,12 @@ function spellRows(casts: readonly Extract<Action, { type: "cast" }>[]): MenuRow
   for (const cast of casts) {
     if (!spells.includes(cast.spell)) spells.push(cast.spell);
   }
-  return spells.map((spell) => ({
-    label: nameFromId(spell),
-    menu: casts
+  return spells.map((spell) => {
+    const targets = casts
       .filter((cast) => cast.spell === spell)
-      .map((cast) => ({ label: nameFromId(cast.target), action: cast })),
-  }));
+      .map((cast) => ({ label: nameFromId(cast.target), action: cast }));
+    const only = targets.length === 1 ? targets[0] : undefined;
+    if (only) return { label: nameFromId(spell), action: only.action };
+    return { label: nameFromId(spell), menu: targets };
+  });
 }

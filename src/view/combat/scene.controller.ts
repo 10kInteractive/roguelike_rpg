@@ -1,4 +1,15 @@
-import { Color, type Group, Scene } from "three";
+import {
+  Color,
+  DataTexture,
+  DoubleSide,
+  type Group,
+  Mesh,
+  MeshBasicMaterial,
+  NearestFilter,
+  PlaneGeometry,
+  Scene,
+  SRGBColorSpace,
+} from "three";
 import { addSunAndSky } from "../art/lighting";
 import { skyColor } from "../art/lighting.constants";
 import { buildHeroModel, buildMobModel } from "../art/models";
@@ -6,16 +17,23 @@ import { mobLooks } from "../art/models.constants";
 import type { BackdropTextures, FightTerrain } from "./backdrops/backdrop.types";
 import { ForestBackdropController } from "./backdrops/forest.controller";
 import { MeadowBackdropController } from "./backdrops/meadow.controller";
-import { combatStage, combatSway, combatSwaySeconds, idleBob } from "./scene.constants";
+import {
+  combatStage,
+  combatSway,
+  combatSwaySeconds,
+  idleBob,
+  selectionRing,
+} from "./scene.constants";
 import type { StagedActor } from "./scene.types";
 
 /**
  * The fight as Three.js objects: a backdrop for the ground it started on,
  * the hero on the right, and the pack lined up on the left.
  *
- * A pack is fought one mob at a time, so the mob being fought steps out
- * toward the hero and the rest wait behind it. Grass and path use the meadow.
- * Forest uses the deep-forest backdrop.
+ * The mob being fought can step out toward the hero. Choosing one does not
+ * move the pack: a thin circle on the ground sits under the mob in focus,
+ * including one further back. Grass and path use the meadow. Forest uses the
+ * deep-forest backdrop.
  */
 export class CombatSceneController {
   /** Everything the render loop draws. */
@@ -29,6 +47,9 @@ export class CombatSceneController {
 
   /** Which mob in the pack is being fought. */
   private focused = 0;
+
+  /** The ring on the ground under the mob the player is choosing. */
+  private readonly ring: Mesh;
 
   /** Seconds since the scene appeared, for the idle bob and the camera drift. */
   private seconds = 0;
@@ -57,7 +78,8 @@ export class CombatSceneController {
       const bob = mobLooks[mobId]?.hover ? idleBob.hoverHeight : idleBob.height;
       return this.stage(buildMobModel(mobId), home, Math.PI / 2, bob, index + 1);
     });
-    this.focus(0);
+    this.ring = this.selectionRing();
+    this.ringAt(0);
   }
 
   /**
@@ -70,7 +92,30 @@ export class CombatSceneController {
     this.pack.forEach((actor, i) => {
       const step = i === index ? combatStage.focusStep : 0;
       actor.model.position.x = actor.home.x + step;
+      actor.model.position.z = actor.home.z;
     });
+  }
+
+  /**
+   * Puts the ring under one mob. The pack stays where it is standing.
+   *
+   * @param index Position in the pack. Null hides the ring.
+   */
+  ringAt(index: number | null): void {
+    if (index === null) {
+      this.ring.visible = false;
+      return;
+    }
+    const actor = this.pack[index];
+    if (!actor) return;
+    this.focused = index;
+    this.ring.visible = !actor.down;
+    this.ring.position.set(actor.home.x, selectionRing.y, actor.home.z);
+  }
+
+  /** Encounter indices that have not fallen, front of the original line first. */
+  standing(): number[] {
+    return this.pack.flatMap((actor, index) => (actor.down ? [] : [index]));
   }
 
   /** The mob being fought, by position in the pack. */
@@ -105,6 +150,76 @@ export class CombatSceneController {
       const turn = (this.seconds * idleBob.perSecond + actor.phase * 0.37) * Math.PI * 2;
       const bob = actor.down ? 0 : (Math.sin(turn) * 0.5 + 0.5) * actor.bob;
       actor.model.position.y = bob + actor.lift;
+    }
+  }
+
+  /** A flat circle on the ground: one pixel line on a clear texture. */
+  private selectionRing(): Mesh {
+    const ring = new Mesh(
+      new PlaneGeometry(selectionRing.size, selectionRing.size),
+      new MeshBasicMaterial({
+        map: this.ringTexture(),
+        transparent: true,
+        depthWrite: false,
+        side: DoubleSide,
+      }),
+    );
+    ring.name = "selection-ring";
+    ring.rotation.x = -Math.PI / 2;
+    ring.renderOrder = 1;
+    this.scene.add(ring);
+    return ring;
+  }
+
+  /** A one-pixel circle, with the rest of the square left clear. */
+  private ringTexture(): DataTexture {
+    const { pixels, color } = selectionRing;
+    const data = new Uint8Array(pixels * pixels * 4);
+    this.paintCircle(data, pixels, color);
+    const texture = new DataTexture(data, pixels, pixels);
+    texture.colorSpace = SRGBColorSpace;
+    texture.magFilter = NearestFilter;
+    texture.minFilter = NearestFilter;
+    texture.generateMipmaps = false;
+    texture.needsUpdate = true;
+    return texture;
+  }
+
+  /** Writes a circle outline into the texture. The background stays transparent. */
+  private paintCircle(data: Uint8Array, pixels: number, color: number): void {
+    const radius = Math.floor(pixels / 2) - 1;
+    const center = Math.floor(pixels / 2);
+    const red = (color >> 16) & 255;
+    const green = (color >> 8) & 255;
+    const blue = color & 255;
+    let x = radius;
+    let y = 0;
+    let decision = 1 - radius;
+
+    const plot = (px: number, py: number) => {
+      if (px < 0 || py < 0 || px >= pixels || py >= pixels) return;
+      const index = (py * pixels + px) * 4;
+      data[index] = red;
+      data[index + 1] = green;
+      data[index + 2] = blue;
+      data[index + 3] = Math.round(selectionRing.alpha * 255);
+    };
+
+    while (x >= y) {
+      plot(center + x, center + y);
+      plot(center + y, center + x);
+      plot(center - y, center + x);
+      plot(center - x, center + y);
+      plot(center - x, center - y);
+      plot(center - y, center - x);
+      plot(center + y, center - x);
+      plot(center + x, center - y);
+      y += 1;
+      if (decision <= 0) decision += 2 * y + 1;
+      else {
+        x -= 1;
+        decision += 2 * (y - x) + 1;
+      }
     }
   }
 

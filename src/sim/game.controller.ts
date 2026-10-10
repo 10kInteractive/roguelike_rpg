@@ -7,7 +7,7 @@ import {
   runMobsFromBundle,
 } from "../content/rules";
 import { OneOnOneFightController } from "./combat/fight.controller";
-import type { FightEvent, ScriptedAction } from "./combat/fight.types";
+import type { FightEvent, Fighter, ScriptedAction } from "./combat/fight.types";
 import type { KnownSpell } from "./combat/policy.types";
 import type { LevelRules } from "./combat/utils/level.types";
 import { EncounterWalkController } from "./field/encounters.controller";
@@ -88,6 +88,12 @@ export class GameSimController {
   /** The pack still to fight. Null while the hero is walking. */
   private pack: { ids: string[]; index: number; miniboss: boolean } | null = null;
 
+  /** Encounter indices that have already fallen. */
+  private fallen = new Set<number>();
+
+  /** Hit points left on a mob who stepped back. Keyed by encounter index. */
+  private wounds = new Map<number, { hp: number; mp: number }>();
+
   /** @param options The bundle, the seed, and the rolls. */
   constructor(options: CreateSimOptions) {
     const biome = options.bundle.biomes[0];
@@ -140,10 +146,13 @@ export class GameSimController {
 
     // The open turn leads the list. The queue holds everyone after it.
     if (this.mode === "combat" && this.fight) {
+      const pack = this.pack;
       snapshot.combat = {
         mobId: this.mobId,
         enemy: this.enemyView(),
         turnOrder: [this.hero.id, ...this.fight.upcoming(turnOrderCount - 1)],
+        index: pack?.index ?? 0,
+        line: pack ? pack.ids.flatMap((_, index) => (this.fallen.has(index) ? [] : [index])) : [],
       };
     }
     return snapshot;
@@ -166,6 +175,30 @@ export class GameSimController {
     if (hero.potions > 0) actions.push({ type: "item", item: "item.potion" });
     actions.push({ type: "defend" }, { type: "run" });
     return actions;
+  }
+
+  /**
+   * Fights a different living mob. The one who steps back keeps the hit points
+   * they have now. The hero's open turn stays open.
+   *
+   * @param index Where that mob stands in the pack. The lead is 0.
+   */
+  face(index: number): void {
+    const pack = this.pack;
+    const fight = this.fight;
+    if (!pack || !fight?.awaitingHero()) throw new Error("That action is not available");
+    if (!Number.isInteger(index) || index < 0 || index >= pack.ids.length) {
+      throw new Error("That action is not available");
+    }
+    if (this.fallen.has(index)) throw new Error("That action is not available");
+    if (index === pack.index) return;
+
+    // The mob stepping back keeps the hit points the fight has dealt them.
+    const current = fight.fighters().enemy;
+    this.wounds.set(pack.index, { hp: current.hp, mp: current.mp });
+    pack.index = index;
+    this.mobId = pack.ids[index] ?? this.mobId;
+    fight.face(this.mobFighter(index));
   }
 
   /**
@@ -218,20 +251,24 @@ export class GameSimController {
     if (!first) throw new Error("An encounter needs a mob");
 
     this.pack = { ids, index: 0, miniboss: started.miniboss === true };
-    return [started, ...this.openFight(first)];
+    this.fallen = new Set();
+    this.wounds = new Map();
+    return [started, ...this.openFight(0)];
   }
 
   /** Starts one mob's fight and plays until the hero must choose, or the fight is already over. */
-  private openFight(mobId: string): SimEvent[] {
-    const mob = this.mobs.get(mobId);
-    if (!mob) throw new Error(`Unknown mob "${mobId}"`);
+  private openFight(index: number): SimEvent[] {
+    const pack = this.pack;
+    const mobId = pack?.ids[index];
+    if (!pack || !mobId) throw new Error("An encounter needs a mob");
 
     this.mobId = mobId;
+    pack.index = index;
     this.fightEvents = [];
     this.mode = "combat";
     this.fight = new OneOnOneFightController({
       hero: { ...this.hero, hero: true },
-      enemy: mob.fighter,
+      enemy: this.mobFighter(index),
       rng: this.combatRng,
       choiceRng: this.choiceRng,
       ...this.combat,
@@ -264,6 +301,8 @@ export class GameSimController {
 
     this.stats.addFight(this.fightEvents, this.mobId);
     events.push({ type: "combatEnded", outcome });
+    this.fallen.add(pack.index);
+    this.wounds.delete(pack.index);
     this.fight = null;
     this.fightEvents = [];
 
@@ -274,16 +313,16 @@ export class GameSimController {
       return events;
     }
 
-    // The next mob steps in on the same action. A miniboss pack ends here.
-    const nextIndex = pack.index + 1;
-    const next = pack.ids[nextIndex];
-    if (outcome === "win" && !pack.miniboss && next) {
-      pack.index = nextIndex;
+    // The front of the remaining line steps in. A miniboss pack ends here.
+    const next = pack.ids.findIndex((_, slot) => !this.fallen.has(slot));
+    if (outcome === "win" && !pack.miniboss && next >= 0) {
       events.push(...this.openFight(next));
       return events;
     }
 
     this.pack = null;
+    this.fallen = new Set();
+    this.wounds = new Map();
     if (outcome === "win" && pack.miniboss) {
       this.mode = "victory";
       events.push({ type: "victory" });
@@ -299,6 +338,18 @@ export class GameSimController {
   private heroNow(): HeroState {
     if (this.mode === "combat" && this.fight) return this.toHero(this.fight.fighters().hero);
     return { ...this.hero };
+  }
+
+  /** The mob at that place in the pack, with any hit points they kept while waiting. */
+  private mobFighter(index: number): Fighter {
+    const pack = this.pack;
+    const id = pack?.ids[index];
+    const mob = id ? this.mobs.get(id) : undefined;
+    if (!mob) throw new Error("An encounter needs a mob");
+
+    const saved = this.wounds.get(index);
+    if (!saved) return mob.fighter;
+    return { ...mob.fighter, hp: saved.hp, mp: saved.mp };
   }
 
   /** The mob's points. */

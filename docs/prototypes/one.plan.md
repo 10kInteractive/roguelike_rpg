@@ -578,6 +578,7 @@ On the `bozmak/view` branch, not merged yet. The canvas, the WebGPU renderer, an
 - `feat: brown meadow skirt`. The skirt is dark brown earth, so it reads as past the meadow.
 - `feat: forest fights`. The hero stands waist-deep in forest, and a forest fight uses its own backdrop.
 - `feat: combat staging`. Near-ground set pieces, and a camera that drifts a little during a fight.
+- `feat: choose the mob before the command menu`. A ring on the ground marks the mob. Up and down, and the pad, move the ring. The pack stays put, including the back of the line. Confirm locks that mob, and Fight and spells hit them.
 - `feat: balance pass`. Tune the bundle numbers from the sweep toward the targets.
 
 ## Done when

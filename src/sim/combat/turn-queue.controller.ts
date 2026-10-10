@@ -41,6 +41,23 @@ export class HasteTurnQueue {
     return this.step(this.waiting);
   }
 
+  /**
+   * Swaps the waiting mob for another. That turn's time stays, so the new mob
+   * does not cut in line or give the old one a turn while they wait.
+   *
+   * @param id The mob who is waiting now.
+   * @param next The mob who takes that place.
+   */
+  replace(id: string, next: TurnActor): void {
+    const actor = this.waiting.find((entry) => entry.id === id && !entry.hero);
+    if (!actor) throw new Error(`No mob named ${id} is waiting`);
+    if (next.haste <= 0) throw new Error(`Haste must be above zero for ${next.id}`);
+
+    actor.id = next.id;
+    actor.haste = next.haste;
+    actor.hero = next.hero === true;
+  }
+
   /** The next `count` actors to act, soonest first. Does not advance the queue. */
   upcoming(count: number): string[] {
     const copy = this.waiting.map((actor) => ({ ...actor }));
