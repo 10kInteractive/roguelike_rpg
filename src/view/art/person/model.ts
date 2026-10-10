@@ -9,7 +9,7 @@ export function person(look: ModelLook): ModelPart[] {
   const legH = height * 0.34;
   const legD = width * 0.24;
   const stance = width * 0.16;
-  const stride = width * 0.16;
+  const stride = width * 0.08;
   const torsoW = width * 0.52;
   const torsoH = height * 0.38;
   const torsoBottom = legH * 0.8;
