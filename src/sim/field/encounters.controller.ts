@@ -8,6 +8,7 @@ import type {
   Miniboss,
   StickHold,
 } from "./encounters.types";
+import { EncounterGovernorController } from "./governor.controller";
 import type { Terrain } from "./map.types";
 import { moveHeroAlongStick } from "./movement";
 import { heroRadius } from "./movement.constants";
@@ -18,9 +19,9 @@ import type { FieldGrid, Position, Stick } from "./movement.types";
  *
  * Each full tile of distance on grass, forest, or path rolls that terrain's
  * rate. The roll succeeds when it is below the rate. A success picks a pack
- * by weight, then a count in each group. Touching the miniboss starts its
- * fight instead, and that touch spends no encounter roll. The hold stops on
- * that tick.
+ * by weight, then a count in each group. A governor can hold those rolls for
+ * a span of ticks. Touching the miniboss starts its fight instead, and that
+ * touch spends no encounter roll. The hold stops on that tick.
  */
 export class EncounterWalkController {
   /** Where the hero is standing. */
@@ -44,12 +45,15 @@ export class EncounterWalkController {
   /** When set, touching this circle starts its fight and ends the hold. */
   private readonly miniboss?: Miniboss;
 
+  /** Holds random fights. The miniboss does not wait on it. */
+  private readonly governor: EncounterGovernorController;
+
   /**
    * Starts ready for the first tile to roll.
    *
-   * `distanceSinceFight` begins at the minimum gap, so the opening tile can
-   * start a fight. After a fight it returns to zero and the next tiles inside
-   * the gap do not roll.
+   * `distanceSinceFight` begins at the minimum gap, so a tile outside the
+   * governor can start a fight. After a fight it returns to zero and the next
+   * tiles inside the gap do not roll.
    */
   constructor(input: {
     /** Where the hero is standing. */
@@ -64,6 +68,8 @@ export class EncounterWalkController {
     rng: Rng;
     /** When set, touching this circle starts its fight and ends the hold. */
     miniboss?: Miniboss;
+    /** Ticks of random-fight hold at the start. Defaults to none. */
+    openingGuardTicks?: number;
   }) {
     this.position = input.position;
     this.field = input.field;
@@ -71,7 +77,22 @@ export class EncounterWalkController {
     this.minDistance = input.minDistance;
     this.rng = input.rng;
     this.miniboss = input.miniboss;
+    this.governor = new EncounterGovernorController(input.openingGuardTicks ?? 0);
     this.state = { grass: 0, forest: 0, path: 0, distanceSinceFight: input.minDistance };
+  }
+
+  /**
+   * Holds random fights for this many field ticks.
+   *
+   * @param ticks How long the next random fight waits. Replaces whatever was left.
+   */
+  guard(ticks: number): void {
+    this.governor.hold(ticks);
+  }
+
+  /** Ticks left before a random fight can roll. */
+  guardTicks(): number {
+    return this.governor.ticksLeftNow();
   }
 
   /**
@@ -99,6 +120,11 @@ export class EncounterWalkController {
       if (this.touchesMiniboss()) {
         return this.contact(events, tick + 1, distance);
       }
+
+      // A hold spends the tick, including one spent standing still, and rolls nothing.
+      const held = this.governor.active();
+      this.governor.tick();
+      if (held) continue;
 
       // The step counts toward the terrain under the hero.
       const terrain = this.terrainUnder();

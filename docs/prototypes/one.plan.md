@@ -309,6 +309,8 @@ Starting numbers. They are first guesses for the balance sweeps to correct.
 | Hero walk speed | 4 tiles per second |
 | Hero collision radius | 0.3 tiles |
 | Minimum distance between encounters | 4 tiles |
+| Encounter hold at the start of a run | 5 seconds |
+| Encounter hold after winning a pack and returning | 2.5 seconds |
 | Level cap | 10 |
 | XP to next level | 6 × level (level 5 after about 60 XP, roughly 10 fights) |
 

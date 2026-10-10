@@ -251,6 +251,7 @@ export class GameRuntimeController {
         position: { x: 0.5, y: 0.5 },
         facing: { x: 0, y: -64 },
         miniboss: { tile, radius: 0.8, id: stats.killedBy ?? "mob.rust_sentinel" },
+        guardTicks: 0,
       },
       stats,
     };

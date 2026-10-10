@@ -5,6 +5,7 @@ import { KeyboardController } from "../input/keyboard.controller";
 import { createSim } from "../sim";
 import { CombatActionPolicy } from "../sim/combat/policy.controller";
 import type { EncounterEvent } from "../sim/field/encounters.types";
+import { tickRate } from "../sim/field/movement.constants";
 import type { GameSimController } from "../sim/game.controller";
 import type { Action, SimEvent } from "../sim/game.types";
 import { SeededRandomGenerator } from "../sim/utils/rng.controller";
@@ -105,6 +106,10 @@ export class GameLoopController {
       });
       debugWatches.watch("fights", () => this.fought());
       debugWatches.watch("queue", () => uiStore.pending().length);
+      debugWatches.watch("encounter guard", () => {
+        const ticks = this.sim.observe().field.guardTicks;
+        return ticks > 0 ? `${(ticks / tickRate).toFixed(1)}s` : "off";
+      });
     }
   }
 
@@ -114,6 +119,8 @@ export class GameLoopController {
       uiStore.present(this.sim.observe());
       for (;;) {
         this.phase = "walking";
+        const guard = this.sim.observe().field.guardTicks;
+        if (guard > 0) log(`encounter guard ${(guard / tickRate).toFixed(1)}s`);
         const walking = this.field.walkUntilFight();
         if (veil.isCovered()) await veil.reveal();
         const started = await pause.race(walking);

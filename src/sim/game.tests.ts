@@ -17,6 +17,7 @@ import {
   runMobsFromBundle,
 } from "../content/rules";
 import { CombatActionPolicy } from "./combat/policy.controller";
+import { returnGuardTicks } from "./field/governor.constants";
 import { createSeededMeadow } from "./field/map";
 import { stickLimit } from "./field/movement.constants";
 import { FieldWalkPolicy } from "./field/policy.controller";
@@ -116,6 +117,7 @@ test("the first fight of seed 7 opens on the hero's turn and is won", () => {
 
   const end = sim.observe();
   expect(end.mode).toBe("field");
+  expect(end.field.guardTicks).toBe(returnGuardTicks);
   expect(end.hero).toMatchObject({ level: 2, hp: 36, maxHp: 36, potions: 2 });
   expect(end.stats.fightsWon).toBe(2);
   expect(end.combat).toBeUndefined();

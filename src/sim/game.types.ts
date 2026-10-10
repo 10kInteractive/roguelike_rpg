@@ -111,6 +111,8 @@ export type Snapshot = {
     facing: Stick;
     /** The circle that starts the miniboss fight. */
     miniboss: Miniboss;
+    /** Ticks left before a random fight can roll. Zero when the hold is over. */
+    guardTicks: number;
   };
   /** The fight underway. Absent while the hero is walking, and after the run ends. */
   combat?: {

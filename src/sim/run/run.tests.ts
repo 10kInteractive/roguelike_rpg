@@ -49,7 +49,7 @@ function meadow(width: number, minibossX: number): MeadowMap {
 const hero = { id: "hero", hp: 30, str: 8, def: 4, haste: 8, level: 1, xp: 0 };
 
 test("a slime's XP carries, and the run ends when the miniboss falls", () => {
-  const map = meadow(12, 10);
+  const map = meadow(40, 32);
   const mobs = new Map([
     [
       "mob.slime",

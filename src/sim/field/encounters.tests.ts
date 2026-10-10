@@ -84,6 +84,53 @@ test("fights stay 4 tiles apart, and the walk stops when one starts", () => {
   expect(apart).toBeGreaterThanOrEqual(4);
 });
 
+test("the opening hold blocks random fights, then the next tile can roll", () => {
+  const field = row("grass", 16);
+  const walk = new EncounterWalkController({
+    position: start,
+    field,
+    tables: { grass: { rate: 1, packs: [slime] } },
+    minDistance: 0,
+    rng: rolls([0]),
+    openingGuardTicks: 8,
+  });
+
+  const held = walk.holdStick(east, 8);
+  expect(held.events).toEqual([]);
+  expect(walk.guardTicks()).toBe(0);
+
+  const fight = walk.holdStick(east, 16);
+  expect(fight.events).toEqual([
+    { type: "encounterStarted", terrain: "grass", groups: [{ id: "mob.slime", count: 1 }] },
+  ]);
+});
+
+test("standing still spends a hold, and the miniboss does not wait", () => {
+  const field = row("grass", 16);
+  const quiet = new EncounterWalkController({
+    position: start,
+    field,
+    tables: { grass: { rate: 1, packs: [slime] } },
+    minDistance: 0,
+    rng: rolls([0]),
+  });
+  quiet.guard(4);
+  expect(quiet.holdStick({ x: 0, y: 0 }, 4).events).toEqual([]);
+  expect(quiet.guardTicks()).toBe(0);
+
+  const miniboss = { tile: { x: 4, y: 0 }, radius: 0.8, id: "mob.rust_sentinel" };
+  const touched = new EncounterWalkController({
+    position: start,
+    field,
+    tables: { grass: { rate: 0, packs: [slime] } },
+    minDistance: 4,
+    rng: rolls([]),
+    miniboss,
+    openingGuardTicks: 100,
+  }).holdStick(east, 40);
+  expect(touched.events[0]).toMatchObject({ miniboss: true });
+});
+
 test("touching the miniboss starts its fight, and walking clear of it does not", () => {
   const field = row("grass", 12);
   const miniboss = { tile: { x: 4, y: 0 }, radius: 0.8, id: "mob.rust_sentinel" };

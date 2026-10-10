@@ -12,6 +12,7 @@ import type { KnownSpell } from "./combat/policy.types";
 import type { LevelRules } from "./combat/utils/level.types";
 import { EncounterWalkController } from "./field/encounters.controller";
 import type { EncounterEvent, Miniboss } from "./field/encounters.types";
+import { openingGuardTicks, returnGuardTicks } from "./field/governor.constants";
 import { createSeededMeadow } from "./field/map";
 import type { MeadowMap } from "./field/map.types";
 import { stickLimit } from "./field/movement.constants";
@@ -118,6 +119,7 @@ export class GameSimController {
       minDistance: options.bundle.rules.minEncounterDistance,
       rng: this.fieldRng,
       miniboss: this.miniboss,
+      openingGuardTicks,
     });
   }
 
@@ -131,6 +133,7 @@ export class GameSimController {
         position: { ...this.encounters.position },
         facing: { ...this.facing },
         miniboss: this.miniboss,
+        guardTicks: this.encounters.guardTicks(),
       },
       stats: this.stats.snapshot(),
     };
@@ -288,6 +291,7 @@ export class GameSimController {
     }
 
     this.mode = "field";
+    if (outcome === "win") this.encounters.guard(returnGuardTicks);
     return events;
   }
 
