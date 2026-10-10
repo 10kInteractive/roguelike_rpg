@@ -67,8 +67,10 @@ export type Miniboss = {
   tile: TilePoint;
   /** Radius of the miniboss circle, in tiles. Prototype one uses 0.8. */
   radius: number;
-  /** Mob the touch starts, such as `mob.rust_sentinel`. */
+  /** Mob the touch starts, such as `mob.rust_sentinel`. It stands further from the hero. */
   id: string;
+  /** Mob ids that stand nearer the hero, ahead of the miniboss. */
+  front?: readonly string[];
 };
 
 /** What one stick hold did. The controller keeps the hero's new position. */

@@ -28,12 +28,13 @@ import type { StagedActor } from "./scene.types";
 
 /**
  * The fight as Three.js objects: a backdrop for the ground it started on,
- * the hero on the right, and the pack lined up on the left.
+ * the hero on the right, and the pack in two lines on the left.
  *
- * The mob being fought can step out toward the hero. Choosing one does not
- * move the pack: a thin circle on the ground sits under the mob in focus,
- * including one further back. Grass and path use the meadow. Forest uses the
- * deep-forest backdrop.
+ * One mob stands nearer the hero, still on the left of the field. Up to two
+ * stand further west, one to either side. The mob being fought can step out
+ * toward the hero. Choosing one does not move the pack: a thin circle on the
+ * ground sits under the mob in focus, including one further from the hero.
+ * Grass and path use the meadow. Forest uses the deep-forest backdrop.
  */
 export class CombatSceneController {
   /** Everything the render loop draws. */
@@ -71,10 +72,7 @@ export class CombatSceneController {
 
     this.hero = this.stage(buildHeroModel(), combatStage.hero, -Math.PI / 2, idleBob.height, 0);
     this.pack = mobIds.map((mobId, index) => {
-      const home = {
-        x: combatStage.pack.x - index * combatStage.packStagger,
-        z: combatStage.pack.z - index * combatStage.packSpacing,
-      };
+      const home = this.homeAt(index, mobIds.length);
       const bob = mobLooks[mobId]?.hover ? idleBob.hoverHeight : idleBob.height;
       return this.stage(buildMobModel(mobId), home, Math.PI / 2, bob, index + 1);
     });
@@ -221,6 +219,22 @@ export class CombatSceneController {
         decision += 2 * (y - x) + 1;
       }
     }
+  }
+
+  /**
+   * Where one mob stands. The first stands nearer the hero. The rest stand
+   * further west, spread north and south around the near mob.
+   */
+  private homeAt(index: number, count: number): { x: number; z: number } {
+    const front = Math.min(combatStage.frontCount, count);
+    const inFront = index < front;
+    const rowCount = inFront ? front : count - front;
+    const rowIndex = inFront ? index : index - front;
+    const span = Math.max(0, rowCount - 1) * combatStage.fileGap;
+    return {
+      x: inFront ? combatStage.pack.x : combatStage.pack.x - combatStage.rowGap,
+      z: combatStage.pack.z - span / 2 + rowIndex * combatStage.fileGap,
+    };
   }
 
   /** Places a model at its spot, turned to face the other side, and adds it to the scene. */

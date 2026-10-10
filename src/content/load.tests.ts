@@ -87,6 +87,7 @@ function valid(): BundleSource {
         width: 48,
         height: 48,
         miniboss: "mob.slime",
+        minibossFront: ["mob.slime", "mob.slime"],
         minibossDistance: 20,
         minibossRadius: 0.8,
       },

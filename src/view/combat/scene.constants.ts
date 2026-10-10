@@ -1,17 +1,25 @@
 /**
  * Where the combat stage puts things, in tiles. The camera looks north from the
- * south, the hero stands east on the right, and the pack stands west on the left.
+ * south, and the hero stands on the east, facing the pack.
+ *
+ * One mob stands nearer the hero. Up to two stand just west of it, one to
+ * either side. The pack centers about a third of the way across the field,
+ * and the hero stands about two thirds of the way across.
  */
 export const combatStage = {
-  /** The hero's spot. */
-  hero: { x: 2.2, z: 0.4 },
-  /** The front of the pack's line. Later mobs stand behind, further north. */
-  pack: { x: -1.8, z: 1.2 },
-  /** Gap between mobs in the pack, north to south. */
-  packSpacing: 1.2,
-  /** Each later mob also stands this much further west, so no one hides another. */
-  packStagger: 1,
-  /** How far the mob being fought steps out toward the hero. */
+  /** The hero's spot, about 70% of the way across the field. The near mob shares this depth. */
+  hero: { x: 1.4, z: 0 },
+  /** The near mob. The far pair stands just west of this, so the pack centers near 30%. */
+  pack: { x: -1.5, z: 0 },
+  /** How many mobs stand nearer the hero. The rest stand further west. */
+  frontCount: 1,
+  /** How many mobs stand further from the hero. A pack is at most front plus this. */
+  backCount: 2,
+  /** How far west the far mobs stand from the near mob. */
+  rowGap: 0.6,
+  /** North-south gap between the two far mobs. The near mob sits halfway between them. */
+  fileGap: 1.8,
+  /** How far the mob being fought steps east, toward the hero. */
   focusStep: 0.7,
 };
 

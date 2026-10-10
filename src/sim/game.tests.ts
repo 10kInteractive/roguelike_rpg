@@ -118,8 +118,8 @@ test("the first fight of seed 7 opens on the hero's turn and is won", () => {
   const end = sim.observe();
   expect(end.mode).toBe("field");
   expect(end.field.guardTicks).toBe(returnGuardTicks);
-  expect(end.hero).toMatchObject({ level: 1, hp: 9, maxHp: 30, potions: 3 });
-  expect(end.stats.fightsWon).toBe(2);
+  expect(end.hero).toMatchObject({ level: 1, hp: 20, maxHp: 30, potions: 2 });
+  expect(end.stats.fightsWon).toBe(3);
   expect(end.combat).toBeUndefined();
 });
 
@@ -201,7 +201,12 @@ function grinderInput(seed: number) {
   return {
     seed,
     map,
-    miniboss: { tile: map.miniboss, radius: biome.minibossRadius, id: biome.miniboss },
+    miniboss: {
+      tile: map.miniboss,
+      radius: biome.minibossRadius,
+      id: biome.miniboss,
+      front: biome.minibossFront,
+    },
     tables: encounterTablesFromBundle(bundle),
     minDistance: bundle.rules.minEncounterDistance,
     hero: heroFighterFromBundle(bundle.hero),

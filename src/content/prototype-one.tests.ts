@@ -60,6 +60,7 @@ test("prototype one loads Strider, the spells, the potion, the mobs, and the mea
     width: 48,
     height: 48,
     miniboss: "mob.rust_sentinel",
+    minibossFront: ["mob.dire_wolf", "mob.shade"],
     minibossDistance: 20,
   });
   expect(bundle.rules).toMatchObject({ levelCap: 10, xpPerLevel: 20, turnBase: 100 });

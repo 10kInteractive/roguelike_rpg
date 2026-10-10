@@ -350,9 +350,11 @@ The imp and the moth have no magic, so their Ember and Frost hit for the spell's
 
 | Terrain | Encounter rate per tile walked | Packs |
 | --- | --- | --- |
-| Grass | 10% | 1–2 slimes (50), slime + imp (25), 1–2 moths (25) |
-| Forest | 15% | 1–2 imps (25), 2 moths (25), imp + moth (20), 1 dire wolf (15), 1 shade (15) |
+| Grass | 10% | 2–3 slimes (45), 1 slime + 1–2 imps (30), 1–3 moths (25) |
+| Forest | 15% | 2–3 imps (25), 2–3 moths (20), 1 imp + 1–2 moths (25), wolf + shade (15) |
 | Path | 4% | 1 slime (100) |
+
+Touching the Rust Sentinel starts a fight of three: a dire wolf nearer the hero, and a shade and the sentinel further out, one to either side. Beating the sentinel ends the run. The wolf and the shade do not.
 
 **Biome: meadow**
 
