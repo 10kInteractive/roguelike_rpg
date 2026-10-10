@@ -280,6 +280,9 @@ src/                shared engine
   runtime/          starts the game on a page: launch options, bundle, renderer, field or fight; the game loop
   view/             Three.js classes and the one render loop
     art/            shared by every scene: placeholder models, lighting, textures
+      person/       the person shape, beside the hero, imp, and sentinel looks
+      blob/         the blob shape, beside the slime look
+      moth/         the moth shape, beside the frost moth look
     field/          field scene, follow camera, fixed sim step, interpolation
     combat/         combat scene and sequencer
   ui/               React DOM overlay and the zustand store

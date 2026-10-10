@@ -2,7 +2,7 @@
 
 How prototype one gets a mob into a fight and onto the screen. Nothing procedural invents a body or a stat block. Two records share an id, and only one of them is drawn.
 
-The fight comes from `prototypes/one/bundle/mobs.json`. The figure comes from `src/view/art/models.constants.ts`. The meadow decides which ids show up, in `prototypes/one/bundle/encounters.json` and on the biome.
+The fight comes from `prototypes/one/bundle/mobs.json`. The figure comes from a shape folder under `src/view/art`, where the six blocks sit beside the looks that use them. The meadow decides which ids show up, in `prototypes/one/bundle/encounters.json` and on the biome.
 
 ```mermaid
 flowchart TD
@@ -14,7 +14,7 @@ flowchart TD
   biome["biome miniboss"] --> touch["walk into the circle"]
   touch --> encounter
   encounter --> fighter
-  look["models.constants.ts look"] --> boxes["six boxes, built in code"]
+  look["shape folder: the look beside its six blocks"] --> boxes["six boxes"]
   fighter --> scene["field or combat scene"]
   boxes --> scene
   manifest["assets.json mob id"] -.-> missing["glb named, not loaded"]
@@ -57,13 +57,13 @@ A pack the player asked for with `?combat=` skips the meadow. The same fighter t
 
 ## 4. The figure
 
-`models.constants.ts` is a second table, keyed by the same id. A look is a body color, a face color, a width, a height, an optional hover, and a shape. `buildMobModel` in `src/view/art/models.ts` turns the look into six boxes. The group's origin is at the feet, and local +z is the way it faces. An id with no look becomes the gray person in `unknownMobLook`.
+A look is a body color, a face color, a width, a height, an optional hover, and a shape. The shape's blocks and the looks that use it live in one folder. `models.constants.ts` only joins those looks into a table keyed by id. `buildMobModel` in `src/view/art/models.ts` turns the look into six boxes. The group's origin is at the feet, and local +z is the way it faces. An id with no look becomes the gray person in `unknownMobLook`.
 
 The three shapes:
 
-- **person.** Two legs, a torso, a light head, and two arms. The hero, the ember imp, and the rust sentinel.
-- **blob.** Two feet, a body, a cap, and two eyes on the front. The slime.
-- **moth.** A body, a head, two wings, and two antennae. The frost moth. `hover: 0.5` lifts it, and the combat scene uses that flag for a taller idle bob.
+- **person.** `src/view/art/person/`. Two legs, a torso, a light head, and two arms. The hero, the ember imp, and the rust sentinel.
+- **blob.** `src/view/art/blob/`. Two feet, a body, a cap, and two eyes on the front. The slime.
+- **moth.** `src/view/art/moth/`. A body, a head, two wings, and two antennae. The frost moth. `hover: 0.5` lifts it, and the combat scene uses that flag for a taller idle bob.
 
 The field draws the miniboss with `buildMobModel`. Combat draws every mob in the pack the same way, and the hero from `heroLook`, which is the same kind of table and not a mob row.
 
@@ -73,12 +73,4 @@ The field draws the miniboss with `buildMobModel`. Combat draws every mob in the
 
 The field scene and the combat scene never ask the loader for a model id. They call `buildMobModel`. A missing file, when something does ask for it, is skipped rather than drawn. The colored boxes are the figure until a loader path asks for the id.
 
-## A folder for the look
-
-The combat row stays in the bundle. The sim and the content check already load `prototypes/one/bundle/`. A later home for the figure, next to the assets and not built yet, is one folder per id:
-
-```text
-assets/mobs/mob.slime/look.json
-```
-
-`look.json` would be the look that `models.constants.ts` holds now. Encounters stay in the bundle. They choose packs, not colors. The manifest can keep pointing `mob.slime.model` at a glb. The rule that a hand-built file wins over a generated one stays as it is. That swap is not part of this folder.
+The combat row stays in the bundle. The sim and the content check already load `prototypes/one/bundle/`. Encounters stay there too. They choose packs, not colors. A new figure is a look in the folder of its shape. The manifest can keep pointing `mob.slime.model` at a glb. The rule that a hand-built file wins over a generated one stays as it is.
