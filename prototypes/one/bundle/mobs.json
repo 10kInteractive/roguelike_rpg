@@ -2,19 +2,19 @@
   "mobs": [
     {
       "id": "mob.slime",
-      "hp": 12,
-      "str": 6,
-      "def": 2,
+      "hp": 24,
+      "str": 5,
+      "def": 4,
       "mag": 0,
       "haste": 5,
-      "xp": 3,
+      "xp": 2,
       "potionDrop": 0.15,
       "actions": [{ "type": "attack", "weight": 1 }]
     },
     {
       "id": "mob.ember_imp",
-      "hp": 14,
-      "str": 6,
+      "hp": 16,
+      "str": 5,
       "def": 3,
       "mag": 0,
       "mp": 9,
@@ -22,7 +22,7 @@
       "element": "fire",
       "weak": "ice",
       "resists": "fire",
-      "xp": 5,
+      "xp": 3,
       "potionDrop": 0.15,
       "actions": [
         { "type": "attack", "weight": 60 },
@@ -31,8 +31,8 @@
     },
     {
       "id": "mob.frost_moth",
-      "hp": 10,
-      "str": 5,
+      "hp": 12,
+      "str": 4,
       "def": 2,
       "mag": 0,
       "mp": 9,
@@ -40,7 +40,7 @@
       "element": "ice",
       "weak": "fire",
       "resists": "ice",
-      "xp": 5,
+      "xp": 3,
       "potionDrop": 0.15,
       "actions": [
         { "type": "attack", "weight": 60 },
@@ -49,19 +49,19 @@
     },
     {
       "id": "mob.dire_wolf",
-      "hp": 22,
-      "str": 9,
+      "hp": 30,
+      "str": 7,
       "def": 4,
       "mag": 0,
       "haste": 8,
-      "xp": 8,
+      "xp": 4,
       "potionDrop": 0.15,
       "actions": [{ "type": "attack", "weight": 1 }]
     },
     {
       "id": "mob.shade",
       "hp": 18,
-      "str": 7,
+      "str": 6,
       "def": 3,
       "mag": 0,
       "mp": 9,
@@ -69,7 +69,7 @@
       "element": "ice",
       "weak": "fire",
       "resists": "ice",
-      "xp": 8,
+      "xp": 4,
       "potionDrop": 0.15,
       "actions": [
         { "type": "attack", "weight": 55 },
@@ -78,8 +78,8 @@
     },
     {
       "id": "mob.rust_sentinel",
-      "hp": 90,
-      "str": 13,
+      "hp": 140,
+      "str": 17,
       "def": 8,
       "mag": 0,
       "haste": 6,

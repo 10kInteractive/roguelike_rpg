@@ -97,7 +97,7 @@ export class PackFightController {
         hero.level = event.level;
       }
       if (event.type === "levelUp") {
-        hero.xp -= this.input.leveling.xpPerLevel * (event.level - 1);
+        hero.xp -= this.input.leveling.xpPerLevel;
         hero.level = event.level;
         hero.hp = event.hp;
         hero.maxHp = event.maxHp;

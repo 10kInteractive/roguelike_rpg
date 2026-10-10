@@ -15,9 +15,9 @@ export function grantExperienceAndRaiseLevels(
   const next = { ...hero, xp: hero.xp + amount };
   const events: LevelEvent[] = [{ type: "xpGained", amount, xp: next.xp, level: next.level }];
 
-  // Spend whole levels. One grant can cross several thresholds.
-  while (next.level < rules.levelCap && next.xp >= rules.xpPerLevel * next.level) {
-    next.xp -= rules.xpPerLevel * next.level;
+  // Spend whole levels. Each one costs the same, and one grant can cross several.
+  while (next.level < rules.levelCap && next.xp >= rules.xpPerLevel) {
+    next.xp -= rules.xpPerLevel;
     next.level += 1;
     next.maxHp += rules.growth.hp;
     next.maxMp += rules.growth.mp;

@@ -52,7 +52,7 @@ A light sci-fi / fantasy RPG in NES clothes. One hero walks a lush 3/4 procedura
 
 Spawn on a fresh map. Walk. Random fights start as you walk. A miniboss stands visible somewhere on the map; you can walk around it or bump into it. Win fights for XP and levels. Beating the miniboss ends the run with a victory screen and run stats. Dying ends it with a game over screen and the same stats. Either way, start again on a new seed.
 
-Target length: **10–15 minutes**, about **10 fights** before the hero is ready for the miniboss.
+Target length: **30–40 minutes**, about **20 fights** and level 5 before the hero is ready for the miniboss. Each level takes about five packs.
 
 ### North star
 
@@ -96,7 +96,7 @@ Target for a ready, full clear: about 40–60 minutes.
 ### Prototype
 
 - Every defeated enemy gives its XP reward. The fight ends when either side reaches zero HP, and that side is defeated. Dying or fleeing grants no XP.
-- The XP to leave the current level is 6 × that level. One grant can raise several levels. Each level adds HP +6, MP +2, STR +2, DEF +1, MAG +1, and HST +1, then fully restores HP and MP.
+- The XP to leave a level is 20, the same at every level. One grant can raise several levels. Each level adds HP +6, MP +2, STR +2, DEF +1, MAG +1, and HST +1, then fully restores HP and MP.
 - The level cap is 10. At the cap, a win still grants XP and does not raise the level or stats.
 
 ### North star

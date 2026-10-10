@@ -47,9 +47,12 @@ test("prototype one loads Strider, the spells, the potion, the mobs, and the mea
     "mob.shade",
     "mob.rust_sentinel",
   ]);
-  expect(bundle.mobs.mobs[1]).toMatchObject({ weak: "ice", resists: "fire", xp: 5 });
+  expect(bundle.mobs.mobs[0]).toMatchObject({ hp: 24, xp: 2 });
+  expect(bundle.mobs.mobs[1]).toMatchObject({ weak: "ice", resists: "fire", hp: 16, xp: 3 });
   expect(bundle.mobs.mobs.find((mob) => mob.id === "mob.rust_sentinel")).toMatchObject({
     miniboss: true,
+    hp: 140,
+    str: 17,
     xp: 40,
   });
   expect(bundle.biomes[0]).toMatchObject({
@@ -59,7 +62,7 @@ test("prototype one loads Strider, the spells, the potion, the mobs, and the mea
     miniboss: "mob.rust_sentinel",
     minibossDistance: 20,
   });
-  expect(bundle.rules).toMatchObject({ levelCap: 10, xpPerLevel: 6, turnBase: 100 });
+  expect(bundle.rules).toMatchObject({ levelCap: 10, xpPerLevel: 20, turnBase: 100 });
 });
 
 test("bundle actions become the actions a fight can run", () => {
@@ -115,7 +118,7 @@ test("bundle rules become the numbers every fight and run takes", () => {
     potionHeal: 25,
     fleeBase: 0.5,
   });
-  expect(levelRulesFromBundle(bundle)).toMatchObject({ xpPerLevel: 6, levelCap: 10 });
+  expect(levelRulesFromBundle(bundle)).toMatchObject({ xpPerLevel: 20, levelCap: 10 });
   expect(knownSpellsFromBundle(bundle).map((spell) => spell.id)).toEqual([
     "spell.ember",
     "spell.frost",
@@ -129,6 +132,6 @@ test("bundle rules become the numbers every fight and run takes", () => {
     "mob.shade",
     "mob.rust_sentinel",
   ]);
-  expect(table.get("mob.slime")).toMatchObject({ potionDrop: 0.15, fighter: { hp: 12 } });
+  expect(table.get("mob.slime")).toMatchObject({ potionDrop: 0.15, fighter: { hp: 24 } });
   expect(table.get("mob.rust_sentinel")?.potionDrop).toBeUndefined();
 });

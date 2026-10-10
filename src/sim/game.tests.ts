@@ -118,7 +118,7 @@ test("the first fight of seed 7 opens on the hero's turn and is won", () => {
   const end = sim.observe();
   expect(end.mode).toBe("field");
   expect(end.field.guardTicks).toBe(returnGuardTicks);
-  expect(end.hero).toMatchObject({ level: 2, hp: 36, maxHp: 36, potions: 2 });
+  expect(end.hero).toMatchObject({ level: 1, hp: 9, maxHp: 30, potions: 3 });
   expect(end.stats.fightsWon).toBe(2);
   expect(end.combat).toBeUndefined();
 });

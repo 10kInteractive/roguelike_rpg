@@ -16,5 +16,5 @@
   "heroCollisionRadius": 0.3,
   "minEncounterDistance": 4,
   "levelCap": 10,
-  "xpPerLevel": 6
+  "xpPerLevel": 20
 }

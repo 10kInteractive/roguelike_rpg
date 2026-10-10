@@ -41,15 +41,10 @@ test("6 XP leaves level 1, grows stats, and restores HP and MP", () => {
   expect(gained.hero.xp).toBe(0);
 });
 
-test("40 XP raises three levels and keeps the remainder", () => {
+test("each level costs the same XP, and the remainder is kept", () => {
   const gained = grantExperienceAndRaiseLevels(strider, 40, rules);
-  expect(gained.events.map((event) => event.type)).toEqual([
-    "xpGained",
-    "levelUp",
-    "levelUp",
-    "levelUp",
-  ]);
-  expect(gained.hero).toMatchObject({ level: 4, xp: 4, hp: 48, maxHp: 48, str: 14 });
+  expect(gained.events.filter((event) => event.type === "levelUp")).toHaveLength(6);
+  expect(gained.hero).toMatchObject({ level: 7, xp: 4, hp: 66, maxHp: 66, str: 20 });
 });
 
 test("at the level cap, XP accumulates and stats stay put", () => {
