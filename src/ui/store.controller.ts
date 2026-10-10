@@ -1,9 +1,12 @@
 import { useStore } from "zustand";
 import { createStore, type StoreApi } from "zustand/vanilla";
+import { debugLog } from "../debug/logger.controller";
 import type { Action, CombatantView, SimEvent, Snapshot } from "../sim/game.types";
 import { commandRows } from "./commands";
 import { messageFor } from "./messages";
 import type { UiState } from "./store.types";
+
+const log = debugLog.create("ui:log");
 
 /** How many lines the log keeps. Older ones drop off the top. */
 const logLimit = 6;
@@ -127,14 +130,18 @@ export class UiStoreController {
    * gains that event's line, so both move with the beat.
    */
   played(): void {
+    const event = this.store.getState().pending[0];
+    const line = event ? messageFor(event) : null;
+    if (line) log(line);
+
     this.store.setState((state) => {
-      const event = state.pending[0];
-      if (!event) return state;
-      const line = messageFor(event);
+      const next = state.pending[0];
+      if (!next) return state;
+      const nextLine = messageFor(next);
       return {
         pending: state.pending.slice(1),
-        snapshot: state.snapshot ? this.applied(state.snapshot, event) : state.snapshot,
-        log: line ? [...state.log, line].slice(-logLimit) : state.log,
+        snapshot: state.snapshot ? this.applied(state.snapshot, next) : state.snapshot,
+        log: nextLine ? [...state.log, nextLine].slice(-logLimit) : state.log,
       };
     });
   }

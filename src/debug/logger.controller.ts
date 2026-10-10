@@ -1,16 +1,18 @@
 /**
- * Namespaced console logging, off unless asked for.
+ * Namespaced console logging.
  *
- * `?debug=view,sim*` in the URL, or the same text in `localStorage.debug`,
- * turns namespaces on. `*` matches anything. The patterns are read once, when
- * the page loads.
+ * On for every namespace unless the page says otherwise. `?debug=false`, or
+ * `localStorage.debug` set to `false`, turns it off. A list such as
+ * `?debug=view:field` prints only those namespaces. `*` matches anything.
+ * The URL wins over localStorage. The choice is read once, when this is built.
  */
 export class DebugLogController {
-  /** Namespaces that print. */
+  /** Namespaces that print. Empty when logging is off. */
   private readonly enabled: RegExp[];
 
-  constructor() {
-    this.enabled = this.parse(this.readSource());
+  /** @param source The debug setting. Omit it to read the page. */
+  constructor(source?: string) {
+    this.enabled = this.parse(this.normalize(source ?? this.readSource()));
   }
 
   /** A log function for one namespace. It prints only when that namespace is on. */
@@ -23,9 +25,9 @@ export class DebugLogController {
     };
   }
 
-  /** The URL's `debug` parameter wins over `localStorage.debug`. */
+  /** The URL's `debug` parameter wins over `localStorage.debug`. No page means off. */
   private readSource(): string {
-    if (typeof window === "undefined") return "";
+    if (typeof window === "undefined") return "false";
     const params = new URLSearchParams(window.location.search);
     if (params.has("debug")) {
       return params.get("debug") ?? "";
@@ -35,6 +37,14 @@ export class DebugLogController {
     } catch {
       return "";
     }
+  }
+
+  /** `false` prints nothing. An empty setting prints every namespace. */
+  private normalize(source: string): string {
+    const chosen = source.trim();
+    if (chosen === "false") return "";
+    if (chosen === "") return "*";
+    return chosen;
   }
 
   /** Comma-separated names, where `*` matches anything. */

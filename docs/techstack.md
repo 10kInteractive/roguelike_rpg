@@ -183,7 +183,7 @@ Every change should be easy to see. Two tools, both in `src/debug`:
 
 - `const log = debugLog.create("view:field"); log("hero entered forest", pos);`
 - Namespaces follow the folder: `boot`, `assets`, `input`, `view:field`, `view:combat`, `ui`, `sim:events`.
-- Off by default. Enable with a URL parameter, `?debug=view:*,sim:events`, or `localStorage.debug` for a sticky setting. `?debug=*` turns everything on.
+- On by default: every namespace prints. `?debug=false`, or `localStorage.debug` set to `false`, turns it off. A list such as `?debug=view:field` prints only those namespaces. `?debug=*` is the same as leaving it unset. The choice is read once, when the page loads.
 - Log calls stay in production builds but do nothing unless enabled, so they're safe to leave in.
 
 **Dev panel**
