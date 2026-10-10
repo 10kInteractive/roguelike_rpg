@@ -286,6 +286,7 @@ src/                shared engine
       moth/         the moth shape, beside the frost moth look
     field/          field scene, follow camera, fixed sim step, interpolation
     combat/         combat scene and sequencer
+      backdrops/    one backdrop per fight ground: meadow for grass and path, forest for the woods
   ui/               React DOM overlay and the zustand store
     components/     one folder per component: controller, markup, styles, types
   input/            keyboard and gamepad to a stick and menu presses

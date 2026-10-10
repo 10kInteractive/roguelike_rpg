@@ -1,4 +1,3 @@
-import type { Texture } from "three";
 import type { Bundle } from "../content/schema";
 import { debugLog } from "../debug/logger.controller";
 import { debugWatches } from "../debug/watch.controller";
@@ -6,7 +5,6 @@ import { KeyboardController } from "../input/keyboard.controller";
 import { createSim } from "../sim";
 import { CombatActionPolicy } from "../sim/combat/policy.controller";
 import type { EncounterEvent } from "../sim/field/encounters.types";
-import type { Terrain } from "../sim/field/map.types";
 import type { GameSimController } from "../sim/game.controller";
 import type { Action, SimEvent } from "../sim/game.types";
 import { SeededRandomGenerator } from "../sim/utils/rng.controller";
@@ -14,6 +12,7 @@ import type { Rng } from "../sim/utils/rng.types";
 import { pause } from "../ui/components/pause/controller";
 import { veil } from "../ui/components/veil/controller";
 import { uiStore } from "../ui/store.controller";
+import type { BackdropTextures } from "../view/combat/backdrops/backdrop.types";
 import { CombatViewController } from "../view/combat/view.controller";
 import { PlayerWalkController } from "../view/field/player-walk.controller";
 import { StandInWalkController } from "../view/field/stand-in-walk.controller";
@@ -48,7 +47,7 @@ export class GameLoopController {
   private readonly keys: KeyboardController | null;
 
   /** Terrain textures, shared by the field and every fight's backdrop. */
-  private readonly textures: Partial<Record<Terrain, Texture>>;
+  private readonly textures: BackdropTextures;
 
   /** What the run is doing now, for the dev panel. */
   private phase: GameLoopPhase = "walking";
@@ -59,7 +58,7 @@ export class GameLoopController {
     /** The content the run plays. */
     bundle: Bundle;
     /** Terrain textures that loaded. */
-    textures: Partial<Record<Terrain, Texture>>;
+    textures: BackdropTextures;
     /** Seed for the meadow and the run's three rolls. */
     seed: number;
     /** Follow the hero, or show the whole meadow. */
@@ -156,6 +155,7 @@ export class GameLoopController {
       loop: this.loop,
       mobIds: this.mobIdsOf(started),
       textures: this.textures,
+      terrain: started.terrain,
       heroId: this.sim.observe().hero.id,
       onPlayed: () => uiStore.played(),
     });

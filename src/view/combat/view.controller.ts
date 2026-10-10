@@ -1,12 +1,11 @@
-import type { Texture } from "three";
 import { debugLog } from "../../debug/logger.controller";
 import { debugWatches } from "../../debug/watch.controller";
 import type { FightEvent } from "../../sim/combat/fight.types";
-import type { Terrain } from "../../sim/field/map.types";
 import type { SimEvent } from "../../sim/game.types";
 import type { PackOutcome, PackResult } from "../../sim/run/pack.types";
 import { veil } from "../../ui/components/veil/controller";
 import type { RenderLoopController } from "../renderer.controller";
+import type { BackdropTextures, FightTerrain } from "./backdrops/backdrop.types";
 import { FloatingTextController } from "./floating-text.controller";
 import { combatCamera } from "./scene.constants";
 import { CombatSceneController } from "./scene.controller";
@@ -58,7 +57,9 @@ export class CombatViewController {
     /** The pack in the order it is fought, one id per mob. */
     mobIds: readonly string[];
     /** Terrain textures for the backdrop. */
-    textures: Partial<Record<Terrain, Texture>>;
+    textures: BackdropTextures;
+    /** Where the fight started. Grass and path are the meadow. Forest is the woods. */
+    terrain?: FightTerrain;
     /** Id the hero's events carry. */
     heroId: string;
     /** Called after each event has been shown. */
@@ -67,7 +68,7 @@ export class CombatViewController {
     this.loop = input.loop;
     this.mobCount = input.mobIds.length;
     this.onPlayed = input.onPlayed ?? (() => {});
-    this.combat = new CombatSceneController(input.mobIds, input.textures);
+    this.combat = new CombatSceneController(input.mobIds, input.textures, input.terrain ?? "grass");
     this.sequencer = new CombatSequencerController({
       combat: this.combat,
       tweens: this.tweens,
@@ -75,7 +76,7 @@ export class CombatViewController {
       heroId: input.heroId,
       beforeHeroTurn: () => this.tweens.wait(standInThinkSeconds),
     });
-    log(`pack: ${input.mobIds.join(", ")}`);
+    log(`${input.terrain ?? "grass"}: ${input.mobIds.join(", ")}`);
 
     if (import.meta.env.DEV) {
       debugWatches.watch("pack", () => input.mobIds.join(", "));

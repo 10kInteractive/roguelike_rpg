@@ -70,6 +70,7 @@ src/                        shared engine
                             FixedStepClock, PositionInterpolator, StandInWalkController
     combat/                 CombatViewController, CombatSceneController, CombatSequencerController,
                             TweenController, FloatingTextController
+      backdrops/            one backdrop per fight ground: meadow for grass and path, forest for the woods
   ui/                       React DOM overlay. UiStoreController: the latest snapshot and the events waiting to play
     components/             one folder per component: controller, markup, styles, types
   input/                    KeyboardController and GamepadController: held keys or the pad as a stick, and menu presses
@@ -388,7 +389,7 @@ All art starts as placeholders: simple shapes plus pixel textures written by `to
 
 - **Renderer:** `WebGPURenderer` with automatic WebGL2 fallback. One render loop owned by the view.
 - **Field scene:** terrain built from the map as merged low-poly tile columns with pixel textures; a skirt of grass tiles around the meadow so the follow camera sees ground past the edge; hero and miniboss as placeholder models of six blocks; the hero turns to face its movement; 3/4 camera that follows the hero smoothly. Positions interpolate between sim ticks.
-- **Combat scene:** a simple meadow backdrop, hero on one side, enemies on the other.
+- **Combat scene:** a backdrop for the ground the fight started on, hero on one side, enemies on the other. Grass and path use the meadow. Forest uses a dark brown floor and tall dark green trees.
 - **Combat sequencer:** consumes sim events in order and plays each one (lunge, flash, damage number, defeat fade) with `await`, then tells the UI it's ready for input.
 - **Lighting:** one sun and one sky light.
 
@@ -572,6 +573,7 @@ On the `bozmak/view` branch, not merged yet. The canvas, the WebGPU renderer, an
 - `feat: ending end-to-end test`. Victory and game over show stats, and restart works.
 - `feat: authored assets win`. A file dropped in `assets/authored/` replaces the placeholder with the same id, with no code change.
 - `feat: meadow skirt`. Grass tiles around the map fill the follow camera, so the edge of the meadow is ground.
+- `feat: forest fights`. The hero stands waist-deep in forest, and a forest fight uses its own backdrop.
 - `feat: balance pass`. Tune the bundle numbers from the sweep toward the targets.
 
 ## Done when

@@ -1,7 +1,8 @@
 import { InstancedMesh, Matrix4, Vector3 } from "three";
 import { expect, test } from "vitest";
 import type { MeadowMap } from "../../sim/field/map.types";
-import { fieldSkirtTiles } from "./scene.constants";
+import { heroLook } from "../art/person/model.constants";
+import { fieldSkirtTiles, terrainHeights } from "./scene.constants";
 import { FieldSceneController } from "./scene.controller";
 
 const meadow: MeadowMap = {
@@ -27,4 +28,18 @@ test("grass tiles surround the meadow, past every edge", () => {
   const corner = new Vector3().setFromMatrixPosition(place);
   expect(corner.x).toBeLessThan(0);
   expect(corner.z).toBeGreaterThan(0);
+});
+
+test("the hero stands waist-deep in forest and on top of grass", () => {
+  const forest = new FieldSceneController(
+    { ...meadow, tiles: ["forest", "forest", "forest", "forest"] },
+    {},
+    "mob.slime",
+  );
+  forest.placeHero({ x: 0.5, y: 0.5 }, 0);
+  expect(forest.heroFeet().y).toBeCloseTo(terrainHeights.forest - heroLook.height / 2);
+
+  const grass = new FieldSceneController(meadow, {}, "mob.slime");
+  grass.placeHero({ x: 0.5, y: 0.5 }, 0);
+  expect(grass.heroFeet().y).toBeCloseTo(terrainHeights.grass);
 });

@@ -1,4 +1,3 @@
-import type { Texture } from "three";
 import { AssetLoaderController } from "../assets/loader.controller";
 import type { LoadedPack } from "../assets/loader.types";
 import { bundledAssetUrls } from "../assets/urls.constants";
@@ -24,6 +23,11 @@ import { SeededRandomGenerator } from "../sim/utils/rng.controller";
 import { pause } from "../ui/components/pause/controller";
 import { uiStore } from "../ui/store.controller";
 import { terrainTextureIds } from "../view/art/terrain-textures.constants";
+import type { BackdropTextures, FightTerrain } from "../view/combat/backdrops/backdrop.types";
+import {
+  forestFloorTextureId,
+  forestWallTextureId,
+} from "../view/combat/backdrops/forest.constants";
 import { CombatViewController } from "../view/combat/view.controller";
 import { RenderLoopController } from "../view/renderer.controller";
 import { GameLoopController } from "./game-loop.controller";
@@ -72,7 +76,7 @@ export class GameRuntimeController {
           progress: settled / total,
         });
       });
-      const textures = this.terrainTextures(pack);
+      const textures = this.sceneTextures(pack);
 
       if (options.combat) {
         let seed = options.seed;
@@ -87,6 +91,7 @@ export class GameRuntimeController {
             textures,
             seed,
             mobIds: options.combat,
+            terrain: options.fightTerrain,
           });
           if (result === "restart") {
             seed = Math.floor(Math.random() * 2 ** 32);
@@ -120,20 +125,25 @@ export class GameRuntimeController {
   }
 
   /**
-   * Each terrain's texture from the loaded pack. A terrain without one draws its fallback color.
+   * Each terrain's texture from the loaded pack, plus the forest fight's floor and trees.
+   * A terrain without one draws its fallback color.
    * A file that failed is a real problem and warns. Missing and skipped files are placeholders not made yet.
    */
-  private terrainTextures(pack: LoadedPack): Partial<Record<Terrain, Texture>> {
+  private sceneTextures(pack: LoadedPack): BackdropTextures {
     if (pack.failed.length > 0) console.warn(`[runtime] ${pack.id} failed:`, pack.failed);
     log(`${pack.id}: ${pack.textures.size} loaded`, {
       missing: pack.missing,
       skipped: pack.skipped,
     });
-    const textures: Partial<Record<Terrain, Texture>> = {};
+    const textures: BackdropTextures = {};
     for (const [terrain, id] of Object.entries(terrainTextureIds) as [Terrain, string][]) {
       const texture = pack.textures.get(id);
       if (texture) textures[terrain] = texture;
     }
+    const forestFloor = pack.textures.get(forestFloorTextureId);
+    if (forestFloor) textures.forestFloor = forestFloor;
+    const forestWall = pack.textures.get(forestWallTextureId);
+    if (forestWall) textures.forestWall = forestWall;
     return textures;
   }
 
@@ -141,7 +151,7 @@ export class GameRuntimeController {
   private async startField(input: {
     loop: RenderLoopController;
     bundle: Bundle;
-    textures: Partial<Record<Terrain, Texture>>;
+    textures: BackdropTextures;
     options: LaunchOptions;
     seed: number;
   }): Promise<RunEnd> {
@@ -171,17 +181,18 @@ export class GameRuntimeController {
     loop: RenderLoopController;
     bundle: Bundle;
     biome: Bundle["biomes"][number];
-    textures: Partial<Record<Terrain, Texture>>;
+    textures: BackdropTextures;
     seed: number;
     mobIds: readonly string[];
+    terrain: FightTerrain;
   }): Promise<PackResult | "restart"> {
-    const { loop, bundle, biome, textures, seed } = input;
+    const { loop, bundle, biome, textures, seed, terrain } = input;
     const mobIds = input.mobIds.length === 0 ? [biome.miniboss] : input.mobIds;
     const known = new Set(bundle.mobs.mobs.map((mob) => mob.id));
     const unknown = mobIds.filter((id) => !known.has(id));
     if (unknown.length > 0) throw new Error(`Unknown mob in ?combat: ${unknown.join(", ")}`);
 
-    log(`combat: ${mobIds.join(", ")}, seed ${seed}`);
+    log(`combat ${terrain}: ${mobIds.join(", ")}, seed ${seed}`);
     const mobs = runMobsFromBundle(bundle);
     const hero = heroFighterFromBundle(bundle.hero);
     const choice = new SeededRandomGenerator(seed);
@@ -204,7 +215,7 @@ export class GameRuntimeController {
       miniboss,
     );
     const played = await pause.race(
-      new CombatViewController({ loop, mobIds, textures, heroId: hero.id }).play(result),
+      new CombatViewController({ loop, mobIds, textures, terrain, heroId: hero.id }).play(result),
     );
     if (played === null) return "restart";
     const lost = result.outcome === "lose";
@@ -254,6 +265,7 @@ export class GameRuntimeController {
       camera: params.get("camera") === "overview" ? "overview" : "follow",
       gameloop: params.get("gameloop") === "ai" ? "ai" : "human",
       combat: combat === null ? null : combat.split(",").filter((id) => id !== ""),
+      fightTerrain: params.get("terrain") === "forest" ? "forest" : "grass",
       forceWebGL: params.has("webgl"),
       assetDelayMs: import.meta.env.DEV ? Number(params.get("assetDelay") ?? 0) || 0 : 0,
     };

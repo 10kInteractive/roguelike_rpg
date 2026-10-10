@@ -14,6 +14,7 @@ import type { Position } from "../../sim/field/movement.types";
 import { addSunAndSky } from "../art/lighting";
 import { skyColor } from "../art/lighting.constants";
 import { buildHeroModel, buildMobModel } from "../art/models";
+import { heroLook } from "../art/person/model.constants";
 import { terrainFallbackColors } from "../art/terrain-textures.constants";
 import { fieldSkirtTiles, terrainHeights } from "./scene.constants";
 
@@ -61,7 +62,9 @@ export class FieldSceneController {
    * @param facing Radians about the vertical axis. 0 faces south, toward the camera.
    */
   placeHero(position: Position, facing: number): void {
-    this.hero.position.set(position.x, this.groundAt(position), -position.y);
+    // In the forest the canopy hides the lower half, so the hero looks waist-deep.
+    const sink = this.terrainAt(position) === "forest" ? heroLook.height / 2 : 0;
+    this.hero.position.set(position.x, this.groundAt(position) - sink, -position.y);
     this.hero.rotation.y = facing;
   }
 
@@ -145,9 +148,22 @@ export class FieldSceneController {
 
   /** The top of the column under a sim position. Off the map is ground level. */
   private groundAt(position: Position): number {
+    const index = this.tileIndex(position);
+    if (index === undefined) return 0;
+    return this.heights[index] ?? 0;
+  }
+
+  /** The terrain under a sim position, or nothing off the map. */
+  private terrainAt(position: Position): Terrain | undefined {
+    const index = this.tileIndex(position);
+    return index === undefined ? undefined : this.map.tiles[index];
+  }
+
+  /** The row-major index of the tile under a sim position, or nothing off the map. */
+  private tileIndex(position: Position): number | undefined {
     const x = Math.floor(position.x);
     const y = Math.floor(position.y);
-    if (x < 0 || y < 0 || x >= this.map.width || y >= this.map.height) return 0;
-    return this.heights[y * this.map.width + x] ?? 0;
+    if (x < 0 || y < 0 || x >= this.map.width || y >= this.map.height) return undefined;
+    return y * this.map.width + x;
   }
 }

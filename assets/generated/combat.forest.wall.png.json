@@ -1,0 +1,37 @@
+{
+  "id": "combat.forest.wall",
+  "generator": "tools/gen-placeholders.ts",
+  "seed": 6,
+  "size": 16,
+  "recipe": {
+    "id": "combat.forest.wall",
+    "seed": 6,
+    "palette": [
+      {
+        "color": [
+          16,
+          32,
+          20
+        ],
+        "weight": 6
+      },
+      {
+        "color": [
+          10,
+          22,
+          14
+        ],
+        "weight": 4
+      },
+      {
+        "color": [
+          26,
+          44,
+          26
+        ],
+        "weight": 2
+      }
+    ]
+  },
+  "generatedAt": "2026-10-10T01:13:33.820Z"
+}

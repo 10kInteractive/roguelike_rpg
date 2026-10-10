@@ -34,7 +34,9 @@
         { "id": "mob.dire_wolf.model", "file": "assets/generated/mob.dire_wolf.model.glb" },
         { "id": "mob.shade.model", "file": "assets/generated/mob.shade.model.glb" },
         { "id": "mob.rust_sentinel.model", "file": "assets/generated/mob.rust_sentinel.model.glb" },
-        { "id": "combat.backdrop.meadow", "file": "assets/generated/combat.backdrop.meadow.png" }
+        { "id": "combat.backdrop.meadow", "file": "assets/generated/combat.backdrop.meadow.png" },
+        { "id": "combat.forest.floor", "file": "assets/generated/combat.forest.floor.png" },
+        { "id": "combat.forest.wall", "file": "assets/generated/combat.forest.wall.png" }
       ]
     }
   ]

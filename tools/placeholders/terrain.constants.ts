@@ -3,7 +3,7 @@ import type { TerrainRecipe } from "./terrain.types.ts";
 /** Pixels per side of a terrain texture. One texture covers one tile. */
 export const terrainTextureSize = 16;
 
-/** One recipe per terrain in the meadow. */
+/** One recipe per generated texture: the meadow terrains, and the forest fight's floor. */
 export const terrainRecipes: readonly TerrainRecipe[] = [
   {
     id: "terrain.grass.texture",
@@ -42,6 +42,24 @@ export const terrainRecipes: readonly TerrainRecipe[] = [
       { color: [44, 90, 150], weight: 3 },
     ],
     streaks: { color: [120, 170, 220], everyRows: 4, length: 3 },
+  },
+  {
+    id: "combat.forest.floor",
+    seed: 7,
+    palette: [
+      { color: [58, 34, 18], weight: 6 },
+      { color: [36, 22, 12], weight: 4 },
+      { color: [78, 48, 26], weight: 2 },
+    ],
+  },
+  {
+    id: "combat.forest.wall",
+    seed: 6,
+    palette: [
+      { color: [16, 32, 20], weight: 6 },
+      { color: [10, 22, 14], weight: 4 },
+      { color: [26, 44, 26], weight: 2 },
+    ],
   },
   {
     id: "terrain.mountain.texture",
