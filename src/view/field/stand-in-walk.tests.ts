@@ -46,7 +46,12 @@ function setup(seed: number) {
   return {
     seed,
     map,
-    miniboss: { tile: map.miniboss, radius: biome.minibossRadius, id: biome.miniboss },
+    miniboss: {
+      tile: map.miniboss,
+      radius: biome.minibossRadius,
+      id: biome.miniboss,
+      front: biome.minibossFront,
+    },
     tables: encounterTablesFromBundle(bundle),
     minDistance: bundle.rules.minEncounterDistance,
     hero: heroFighterFromBundle(bundle.hero),

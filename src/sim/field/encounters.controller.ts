@@ -178,7 +178,10 @@ export class EncounterWalkController {
     events.push({
       type: "encounterStarted",
       terrain: terrain === "forest" || terrain === "path" ? terrain : "grass",
-      groups: [{ id: miniboss.id, count: 1 }],
+      groups: [
+        ...(miniboss.front ?? []).map((id) => ({ id, count: 1 })),
+        { id: miniboss.id, count: 1 },
+      ],
       miniboss: true,
     });
     return { events, ticks, distance };

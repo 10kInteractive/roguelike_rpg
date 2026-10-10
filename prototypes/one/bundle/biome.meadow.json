@@ -3,6 +3,7 @@
   "width": 48,
   "height": 48,
   "miniboss": "mob.rust_sentinel",
+  "minibossFront": ["mob.dire_wolf", "mob.shade"],
   "minibossDistance": 20,
   "minibossRadius": 0.8
 }

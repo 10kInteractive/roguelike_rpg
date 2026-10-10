@@ -1,6 +1,6 @@
 # Prototype one: combat engine and game field
 
-A pared-down proof of concept. One hero walks a procedural map, falls into haste-ordered turn-based fights, levels up, and tries to beat a visible miniboss. Nothing else. A run takes 10–15 minutes, about 10 fights. It only needs to run locally.
+A pared-down proof of concept. One hero walks a procedural map, falls into haste-ordered turn-based fights, levels up, and tries to beat a visible miniboss. Nothing else. A run takes 30–40 minutes, about 20 fights. It only needs to run locally.
 
 Mechanics come from the **Prototype** sections of `docs/game_design.md`. Stack decisions come from `docs/techstack.md`. This plan is the build spec.
 
@@ -35,7 +35,7 @@ Out: deploying to the server, gear and slots, boons, stages, inns, extraction, s
 3. The player picks commands; enemies act on their turns; the log at the base of the view narrates, and clears when the fight ends.
 4. An Ember Imp resists fire but melts to ice. A Frost Moth is fast and fragile and hates fire. Slimes are just slimes. A Dire Wolf and a Shade show up only in the forest, and both hit harder than those three.
 5. Wins give XP. Level-ups restore HP and MP. Potions drop now and then.
-6. A Rust Sentinel stands on the far side of the map. Walking around it is safe. Touching it starts a fight you can't run from. After about 10 fights the hero should be ready for it.
+6. A Rust Sentinel stands on the far side of the map. Walking around it is safe. Touching it starts a fight you can't run from. After about 20 fights the hero should be ready for it.
 7. Beat it: victory screen with run stats. Die: game over screen with the same stats and what killed you. Either way, restart on a new seed.
 
 ## Directory structure
@@ -312,7 +312,7 @@ Starting numbers. They are first guesses for the balance sweeps to correct.
 | Encounter hold at the start of a run | 5 seconds |
 | Encounter hold after winning a pack and returning | 2.5 seconds |
 | Level cap | 10 |
-| XP to next level | 6 × level (level 5 after about 60 XP, roughly 10 fights) |
+| XP to next level | 20, the same at every level (about five packs; level 5 after about 80 XP, roughly 20 fights) |
 
 **Hero: Strider**
 
@@ -335,24 +335,26 @@ Starts with spells Ember and Frost, and 3 potions.
 
 | ID | HP | STR | DEF | MAG | HST | Element | Weak | Resists | XP | Actions |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `mob.slime` | 12 | 6 | 2 | 0 | 5 | — | — | — | 3 | attack |
-| `mob.ember_imp` | 14 | 6 | 3 | 0 | 9 | fire | ice | fire | 5 | attack 60, Ember 40 |
-| `mob.frost_moth` | 10 | 5 | 2 | 0 | 12 | ice | fire | ice | 5 | attack 60, Frost 40 |
-| `mob.dire_wolf` | 22 | 9 | 4 | 0 | 8 | — | — | — | 8 | attack |
-| `mob.shade` | 18 | 7 | 3 | 0 | 11 | ice | fire | ice | 8 | attack 55, Frost 45 |
-| `mob.rust_sentinel` (miniboss) | 90 | 13 | 8 | 0 | 6 | — | ice | fire | 40 | attack 70, Grind (×1.5) 30 |
+| `mob.slime` | 24 | 5 | 4 | 0 | 5 | — | — | — | 2 | attack |
+| `mob.ember_imp` | 16 | 5 | 3 | 0 | 9 | fire | ice | fire | 3 | attack 60, Ember 40 |
+| `mob.frost_moth` | 12 | 4 | 2 | 0 | 12 | ice | fire | ice | 3 | attack 60, Frost 40 |
+| `mob.dire_wolf` | 30 | 7 | 4 | 0 | 8 | — | — | — | 4 | attack |
+| `mob.shade` | 18 | 6 | 3 | 0 | 11 | ice | fire | ice | 4 | attack 55, Frost 45 |
+| `mob.rust_sentinel` (miniboss) | 140 | 17 | 8 | 0 | 6 | — | ice | fire | 40 | attack 70, Grind (×1.5) 30 |
 
 Every regular mob has a 15% potion drop. The Rust Sentinel is a machina, a small first hint of the tech undercurrent. Beating it ends the run, so it has no drops.
 
-The imp and the moth have no magic, so their Ember and Frost hit for the spell's power alone, 7 or 8. A punch is 3 or 4. Strider's own spells still add his magic.
+The imp and the moth have no magic, so their Ember and Frost hit for the spell's power alone, 7 or 8. A punch is about 3. Strider's own spells still add his magic.
 
 **Encounters (weights per terrain)**
 
 | Terrain | Encounter rate per tile walked | Packs |
 | --- | --- | --- |
-| Grass | 10% | 1–2 slimes (50), slime + imp (25), 1–2 moths (25) |
-| Forest | 15% | 1–2 imps (25), 2 moths (25), imp + moth (20), 1 dire wolf (15), 1 shade (15) |
+| Grass | 10% | 2–3 slimes (45), 1 slime + 1–2 imps (30), 1–3 moths (25) |
+| Forest | 15% | 2–3 imps (25), 2–3 moths (20), 1 imp + 1–2 moths (25), wolf + shade (15) |
 | Path | 4% | 1 slime (100) |
+
+Touching the Rust Sentinel starts a fight of three: a dire wolf nearer the hero, and a shade and the sentinel further out, one to either side. Beating the sentinel ends the run. The wolf and the shade do not.
 
 **Biome: meadow**
 
@@ -369,10 +371,11 @@ The first balance pass tunes the numbers above toward these:
 
 | Target | Value |
 | --- | --- |
-| Run length | 10–15 minutes |
-| Fights before the hero is ready for the miniboss | about 10 |
+| Run length | 30–40 minutes |
+| Fights before the hero is ready for the miniboss | about 20 |
+| Packs per level | about 5 |
 | Hero level when ready | about 5 |
-| Regular fight length | 3–6 hero turns |
+| Regular fight length | 4–6 hero turns at level 1 |
 | `grinder` win rate against the miniboss at level 5 | about 70% |
 
 The sim can't measure real minutes, so sweeps report an **estimated play time**: about 3 seconds per hero decision, 1.5 seconds per enemy action, 2 seconds per fight transition, plus distance walked divided by walk speed. Real play tests calibrate those constants.
@@ -584,7 +587,7 @@ On the `bozmak/view` branch, not merged yet. The canvas, the WebGPU renderer, an
 ## Done when
 
 - [ ] Prototype one runs locally with `npm run dev`, and the production build works with `npm run preview`.
-- [ ] A full run is playable start to finish with keyboard or gamepad, in about 10–15 minutes.
+- [ ] A full run is playable start to finish with keyboard or gamepad, in about 30–40 minutes.
 - [x] `npm run check` passes and runs in CI.
 - [x] A 1000-seed sweep with the `grinder` policy completes and reports a summary.
 - [x] A recorded run replays to the same result.

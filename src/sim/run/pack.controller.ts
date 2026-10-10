@@ -9,7 +9,7 @@ import type { HeroState } from "./run.types";
  *
  * The hero's HP, MP, potions, XP, and level carry to the next mob and the
  * next pack. A flee or a defeat ends the pack. After a win, a mob with a drop
- * chance drops a potion when the roll is below it. A miniboss win ends the pack.
+ * chance drops a potion when the roll is below it. Beating the miniboss ends the pack.
  */
 export class PackFightController {
   /** The mobs, numbers, policy, and rolls every fight uses. */
@@ -33,28 +33,30 @@ export class PackFightController {
    * Fights every mob in the pack, in order.
    *
    * @param groups The pack, as the encounter rolled it.
-   * @param miniboss True for the miniboss fight. Its win ends the pack.
+   * @param miniboss True for the miniboss fight. Beating that mob ends the pack. The mobs in front of it do not.
    */
   fight(groups: readonly EncounterSpawn[], miniboss = false): PackResult {
     const fights: PackFight[] = [];
     for (const group of groups) {
       for (let count = 0; count < group.count; count++) {
-        const fought = this.fightOne(group.id);
+        const fought = this.fightOne(group.id, miniboss);
         fights.push(fought);
-        if (fought.outcome !== "win" || miniboss) return { outcome: fought.outcome, fights };
+        if (fought.outcome !== "win") return { outcome: fought.outcome, fights };
+        const boss = this.input.mobs.get(group.id)?.fighter.miniboss === true;
+        if (miniboss && boss) return { outcome: "win", fights };
       }
     }
     return { outcome: "win", fights };
   }
 
   /** One mob's fight, then the hero's new state and any potion drop. */
-  private fightOne(mobId: string): PackFight {
+  private fightOne(mobId: string, lockFlee: boolean): PackFight {
     const mob = this.input.mobs.get(mobId);
     if (!mob) throw new Error(`Unknown mob "${mobId}"`);
 
     const events = new OneOnOneFightController({
       hero: { ...this.state, hero: true },
-      enemy: mob.fighter,
+      enemy: lockFlee ? { ...mob.fighter, miniboss: true } : mob.fighter,
       rng: this.input.rngs.combat,
       choiceRng: this.input.rngs.choice,
       ...this.input.combat,
@@ -97,7 +99,7 @@ export class PackFightController {
         hero.level = event.level;
       }
       if (event.type === "levelUp") {
-        hero.xp -= this.input.leveling.xpPerLevel * (event.level - 1);
+        hero.xp -= this.input.leveling.xpPerLevel;
         hero.level = event.level;
         hero.hp = event.hp;
         hero.maxHp = event.maxHp;

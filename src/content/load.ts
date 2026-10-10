@@ -68,6 +68,9 @@ export function loadBundle(source: BundleSource): Bundle {
   for (const biome of biomes) {
     if (!mobIds.has(biome.miniboss))
       problems.push(`Unknown mob "${biome.miniboss}" in ${biome.id}`);
+    for (const id of biome.minibossFront) {
+      if (!mobIds.has(id)) problems.push(`Unknown mob "${id}" in ${biome.id}`);
+    }
   }
   for (const terrain of encounters.terrains) {
     for (const pack of terrain.packs) {

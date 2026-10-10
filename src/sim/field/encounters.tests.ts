@@ -178,6 +178,31 @@ test("touching the miniboss starts its fight, and walking clear of it does not",
   expect(aside.ticks).toBe(30);
 });
 
+test("the miniboss fight puts its front mobs ahead of the sentinel", () => {
+  const field = row("grass", 12);
+  const touched = new EncounterWalkController({
+    position: start,
+    field,
+    tables: { grass: { rate: 0, packs: [slime] } },
+    minDistance: 4,
+    rng: rolls([]),
+    miniboss: {
+      tile: { x: 4, y: 0 },
+      radius: 0.8,
+      id: "mob.rust_sentinel",
+      front: ["mob.dire_wolf", "mob.shade"],
+    },
+  }).holdStick(east, 40);
+  expect(touched.events[0]).toMatchObject({
+    miniboss: true,
+    groups: [
+      { id: "mob.dire_wolf", count: 1 },
+      { id: "mob.shade", count: 1 },
+      { id: "mob.rust_sentinel", count: 1 },
+    ],
+  });
+});
+
 const slime = { weight: 1, groups: [{ id: "mob.slime", min: 1, max: 1 }] };
 
 function row(terrain: Terrain, width: number) {

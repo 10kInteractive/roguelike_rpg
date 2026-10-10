@@ -18,11 +18,19 @@ function packXs(combat: CombatSceneController, mobIds: string[]): number[] {
   return mobIds.map((id) => combat.scene.getObjectByName(id)?.position.x ?? Number.NaN);
 }
 
+/** Each number is close to the one beside it. Positions pick up binary dust. */
+function closeTo(actual: number[], expected: number[]): void {
+  expect(actual).toHaveLength(expected.length);
+  for (let index = 0; index < actual.length; index++) {
+    expect(actual[index]).toBeCloseTo(expected[index] ?? Number.NaN);
+  }
+}
+
 test("the pack stays in its slots, and the ring starts under the lead", () => {
   const mobIds = ["mob.frost_moth", "mob.ember_imp", "mob.slime"];
   const combat = new CombatSceneController(mobIds, {});
-  const { pack, packStagger } = combatStage;
-  expect(packXs(combat, mobIds)).toEqual([pack.x, pack.x - packStagger, pack.x - 2 * packStagger]);
+  const { pack, rowGap } = combatStage;
+  closeTo(packXs(combat, mobIds), [pack.x, pack.x - rowGap, pack.x - rowGap]);
   const ring = combat.scene.getObjectByName("selection-ring");
   expect(ring?.position.x).toBeCloseTo(pack.x);
   expect(ring?.position.z).toBeCloseTo(pack.z);
@@ -47,8 +55,8 @@ test("focusing another mob sends the first one back", () => {
   const mobIds = ["mob.frost_moth", "mob.ember_imp"];
   const combat = new CombatSceneController(mobIds, {});
   combat.focus(1);
-  const { pack, packStagger, focusStep } = combatStage;
-  expect(packXs(combat, mobIds)).toEqual([pack.x, pack.x - packStagger + focusStep]);
+  const { pack, rowGap, focusStep } = combatStage;
+  closeTo(packXs(combat, mobIds), [pack.x, pack.x - rowGap + focusStep]);
   expect(combat.focusedIndex()).toBe(1);
 });
 
@@ -56,18 +64,34 @@ test("the ring moves under a back mob and the pack stays put", () => {
   const mobIds = ["mob.frost_moth", "mob.ember_imp", "mob.slime"];
   const combat = new CombatSceneController(mobIds, {});
   const before = packXs(combat, mobIds);
-  const { pack, packStagger, packSpacing } = combatStage;
+  const { pack, fileGap, rowGap } = combatStage;
 
   combat.ringAt(2);
   expect(packXs(combat, mobIds)).toEqual(before);
   const ring = combat.scene.getObjectByName("selection-ring");
-  expect(ring?.position.x).toBeCloseTo(pack.x - 2 * packStagger);
-  expect(ring?.position.z).toBeCloseTo(pack.z - 2 * packSpacing);
+  expect(ring?.position.x).toBeCloseTo(pack.x - rowGap);
+  expect(ring?.position.z).toBeCloseTo(pack.z + fileGap / 2);
   expect(combat.focusedIndex()).toBe(2);
 
   combat.ringAt(null);
   expect(ring?.visible).toBe(false);
   expect(packXs(combat, mobIds)).toEqual(before);
+});
+
+test("three mobs put one nearer the hero and two further out", () => {
+  const mobIds = ["mob.slime", "mob.ember_imp", "mob.frost_moth"];
+  const combat = new CombatSceneController(mobIds, {});
+  const { pack, fileGap, rowGap } = combatStage;
+  const spots = mobIds.map((id) => combat.scene.getObjectByName(id)?.position);
+  expect(pack.x).toBeLessThan(-1);
+  closeTo(
+    spots.map((spot) => spot?.x ?? Number.NaN),
+    [pack.x, pack.x - rowGap, pack.x - rowGap],
+  );
+  closeTo(
+    spots.map((spot) => spot?.z ?? Number.NaN),
+    [pack.z, pack.z - fileGap / 2, pack.z + fileGap / 2],
+  );
 });
 
 test("set pieces sit off to the sides, on the near ground", () => {

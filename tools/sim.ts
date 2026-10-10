@@ -216,7 +216,12 @@ function sweepGrinder(bundle: Bundle, runs: number): string {
       new GrinderFieldRunController({
         seed: next,
         map,
-        miniboss: { tile: map.miniboss, radius: biome.minibossRadius, id: biome.miniboss },
+        miniboss: {
+          tile: map.miniboss,
+          radius: biome.minibossRadius,
+          id: biome.miniboss,
+          front: biome.minibossFront,
+        },
         tables,
         minDistance: bundle.rules.minEncounterDistance,
         hero: heroFighterFromBundle(bundle.hero),

@@ -104,10 +104,29 @@ test("a defeat ends the pack before the next mob", () => {
   expect(pack.hero().hp).toBe(0);
 });
 
-test("a miniboss win ends the pack", () => {
-  const result = packs().fight([{ id: "mob.slime", count: 2 }], true);
+test("the mobs in front fall, and beating the miniboss ends the pack", () => {
+  const boss: RunMob = {
+    fighter: { ...weakling.fighter, id: "mob.rust_sentinel", miniboss: true },
+  };
+  const result = packs({
+    mobs: new Map([
+      ["mob.slime", weakling],
+      ["mob.brute", brute],
+      ["mob.rust_sentinel", boss],
+    ]),
+  }).fight(
+    [
+      { id: "mob.slime", count: 2 },
+      { id: "mob.rust_sentinel", count: 1 },
+    ],
+    true,
+  );
   expect(result.outcome).toBe("win");
-  expect(result.fights).toHaveLength(1);
+  expect(result.fights.map((fight) => fight.mobId)).toEqual([
+    "mob.slime",
+    "mob.slime",
+    "mob.rust_sentinel",
+  ]);
 });
 
 test("hero() is a copy the caller cannot change", () => {

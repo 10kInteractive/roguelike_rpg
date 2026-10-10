@@ -39,7 +39,7 @@ export type Growth = {
 };
 
 export type LevelRules = {
-  /** XP to leave the current level is this times the level. Prototype one uses 6. */
+  /** XP to leave a level. The same at every level. Prototype one uses 20. */
   xpPerLevel: number;
   /** Highest level. Prototype one uses 10. */
   levelCap: number;

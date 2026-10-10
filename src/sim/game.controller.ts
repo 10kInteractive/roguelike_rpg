@@ -106,7 +106,12 @@ export class GameSimController {
       height: biome.height,
       minibossDistance: biome.minibossDistance,
     });
-    this.miniboss = { tile: this.map.miniboss, radius: biome.minibossRadius, id: biome.miniboss };
+    this.miniboss = {
+      tile: this.map.miniboss,
+      radius: biome.minibossRadius,
+      id: biome.miniboss,
+      front: biome.minibossFront,
+    };
     this.mobs = runMobsFromBundle(options.bundle);
     this.combat = combatRulesFromBundle(options.bundle);
     this.leveling = levelRulesFromBundle(options.bundle);
@@ -313,9 +318,10 @@ export class GameSimController {
       return events;
     }
 
-    // The front of the remaining line steps in. A miniboss pack ends here.
+    // The sentinel's fall ends the run. A mob in front of it does not.
+    const bossFell = outcome === "win" && this.mobs.get(this.mobId)?.fighter.miniboss === true;
     const next = pack.ids.findIndex((_, slot) => !this.fallen.has(slot));
-    if (outcome === "win" && !pack.miniboss && next >= 0) {
+    if (outcome === "win" && next >= 0 && !bossFell) {
       events.push(...this.openFight(next));
       return events;
     }
@@ -345,11 +351,13 @@ export class GameSimController {
     const pack = this.pack;
     const id = pack?.ids[index];
     const mob = id ? this.mobs.get(id) : undefined;
-    if (!mob) throw new Error("An encounter needs a mob");
+    if (!pack || !mob) throw new Error("An encounter needs a mob");
 
     const saved = this.wounds.get(index);
-    if (!saved) return mob.fighter;
-    return { ...mob.fighter, hp: saved.hp, mp: saved.mp };
+    const fighter = saved ? { ...mob.fighter, hp: saved.hp, mp: saved.mp } : { ...mob.fighter };
+    // The whole boss fight refuses a flee, including the mobs standing in front.
+    if (pack.miniboss) fighter.miniboss = true;
+    return fighter;
   }
 
   /** The mob's points. */

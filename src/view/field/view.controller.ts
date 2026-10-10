@@ -23,7 +23,7 @@ const log = debugLog.create("view:field");
  * Each display frame runs the sim steps that are due, then draws the hero
  * between its last two sim positions, turned toward the way it walks, and
  * lets the camera catch up. The field steps only while it waits for a
- * fight, and stops on the tick one starts.
+ * fight. On the tick one starts, the hero stays on the pose just drawn.
  */
 export class FieldViewController {
   /** The meadow's Three.js objects. */
@@ -130,28 +130,35 @@ export class FieldViewController {
     resolve?.([]);
   }
 
-  /** One display frame: due sim steps, then the blended hero. */
+  /** One display frame: due sim steps, then the blended hero. A started fight holds that pose. */
   private frame(elapsedSeconds: number): void {
-    const steps = this.clock.advance(elapsedSeconds);
-    for (let i = 0; i < steps && this.waiting; i++) {
-      const step = this.walk.step();
-      this.motion.push(step.position);
-      this.simTick += 1;
+    // The walk stops on the tick a fight starts. Later frames keep that pose through the fade.
+    if (this.waiting) {
+      const steps = this.clock.advance(elapsedSeconds);
+      let held = false;
+      for (let i = 0; i < steps && this.waiting; i++) {
+        const step = this.walk.step();
+        this.motion.push(step.position);
+        this.simTick += 1;
 
-      // The fight starts on this tick. Later steps wait for the next walk.
-      const resolve = this.waiting;
-      if (resolve && step.events.length > 0) {
-        this.waiting = null;
-        const started = step.events.find((event) => event.type === "encounterStarted");
-        if (started?.type === "encounterStarted") {
-          log(`fight on ${started.terrain}, tick ${this.simTick}`, started.groups);
+        // The fight starts on this tick. Later steps wait for the next walk.
+        const resolve = this.waiting;
+        if (resolve && step.events.length > 0) {
+          this.waiting = null;
+          held = true;
+          const started = step.events.find((event) => event.type === "encounterStarted");
+          if (started?.type === "encounterStarted") {
+            log(`fight on ${started.terrain}, tick ${this.simTick}`, started.groups);
+          }
+          resolve(step.events);
         }
-        resolve(step.events);
       }
+
+      this.drawn = this.motion.at(this.clock.blend);
+      this.turnHero(elapsedSeconds);
+      if (held) log(`hero holds ${this.drawn.x.toFixed(2)}, ${this.drawn.y.toFixed(2)}`);
     }
 
-    this.drawn = this.motion.at(this.clock.blend);
-    this.turnHero(elapsedSeconds);
     this.field.placeHero(this.drawn, this.facing);
     this.follow?.follow(this.field.heroFeet(), elapsedSeconds);
   }

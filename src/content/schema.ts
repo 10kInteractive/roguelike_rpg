@@ -151,6 +151,8 @@ export const biomeSchema = z.object({
   width: z.number().int().positive(),
   height: z.number().int().positive(),
   miniboss: mobId,
+  /** Two mobs that stand in front of the miniboss. */
+  minibossFront: z.tuple([mobId, mobId]),
   minibossDistance: z.number().positive(),
   minibossRadius: z.number().positive(),
 });
