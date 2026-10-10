@@ -1,5 +1,5 @@
 /** Which six blocks a placeholder is built from. */
-export type ModelShape = "person" | "blob" | "moth";
+export type ModelShape = "person" | "blob" | "moth" | "wolf";
 
 /** How a placeholder looks: six blocks, in one of the shapes, with a mark on the side it faces. */
 export type ModelLook = {

@@ -33,7 +33,7 @@ Out: deploying to the server, gear and slots, boons, stages, inns, extraction, s
 1. The loader shows progress, then the hero appears on a meadow.
 2. The hero walks freely with the stick or keys, sliding along water and mountain edges. Walking through grass and forest occasionally triggers a fight. The combat screen opens over the field.
 3. The player picks commands; enemies act on their turns; the log at the base of the view narrates, and clears when the fight ends.
-4. An Ember Imp resists fire but melts to ice. A Frost Moth is fast and fragile and hates fire. Slimes are just slimes.
+4. An Ember Imp resists fire but melts to ice. A Frost Moth is fast and fragile and hates fire. Slimes are just slimes. A Dire Wolf and a Shade show up only in the forest, and both hit harder than those three.
 5. Wins give XP. Level-ups restore HP and MP. Potions drop now and then.
 6. A Rust Sentinel stands on the far side of the map. Walking around it is safe. Touching it starts a fight you can't run from. After about 10 fights the hero should be ready for it.
 7. Beat it: victory screen with run stats. Die: game over screen with the same stats and what killed you. Either way, restart on a new seed.
@@ -335,6 +335,8 @@ Starts with spells Ember and Frost, and 3 potions.
 | `mob.slime` | 12 | 6 | 2 | 0 | 5 | — | — | — | 3 | attack |
 | `mob.ember_imp` | 14 | 6 | 3 | 0 | 9 | fire | ice | fire | 5 | attack 60, Ember 40 |
 | `mob.frost_moth` | 10 | 5 | 2 | 0 | 12 | ice | fire | ice | 5 | attack 60, Frost 40 |
+| `mob.dire_wolf` | 22 | 9 | 4 | 0 | 8 | — | — | — | 8 | attack |
+| `mob.shade` | 18 | 7 | 3 | 0 | 11 | ice | fire | ice | 8 | attack 55, Frost 45 |
 | `mob.rust_sentinel` (miniboss) | 90 | 13 | 8 | 0 | 6 | — | ice | fire | 40 | attack 70, Grind (×1.5) 30 |
 
 Every regular mob has a 15% potion drop. The Rust Sentinel is a machina, a small first hint of the tech undercurrent. Beating it ends the run, so it has no drops.
@@ -346,7 +348,7 @@ The imp and the moth have no magic, so their Ember and Frost hit for the spell's
 | Terrain | Encounter rate per tile walked | Packs |
 | --- | --- | --- |
 | Grass | 10% | 1–2 slimes (50), slime + imp (25), 1–2 moths (25) |
-| Forest | 15% | 1–2 imps (35), 2 moths (35), imp + moth (30) |
+| Forest | 15% | 1–2 imps (25), 2 moths (25), imp + moth (20), 1 dire wolf (15), 1 shade (15) |
 | Path | 4% | 1 slime (100) |
 
 **Biome: meadow**
@@ -378,7 +380,7 @@ The sim can't measure real minutes, so sweeps report an **estimated play time**:
 | --- | --- | --- |
 | `boot` | immediately | `ui.font.main`, `ui.loader.art` |
 | `core` | after boot | `hero.strider.model`, `ui.window.frame` |
-| `biome.meadow` | lazily, before entering the field | `terrain.{grass,forest,path,water,mountain}.texture`, `mob.{slime,ember_imp,frost_moth,rust_sentinel}.model`, `combat.backdrop.meadow` |
+| `biome.meadow` | lazily, before entering the field | `terrain.{grass,forest,path,water,mountain}.texture`, `mob.{slime,ember_imp,frost_moth,dire_wolf,shade,rust_sentinel}.model`, `combat.backdrop.meadow` |
 
 All art starts as placeholders: simple shapes plus pixel textures written by `tools/gen-placeholders.ts` into `assets/generated/` with sidecars. Putting the `biome.meadow` assets in their own lazy pack exercises lazy loading from day one.
 

@@ -18,6 +18,16 @@ export const emberImpLook: ModelLook = {
   shape: "person",
 };
 
+/** The shade: a tall dark person that hovers. Forest only. */
+export const shadeLook: ModelLook = {
+  color: 0x2c2644,
+  noseColor: 0xb7c0e0,
+  width: 0.38,
+  height: 0.9,
+  hover: 0.2,
+  shape: "person",
+};
+
 /** The rust sentinel: a tall person. */
 export const rustSentinelLook: ModelLook = {
   color: 0xa0482c,
@@ -38,5 +48,6 @@ export const unknownMobLook: ModelLook = {
 /** Person looks keyed by mob id. The hero is not a mob. */
 export const personLooks: Record<string, ModelLook> = {
   "mob.ember_imp": emberImpLook,
+  "mob.shade": shadeLook,
   "mob.rust_sentinel": rustSentinelLook,
 };

@@ -48,6 +48,35 @@
       ]
     },
     {
+      "id": "mob.dire_wolf",
+      "hp": 22,
+      "str": 9,
+      "def": 4,
+      "mag": 0,
+      "haste": 8,
+      "xp": 8,
+      "potionDrop": 0.15,
+      "actions": [{ "type": "attack", "weight": 1 }]
+    },
+    {
+      "id": "mob.shade",
+      "hp": 18,
+      "str": 7,
+      "def": 3,
+      "mag": 0,
+      "mp": 9,
+      "haste": 11,
+      "element": "ice",
+      "weak": "fire",
+      "resists": "ice",
+      "xp": 8,
+      "potionDrop": 0.15,
+      "actions": [
+        { "type": "attack", "weight": 55 },
+        { "type": "spell", "spell": "spell.frost", "weight": 45 }
+      ]
+    },
+    {
       "id": "mob.rust_sentinel",
       "hp": 90,
       "str": 13,

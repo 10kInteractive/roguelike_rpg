@@ -27,6 +27,7 @@ test("a person stands on two feet", () => {
   for (const model of [
     buildHeroModel(),
     buildMobModel("mob.ember_imp"),
+    buildMobModel("mob.shade"),
     buildMobModel("mob.rust_sentinel"),
     buildMobModel("mob.missing"),
   ]) {
@@ -36,4 +37,12 @@ test("a person stands on two feet", () => {
     expect(feet).toHaveLength(2);
     expect(feet[0]?.position.x).not.toBe(feet[1]?.position.x);
   }
+});
+
+test("the dire wolf is long and low, with a tail behind it", () => {
+  const parts = blocks(buildMobModel("mob.dire_wolf"));
+  const zs = parts.map((block) => block.position.z);
+  const ys = parts.map((block) => block.position.y);
+  expect(Math.max(...zs) - Math.min(...zs)).toBeGreaterThan(Math.max(...ys) - Math.min(...ys));
+  expect(Math.min(...zs)).toBeLessThan(0);
 });

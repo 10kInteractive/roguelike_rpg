@@ -31,6 +31,8 @@
         { "id": "mob.slime.model", "file": "assets/generated/mob.slime.model.glb" },
         { "id": "mob.ember_imp.model", "file": "assets/generated/mob.ember_imp.model.glb" },
         { "id": "mob.frost_moth.model", "file": "assets/generated/mob.frost_moth.model.glb" },
+        { "id": "mob.dire_wolf.model", "file": "assets/generated/mob.dire_wolf.model.glb" },
+        { "id": "mob.shade.model", "file": "assets/generated/mob.shade.model.glb" },
         { "id": "mob.rust_sentinel.model", "file": "assets/generated/mob.rust_sentinel.model.glb" },
         { "id": "combat.backdrop.meadow", "file": "assets/generated/combat.backdrop.meadow.png" }
       ]

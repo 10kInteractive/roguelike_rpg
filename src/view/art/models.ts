@@ -4,6 +4,7 @@ import { heroLook, mobLooks, unknownMobLook } from "./models.constants";
 import type { ModelLook } from "./models.types";
 import { moth } from "./moth/model";
 import { person } from "./person/model";
+import { wolf } from "./wolf/model";
 
 /** The placeholder hero. Its local +z is the way it faces, and its origin is at its feet. */
 export function buildHeroModel(): Group {
@@ -39,5 +40,6 @@ function buildFigure(look: ModelLook, name: string): Group {
 function partsFor(look: ModelLook) {
   if (look.shape === "blob") return blob(look);
   if (look.shape === "moth") return moth(look);
+  if (look.shape === "wolf") return wolf(look);
   return person(look);
 }

@@ -28,13 +28,15 @@ A row carries the combat numbers: hp, str, def, mag, haste, and xp. It may also 
 
 The ember imp and the frost moth also name an `element` on the row. The fight does not read that field. Weakness and resistance are copied onto the fighter. A spell's element, power, and cost come from `spells.json` when the action is turned into a fighter action. An unknown spell id fails the load.
 
-Prototype one has four rows:
+Prototype one has six rows:
 
 | Id | Shape on screen | What it does |
 | --- | --- | --- |
 | `mob.slime` | blob | Attack only. Shows up in grass and on the path. |
 | `mob.ember_imp` | person | Attack, or Ember. Weak to ice. Grass and forest. |
 | `mob.frost_moth` | moth | Attack, or Frost. Weak to fire. Grass and forest. |
+| `mob.dire_wolf` | wolf | Attack only. Forest only. A step above the first three. |
+| `mob.shade` | person | Attack, or Frost. Weak to fire. Forest only. A step above the first three. |
 | `mob.rust_sentinel` | person | Attack, or grind. The biome's miniboss. Not in the encounter tables. |
 
 ## 2. From a row to a fighter
@@ -59,11 +61,12 @@ A pack the player asked for with `?combat=` skips the meadow. The same fighter t
 
 A look is a body color, a face color, a width, a height, an optional hover, and a shape. The shape's blocks and the looks that use it live in one folder. `models.constants.ts` only joins those looks into a table keyed by id. `buildMobModel` in `src/view/art/models.ts` turns the look into six boxes. The group's origin is at the feet, and local +z is the way it faces. An id with no look becomes the gray person in `unknownMobLook`.
 
-The three shapes:
+The four shapes:
 
-- **person.** `src/view/art/person/`. Two legs, a torso, a light head, and two arms. The hero, the ember imp, and the rust sentinel.
+- **person.** `src/view/art/person/`. Two legs, a torso, a light head, and two arms. The hero, the ember imp, the shade, and the rust sentinel.
 - **blob.** `src/view/art/blob/`. Two feet, a body, a cap, and two eyes on the front. The slime.
 - **moth.** `src/view/art/moth/`. A body, a head, two wings, and two antennae. The frost moth. `hover: 0.5` lifts it, and the combat scene uses that flag for a taller idle bob.
+- **wolf.** `src/view/art/wolf/`. A long body, a head, a snout, a tail, and a front and hind leg. The dire wolf.
 
 The field draws the miniboss with `buildMobModel`. Combat draws every mob in the pack the same way, and the hero from `heroLook`, which is the same kind of table and not a mob row.
 

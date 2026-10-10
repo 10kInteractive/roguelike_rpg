@@ -43,10 +43,15 @@ test("prototype one loads Strider, the spells, the potion, the mobs, and the mea
     "mob.slime",
     "mob.ember_imp",
     "mob.frost_moth",
+    "mob.dire_wolf",
+    "mob.shade",
     "mob.rust_sentinel",
   ]);
   expect(bundle.mobs.mobs[1]).toMatchObject({ weak: "ice", resists: "fire", xp: 5 });
-  expect(bundle.mobs.mobs[3]).toMatchObject({ miniboss: true, xp: 40 });
+  expect(bundle.mobs.mobs.find((mob) => mob.id === "mob.rust_sentinel")).toMatchObject({
+    miniboss: true,
+    xp: 40,
+  });
   expect(bundle.biomes[0]).toMatchObject({
     id: "biome.meadow",
     width: 48,
@@ -70,7 +75,7 @@ test("bundle actions become the actions a fight can run", () => {
     assets,
   });
   const imp = bundle.mobs.mobs[1];
-  const sentinel = bundle.mobs.mobs[3];
+  const sentinel = bundle.mobs.mobs.find((mob) => mob.id === "mob.rust_sentinel");
   if (!imp || !sentinel) throw new Error("prototype one is missing a mob");
 
   expect(heroFighterFromBundle(bundle.hero)).toMatchObject({
@@ -120,6 +125,8 @@ test("bundle rules become the numbers every fight and run takes", () => {
     "mob.slime",
     "mob.ember_imp",
     "mob.frost_moth",
+    "mob.dire_wolf",
+    "mob.shade",
     "mob.rust_sentinel",
   ]);
   expect(table.get("mob.slime")).toMatchObject({ potionDrop: 0.15, fighter: { hp: 12 } });
