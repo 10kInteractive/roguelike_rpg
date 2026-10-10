@@ -1,6 +1,17 @@
+import { Box3 } from "three";
 import { expect, test } from "vitest";
 import { combatStage } from "./scene.constants";
 import { CombatSceneController } from "./scene.controller";
+
+/** Children of one name, such as every `tree`. */
+function named(combat: CombatSceneController, name: string) {
+  return combat.scene.children.filter((child) => child.name === name);
+}
+
+/** The top of the tallest child of that name. */
+function tallest(combat: CombatSceneController, name: string): number {
+  return Math.max(...named(combat, name).map((child) => new Box3().setFromObject(child).max.y));
+}
 
 /** The x of each pack model, in fight order. */
 function packXs(combat: CombatSceneController, mobIds: string[]): number[] {
@@ -25,6 +36,18 @@ test("focusing another mob sends the first one back", () => {
   const { pack, packStagger, focusStep } = combatStage;
   expect(packXs(combat, mobIds)).toEqual([pack.x, pack.x - packStagger + focusStep]);
   expect(combat.focusedIndex()).toBe(1);
+});
+
+test("a meadow fight has a low tree line and mountains behind it", () => {
+  const combat = new CombatSceneController(["mob.slime"], {});
+  expect(named(combat, "mountain").length).toBeGreaterThan(0);
+  expect(tallest(combat, "tree")).toBeLessThan(2);
+});
+
+test("a forest fight stands among tall trees, with no mountains", () => {
+  const combat = new CombatSceneController(["mob.slime"], {}, "forest");
+  expect(named(combat, "mountain")).toEqual([]);
+  expect(tallest(combat, "tree")).toBeGreaterThan(3);
 });
 
 test("the hero faces west and the pack faces east", () => {

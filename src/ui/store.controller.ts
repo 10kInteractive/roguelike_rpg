@@ -26,6 +26,12 @@ export class UiStoreController {
   /** When this run's clock started. Null before the first snapshot. */
   private startedAt: number | null = null;
 
+  /** Milliseconds already spent paused, not counting a pause that is still open. */
+  private pausedMs = 0;
+
+  /** When the open pause began. Null while the run is going. */
+  private pausedAt: number | null = null;
+
   /** Resolves the command the window is waiting on. */
   private resolver: ((action: Action) => void) | null = null;
 
@@ -47,6 +53,38 @@ export class UiStoreController {
     }));
   }
 
+  /**
+   * Drops the overlay and starts the play clock.
+   * The combat launcher calls this before a pack, which has no meadow to show.
+   */
+  beginFight(): void {
+    this.startedAt = this.now();
+    this.pausedMs = 0;
+    this.pausedAt = null;
+    this.restartQueued = false;
+    this.store.setState({ snapshot: null, pending: [], commands: null, log: [], playMs: null });
+  }
+
+  /** Leaves the open pause off the play clock. A second call while already paused does nothing. */
+  holdClock(): void {
+    if (this.pausedAt !== null) return;
+    this.pausedAt = this.now();
+  }
+
+  /** Counts the pause that just closed, so the ending time skips it. */
+  releaseClock(): void {
+    if (this.pausedAt === null) return;
+    this.pausedMs += this.now() - this.pausedAt;
+    this.pausedAt = null;
+  }
+
+  /** Drops the clock so the next snapshot starts a new run's time. */
+  resetClock(): void {
+    this.startedAt = null;
+    this.pausedMs = 0;
+    this.pausedAt = null;
+  }
+
   /** Replaces the snapshot with the sim's latest. A fight's log clears once it is over. */
   present(snapshot: Snapshot): void {
     const ended = this.ended(snapshot.mode);
@@ -56,15 +94,18 @@ export class UiStoreController {
     // A new run starts the clock. The next field after an ending is a new run.
     if (!ended && (this.startedAt === null || wasEnded)) {
       this.startedAt = this.now();
+      this.pausedMs = 0;
+      this.pausedAt = null;
       this.restartQueued = false;
     }
 
     // Freeze play time on the first ending snapshot. Later ones keep that time.
-    const playMs = ended ? (previous.playMs ?? this.now() - (this.startedAt ?? this.now())) : null;
+    const playMs = ended ? (previous.playMs ?? this.playedMs()) : null;
 
     this.store.setState((state) => ({
       snapshot,
       log: snapshot.mode === "combat" ? state.log : [],
+      commands: snapshot.mode === "combat" ? state.commands : null,
       playMs,
     }));
   }
@@ -169,6 +210,13 @@ export class UiStoreController {
   /** The zustand store, so a React hook can subscribe. */
   api(): StoreApi<UiState> {
     return this.store;
+  }
+
+  /** Play time so far, with pauses taken out. */
+  private playedMs(): number {
+    const start = this.startedAt ?? this.now();
+    const open = this.pausedAt === null ? 0 : this.now() - this.pausedAt;
+    return Math.max(0, this.now() - start - this.pausedMs - open);
   }
 
   /** The snapshot with one played event's points written in. Unchanged events return it as it was. */

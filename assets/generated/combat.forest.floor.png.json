@@ -1,0 +1,37 @@
+{
+  "id": "combat.forest.floor",
+  "generator": "tools/gen-placeholders.ts",
+  "seed": 7,
+  "size": 16,
+  "recipe": {
+    "id": "combat.forest.floor",
+    "seed": 7,
+    "palette": [
+      {
+        "color": [
+          58,
+          34,
+          18
+        ],
+        "weight": 6
+      },
+      {
+        "color": [
+          36,
+          22,
+          12
+        ],
+        "weight": 4
+      },
+      {
+        "color": [
+          78,
+          48,
+          26
+        ],
+        "weight": 2
+      }
+    ]
+  },
+  "generatedAt": "2026-10-10T01:13:33.818Z"
+}

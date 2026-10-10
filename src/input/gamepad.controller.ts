@@ -8,6 +8,7 @@ import {
   downButton,
   leftButton,
   rightButton,
+  startButton,
   upButton,
 } from "./gamepad.constants";
 import type { MenuDirection, PadReading } from "./gamepad.types";
@@ -36,6 +37,12 @@ export class GamepadController {
 
   /** Menu directions held on the latest sample. */
   private held: Record<MenuDirection, boolean> = { ...quiet };
+
+  /** Start was down on the last sample. */
+  private startHeld = false;
+
+  /** Pause screens waiting for Start. */
+  private readonly startListeners = new Set<() => void>();
 
   /** What the dev panel shows. */
   private label = "none";
@@ -75,6 +82,18 @@ export class GamepadController {
     };
   }
 
+  /**
+   * Calls `listener` when Start is pressed.
+   *
+   * @returns Stops the listener.
+   */
+  onStart(listener: () => void): () => void {
+    this.startListeners.add(listener);
+    return () => {
+      this.startListeners.delete(listener);
+    };
+  }
+
   /** Stops polling. */
   stop(): void {
     if (this.raf === 0 || typeof window === "undefined") return;
@@ -88,12 +107,18 @@ export class GamepadController {
     if (!pad) {
       this.stickNow = { x: 0, y: 0 };
       this.held = { ...quiet };
+      this.startHeld = false;
       this.label = "none";
       return;
     }
 
     const reading = this.reading(pad);
     this.stickNow = stickFromPad(reading);
+    const start = this.pressed(pad, startButton);
+    if (start && !this.startHeld) {
+      for (const listener of this.startListeners) listener();
+    }
+    this.startHeld = start;
     const next = menuHeld(reading);
     for (const action of menuPresses(this.held, next)) {
       for (const listener of this.listeners) listener(action);

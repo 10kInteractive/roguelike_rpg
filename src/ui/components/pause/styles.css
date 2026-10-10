@@ -1,0 +1,35 @@
+.pause {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.pause-panel {
+  min-width: 280px;
+  padding: 28px 36px;
+  background: rgba(0, 0, 0, 0.9);
+  border-radius: 4px;
+  text-align: center;
+  font:
+    16px / 1.5 ui-monospace,
+    monospace;
+}
+
+.pause-title {
+  margin: 0;
+  font-size: 28px;
+  letter-spacing: 0.04em;
+}
+
+.pause-subtitle {
+  margin: 8px 0 18px;
+  font-size: 13px;
+}
+
+.pause-row.selected {
+  background: #eee;
+  color: #111;
+}

@@ -1,0 +1,10 @@
+.hud-stats {
+  display: inline-block;
+  margin: 8px 0 0;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.75);
+  font:
+    16px / 1.4 ui-monospace,
+    monospace;
+  border-radius: 4px;
+}

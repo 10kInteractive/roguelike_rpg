@@ -8,8 +8,8 @@ import type { WalkStep } from "./stand-in-walk.types";
  * Walks the hero from the keys or the pad held right now.
  *
  * Each sim tick sends one move. A still stick stays put and rolls nothing.
- * A fight comes back on the tick a roll or the miniboss says so. Keys win
- * while any move key is held, so the pad walks when the keyboard is still.
+ * A fight comes back on the tick a roll or the miniboss says so. A key owns
+ * its axis. The pad still moves the other one.
  */
 export class PlayerWalkController {
   /** The run. A move goes through its `act`. */
@@ -39,10 +39,13 @@ export class PlayerWalkController {
     return { position: { ...this.sim.observe().field.position }, events };
   }
 
-  /** Keys while any are held. Otherwise the pad. */
+  /** A key owns its axis. The pad fills an axis no key is holding. */
   private stick(): Stick {
     const keys = this.keys.stick();
-    if (keys.x !== 0 || keys.y !== 0) return keys;
-    return gamepad.stick();
+    const pad = gamepad.stick();
+    return {
+      x: keys.x !== 0 ? keys.x : pad.x,
+      y: keys.y !== 0 ? keys.y : pad.y,
+    };
   }
 }

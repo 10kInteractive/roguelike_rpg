@@ -116,6 +116,7 @@ Target for a ready, full clear: about 40–60 minutes.
 - The hero is a circle of radius 0.3 tiles. Water, mountain, and the ground outside the map are blocked. A step that would enter blocked ground is taken along the free axis, so the hero slides along the edge.
 - **3/4 camera** that follows the hero.
 - **Random encounters by distance:** every tile's worth of distance walked rolls against the current terrain's rate. The roll succeeds when it is below the rate. A roll equal to the rate does not. Prototype one leaves 4 tiles between fights, and tiles inside that gap do not roll. A success picks a pack by weight, then each group rolls a count from its minimum through its maximum. A move of several ticks stops on the tick the fight starts.
+- **Encounter governor:** random fights wait 5 seconds when a run starts, and 2.5 seconds after the hero wins a pack and returns to the meadow. A flee does not start that second wait. The wait is field ticks, 30 per second, and standing still spends it. Distance walked during the wait does not roll and does not save up a fight for the moment it ends. Touching the miniboss still starts that fight.
 - **Visible miniboss:** placed far from the spawn on reachable ground. It stands still. It is a circle of radius 0.8 around the center of its tile. The fight starts when the hero's circle touches that circle, and that step ends the move. Walk around it to avoid it.
 - **Walking policies:** the fighter and the caster wander. One roll picks one of eight directions, and they hold that stick for 30 ticks, one second. Roll 0 is east, then the compass turns counterclockwise: northeast, north, northwest, west, southwest, south, southeast. A roll on a boundary belongs to the next direction. The grinder wanders the same way until level 5, then walks to the miniboss. That route is the shortest path on the walkable tile grid, four directions, one tile per step. An earlier tile wins a tie. Each batch of 30 ticks steers toward the center of the next tile. If the miniboss cannot be reached, the grinder wanders. In a fight the grinder uses the fighter's choices: Fight, and a potion below 30% HP.
 - **A pack is fought one mob at a time.** The hero's HP, MP, potions, and XP carry to the next mob. A flee or a defeat ends the pack. A flee grants nothing. After a win, a regular mob drops a potion when the roll is below its drop chance. A roll equal to the chance does not.
@@ -133,7 +134,7 @@ Target for a ready, full clear: about 40–60 minutes.
 
 ### Prototype
 
-- A fight opens a **combat screen over the field**. The field pauses. The combat stage is its own simple 3D scene matching the biome.
+- A fight opens a **combat screen over the field**. The meadow fades to black, the combat stage fades in, and the field pauses. Leaving a fight fades back to the meadow. The combat stage is its own simple 3D scene matching the biome.
 - Hero on one side, 1–3 enemies on the other, Final Fantasy style.
 - **Command window:** Fight, Magic, Item, Defend, Run.
 
@@ -167,7 +168,8 @@ The Run chance is 50% plus 5% per point of hero haste over the enemies' average 
 
 #### Enemies
 
-- Each mob has stats, an element, weaknesses and resistances, MP, and a short list of actions with weights. The AI picks by weight and has no other tactics. One roll in [0, 1) is multiplied by the total weight and walks the list in order. Each action covers a slice of its weight, and a roll on a boundary belongs to the next action. A spell the actor cannot afford is Fight instead, without rolling again. Prototype one gives the ember imp and the frost moth 9 MP.
+- Each mob has stats, an element, weaknesses and resistances, MP, and a short list of actions with weights. The AI picks by weight and has no other tactics. One roll in [0, 1) is multiplied by the total weight and walks the list in order. Each action covers a slice of its weight, and a roll on a boundary belongs to the next action. A spell the actor cannot afford is Fight instead, without rolling again. Prototype one gives the ember imp, the frost moth, and the shade 9 MP.
+- The dire wolf and the shade are forest encounters only. Both are a step above the slime, the imp, and the moth. The wolf only attacks. The shade is weak to fire, resists ice, and casts Frost.
 
 #### Outcomes
 
@@ -282,6 +284,8 @@ Not in prototype one.
 - Placeholder art is fine: colored shapes with simple pixel textures.
 - Menus are a DOM overlay in an NES style: bordered windows, pixel font.
 - Simple lighting: a sun and a sky light. No day / night.
+- A skirt of dark brown earth surrounds the meadow, wide enough that the follow camera shows ground past the map edge. The brown marks the edge of the grass. The sim map is unchanged, and the hero cannot walk onto the skirt.
+- On a forest tile the hero stands half a body down into the canopy, so the lower half is hidden. A fight that starts there uses a deep-forest backdrop: a dark brown floor and tall dark green trees. Grass and path fights keep the meadow backdrop.
 - Sound: optional placeholder blips. No music.
 - Input: keyboard and gamepad, default bindings only.
 

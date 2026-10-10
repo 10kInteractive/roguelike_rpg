@@ -1,4 +1,5 @@
 import type { BundleSource } from "../content/load.types";
+import type { FightTerrain } from "../view/combat/backdrops/backdrop.types";
 import type { FieldCameraMode } from "../view/field/view.types";
 import type { GameLoopMode } from "./game-loop.types";
 
@@ -15,6 +16,8 @@ export type LaunchOptions = {
    * An empty list, from `?combat` alone, means the biome's miniboss. Null opens the field.
    */
   combat: readonly string[] | null;
+  /** `?terrain=forest` with `?combat` opens the forest backdrop. Otherwise the meadow. */
+  fightTerrain: FightTerrain;
   /** `?gameloop=ai` lets the stand-in walk and fight. Otherwise the player does. */
   gameloop: GameLoopMode;
   /** `?webgl` draws with WebGL2 even when the browser has WebGPU. */

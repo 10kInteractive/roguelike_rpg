@@ -25,6 +25,7 @@ export class DebugLogController {
 
   /** The URL's `debug` parameter wins over `localStorage.debug`. */
   private readSource(): string {
+    if (typeof window === "undefined") return "";
     const params = new URLSearchParams(window.location.search);
     if (params.has("debug")) {
       return params.get("debug") ?? "";

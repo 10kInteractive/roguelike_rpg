@@ -280,10 +280,15 @@ src/                shared engine
   runtime/          starts the game on a page: launch options, bundle, renderer, field or fight; the game loop
   view/             Three.js classes and the one render loop
     art/            shared by every scene: placeholder models, lighting, textures
+      person/       the person shape, beside the hero, imp, shade, and sentinel looks
+      wolf/         the wolf shape, beside the dire wolf look
+      blob/         the blob shape, beside the slime look
+      moth/         the moth shape, beside the frost moth look
     field/          field scene, follow camera, fixed sim step, interpolation
     combat/         combat scene and sequencer
+      backdrops/    one backdrop per fight ground: meadow for grass and path, forest for the woods
   ui/               React DOM overlay and the zustand store
-    components/     command window, field HUD, message log, run ending
+    components/     one folder per component: controller, markup, styles, types
   input/            keyboard and gamepad to a stick and menu presses
   audio/            Web Audio mixer and music stems
   assets/           manifest resolver and loader service

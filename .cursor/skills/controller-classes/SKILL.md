@@ -47,10 +47,14 @@ If either is false, it is a private method. When a second class starts needing a
 
 Rule formulas are the one exception. Damage, flee chance, leveling, and movement stay in their own tested `{area}.ts` files even with one caller, because their tests pin the numbers in `docs/game_design.md`. A new formula joins them when it is a game rule with its own test. A helper that only tidies a controller is still a private method.
 
-Exempt from the class rule:
+A UI component is four files under `src/ui/components/<name>/`:
 
-- React components in `src/ui` and `src/debug`. This rule is for logic, not JSX.
-- `Error` subclasses. They sit beside the code that throws them.
+- `controller.ts` holds the class. Input, menu state, and the view model live here.
+- `markup.tsx` is JSX only. It asks the controller what to show and renders that. No key handlers, no game rules, no class-name building.
+- `styles.css` is that component's rules.
+- `types.ts` is the view model the markup receives.
+
+A hook in the controller file is the bridge React needs. The dev panel in `src/debug` is still plain JSX. `Error` subclasses sit beside the code that throws them.
 
 ## Folders for shared code
 

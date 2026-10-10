@@ -2,6 +2,7 @@ import type { FightEvent } from "../combat/fight.types";
 import { CombatActionPolicy } from "../combat/policy.controller";
 import { EncounterWalkController } from "../field/encounters.controller";
 import type { EncounterEvent } from "../field/encounters.types";
+import { openingGuardTicks, returnGuardTicks } from "../field/governor.constants";
 import { tilesPerSecond } from "../field/movement.constants";
 import { FieldWalkPolicy } from "../field/policy.controller";
 import { SeededRandomGenerator } from "../utils/rng.controller";
@@ -81,6 +82,7 @@ export class GrinderFieldRunController {
       minDistance: input.minDistance,
       rng: this.fieldRng,
       miniboss: input.miniboss,
+      openingGuardTicks,
     });
     this.walkPolicy = new FieldWalkPolicy({
       field: input.map,
@@ -118,6 +120,7 @@ export class GrinderFieldRunController {
 
     if (result.outcome === "lose") return this.toFieldResult("lose", result.fights.at(-1)?.mobId);
     if (result.outcome === "win" && started.miniboss) return this.toFieldResult("win");
+    if (result.outcome === "win") this.encounter.guard(returnGuardTicks);
     return undefined;
   }
 

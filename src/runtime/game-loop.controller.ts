@@ -1,4 +1,3 @@
-import type { Texture } from "three";
 import type { Bundle } from "../content/schema";
 import { debugLog } from "../debug/logger.controller";
 import { debugWatches } from "../debug/watch.controller";
@@ -6,12 +5,15 @@ import { KeyboardController } from "../input/keyboard.controller";
 import { createSim } from "../sim";
 import { CombatActionPolicy } from "../sim/combat/policy.controller";
 import type { EncounterEvent } from "../sim/field/encounters.types";
-import type { Terrain } from "../sim/field/map.types";
+import { tickRate } from "../sim/field/movement.constants";
 import type { GameSimController } from "../sim/game.controller";
 import type { Action, SimEvent } from "../sim/game.types";
 import { SeededRandomGenerator } from "../sim/utils/rng.controller";
 import type { Rng } from "../sim/utils/rng.types";
+import { pause } from "../ui/components/pause/controller";
+import { veil } from "../ui/components/veil/controller";
 import { uiStore } from "../ui/store.controller";
+import type { BackdropTextures } from "../view/combat/backdrops/backdrop.types";
 import { CombatViewController } from "../view/combat/view.controller";
 import { PlayerWalkController } from "../view/field/player-walk.controller";
 import { StandInWalkController } from "../view/field/stand-in-walk.controller";
@@ -46,7 +48,7 @@ export class GameLoopController {
   private readonly keys: KeyboardController | null;
 
   /** Terrain textures, shared by the field and every fight's backdrop. */
-  private readonly textures: Partial<Record<Terrain, Texture>>;
+  private readonly textures: BackdropTextures;
 
   /** What the run is doing now, for the dev panel. */
   private phase: GameLoopPhase = "walking";
@@ -57,7 +59,7 @@ export class GameLoopController {
     /** The content the run plays. */
     bundle: Bundle;
     /** Terrain textures that loaded. */
-    textures: Partial<Record<Terrain, Texture>>;
+    textures: BackdropTextures;
     /** Seed for the meadow and the run's three rolls. */
     seed: number;
     /** Follow the hero, or show the whole meadow. */
@@ -104,6 +106,10 @@ export class GameLoopController {
       });
       debugWatches.watch("fights", () => this.fought());
       debugWatches.watch("queue", () => uiStore.pending().length);
+      debugWatches.watch("encounter guard", () => {
+        const ticks = this.sim.observe().field.guardTicks;
+        return ticks > 0 ? `${(ticks / tickRate).toFixed(1)}s` : "off";
+      });
     }
   }
 
@@ -113,10 +119,24 @@ export class GameLoopController {
       uiStore.present(this.sim.observe());
       for (;;) {
         this.phase = "walking";
-        const started = await this.field.walkUntilFight();
+        const guard = this.sim.observe().field.guardTicks;
+        if (guard > 0) log(`encounter guard ${(guard / tickRate).toFixed(1)}s`);
+        const walking = this.field.walkUntilFight();
+        if (veil.isCovered()) await veil.reveal();
+        const started = await pause.race(walking);
+        if (!started) {
+          this.field.abandon();
+          return this.left();
+        }
 
+        log("fade to combat");
+        await veil.cover();
         this.phase = "fighting";
-        await this.playFight(started);
+        const fought = await pause.race(this.playFight(started));
+        if (fought === null) {
+          await veil.reveal();
+          return this.left();
+        }
         const end = this.sim.observe();
         const hero = end.hero;
         log(`${end.mode}, level ${hero.level}, hp ${hero.hp}/${hero.maxHp}`);
@@ -124,6 +144,8 @@ export class GameLoopController {
           this.phase = end.mode === "victory" ? "won" : "lost";
           return this.toRunEnd();
         }
+        log("fade to field");
+        await veil.cover();
       }
     } finally {
       this.keys?.stop();
@@ -140,6 +162,7 @@ export class GameLoopController {
       loop: this.loop,
       mobIds: this.mobIdsOf(started),
       textures: this.textures,
+      terrain: started.terrain,
       heroId: this.sim.observe().hero.id,
       onPlayed: () => uiStore.played(),
     });
@@ -170,6 +193,12 @@ export class GameLoopController {
     return Promise.resolve(
       choice === "potion" ? { type: "item", item: "item.potion" } : { type: "fight", target },
     );
+  }
+
+  /** Pause chose Restart. The meadow and the scoreboard stay where they were. */
+  private left(): RunEnd {
+    const snapshot = this.sim.observe();
+    return { outcome: "restart", level: snapshot.hero.level, fights: this.fought() };
   }
 
   /** How the run ended, from the sim's scoreboard. */

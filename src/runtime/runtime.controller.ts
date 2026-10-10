@@ -1,4 +1,3 @@
-import type { Texture } from "three";
 import { AssetLoaderController } from "../assets/loader.controller";
 import type { LoadedPack } from "../assets/loader.types";
 import { bundledAssetUrls } from "../assets/urls.constants";
@@ -14,12 +13,23 @@ import type { Bundle } from "../content/schema";
 import { debugLog } from "../debug/logger.controller";
 import { CombatActionPolicy } from "../sim/combat/policy.controller";
 import type { Terrain } from "../sim/field/map.types";
+import type { Snapshot } from "../sim/game.types";
 import { PackFightController } from "../sim/run/pack.controller";
 import type { PackResult } from "../sim/run/pack.types";
+import type { HeroState } from "../sim/run/run.types";
+import { RunStatistics } from "../sim/run/stats.controller";
+import type { RunStats } from "../sim/run/stats.types";
 import { SeededRandomGenerator } from "../sim/utils/rng.controller";
+import { pause } from "../ui/components/pause/controller";
 import { uiStore } from "../ui/store.controller";
 import { terrainTextureIds } from "../view/art/terrain-textures.constants";
+import type { BackdropTextures, FightTerrain } from "../view/combat/backdrops/backdrop.types";
+import {
+  forestFloorTextureId,
+  forestWallTextureId,
+} from "../view/combat/backdrops/forest.constants";
 import { CombatViewController } from "../view/combat/view.controller";
+import { skirtTextureId } from "../view/field/scene.constants";
 import { RenderLoopController } from "../view/renderer.controller";
 import { GameLoopController } from "./game-loop.controller";
 import type { RunEnd } from "./game-loop.types";
@@ -67,20 +77,31 @@ export class GameRuntimeController {
           progress: settled / total,
         });
       });
-      const textures = this.terrainTextures(pack);
+      const textures = this.sceneTextures(pack);
 
       if (options.combat) {
-        const status = `Renderer backend: ${backend} · combat · seed ${options.seed}`;
-        this.input.onStatus({ text: status });
-        const result = await this.startCombat({
-          loop,
-          bundle,
-          biome,
-          textures,
-          options,
-          mobIds: options.combat,
-        });
-        this.input.onStatus({ text: `${status} · pack ${result.outcome}` });
+        let seed = options.seed;
+        for (;;) {
+          const status = `Renderer backend: ${backend} · combat · seed ${seed}`;
+          this.input.onStatus({ text: status });
+          uiStore.beginFight();
+          const result = await this.startCombat({
+            loop,
+            bundle,
+            biome,
+            textures,
+            seed,
+            mobIds: options.combat,
+            terrain: options.fightTerrain,
+          });
+          if (result === "restart") {
+            seed = Math.floor(Math.random() * 2 ** 32);
+            continue;
+          }
+          this.input.onStatus({ text: `${status} · pack ${result.outcome}` });
+          await uiStore.requestRestart();
+          seed = Math.floor(Math.random() * 2 ** 32);
+        }
       } else {
         const who = options.gameloop === "ai" ? "ai" : "you";
         let seed = options.seed;
@@ -88,6 +109,10 @@ export class GameRuntimeController {
           const status = `Renderer backend: ${backend} · seed ${seed} · ${who}`;
           this.input.onStatus({ text: status });
           const end = await this.startField({ loop, bundle, textures, options, seed });
+          if (end.outcome === "restart") {
+            seed = Math.floor(Math.random() * 2 ** 32);
+            continue;
+          }
           this.input.onStatus({ text: `${status} · ${this.describeEnd(end)}` });
           await uiStore.requestRestart();
           seed = Math.floor(Math.random() * 2 ** 32);
@@ -101,20 +126,27 @@ export class GameRuntimeController {
   }
 
   /**
-   * Each terrain's texture from the loaded pack. A terrain without one draws its fallback color.
+   * Each terrain's texture from the loaded pack, plus the forest fight's floor and trees.
+   * A terrain without one draws its fallback color.
    * A file that failed is a real problem and warns. Missing and skipped files are placeholders not made yet.
    */
-  private terrainTextures(pack: LoadedPack): Partial<Record<Terrain, Texture>> {
+  private sceneTextures(pack: LoadedPack): BackdropTextures {
     if (pack.failed.length > 0) console.warn(`[runtime] ${pack.id} failed:`, pack.failed);
     log(`${pack.id}: ${pack.textures.size} loaded`, {
       missing: pack.missing,
       skipped: pack.skipped,
     });
-    const textures: Partial<Record<Terrain, Texture>> = {};
+    const textures: BackdropTextures = {};
     for (const [terrain, id] of Object.entries(terrainTextureIds) as [Terrain, string][]) {
       const texture = pack.textures.get(id);
       if (texture) textures[terrain] = texture;
     }
+    const skirt = pack.textures.get(skirtTextureId);
+    if (skirt) textures.skirt = skirt;
+    const forestFloor = pack.textures.get(forestFloorTextureId);
+    if (forestFloor) textures.forestFloor = forestFloor;
+    const forestWall = pack.textures.get(forestWallTextureId);
+    if (forestWall) textures.forestWall = forestWall;
     return textures;
   }
 
@@ -122,7 +154,7 @@ export class GameRuntimeController {
   private async startField(input: {
     loop: RenderLoopController;
     bundle: Bundle;
-    textures: Partial<Record<Terrain, Texture>>;
+    textures: BackdropTextures;
     options: LaunchOptions;
     seed: number;
   }): Promise<RunEnd> {
@@ -147,25 +179,26 @@ export class GameRuntimeController {
     return `defeated by ${end.killedBy ?? "nobody"} at level ${end.level} after ${fights}`;
   }
 
-  /** One pack's fight, played by the stand-in caster. */
+  /** One pack's fight, played by the stand-in caster, then the ending screen. */
   private async startCombat(input: {
     loop: RenderLoopController;
     bundle: Bundle;
     biome: Bundle["biomes"][number];
-    textures: Partial<Record<Terrain, Texture>>;
-    options: LaunchOptions;
+    textures: BackdropTextures;
+    seed: number;
     mobIds: readonly string[];
-  }): Promise<PackResult> {
-    const { loop, bundle, biome, textures, options } = input;
+    terrain: FightTerrain;
+  }): Promise<PackResult | "restart"> {
+    const { loop, bundle, biome, textures, seed, terrain } = input;
     const mobIds = input.mobIds.length === 0 ? [biome.miniboss] : input.mobIds;
     const known = new Set(bundle.mobs.mobs.map((mob) => mob.id));
     const unknown = mobIds.filter((id) => !known.has(id));
     if (unknown.length > 0) throw new Error(`Unknown mob in ?combat: ${unknown.join(", ")}`);
 
-    log(`combat: ${mobIds.join(", ")}, seed ${options.seed}`);
+    log(`combat ${terrain}: ${mobIds.join(", ")}, seed ${seed}`);
     const mobs = runMobsFromBundle(bundle);
     const hero = heroFighterFromBundle(bundle.hero);
-    const choice = new SeededRandomGenerator(options.seed);
+    const choice = new SeededRandomGenerator(seed);
     const policy = new CombatActionPolicy(knownSpellsFromBundle(bundle), choice);
     const packs = new PackFightController({
       hero,
@@ -174,9 +207,9 @@ export class GameRuntimeController {
       leveling: levelRulesFromBundle(bundle),
       heroPolicy: (fighter, target) => policy.chooseCaster(fighter, target),
       rngs: {
-        drops: new SeededRandomGenerator(options.seed),
+        drops: new SeededRandomGenerator(seed),
         choice,
-        combat: new SeededRandomGenerator(options.seed),
+        combat: new SeededRandomGenerator(seed),
       },
     });
     const miniboss = mobIds.some((id) => mobs.get(id)?.fighter.miniboss);
@@ -184,9 +217,47 @@ export class GameRuntimeController {
       mobIds.map((id) => ({ id, count: 1 })),
       miniboss,
     );
-    await new CombatViewController({ loop, mobIds, textures, heroId: hero.id }).play(result);
+    const played = await pause.race(
+      new CombatViewController({ loop, mobIds, textures, terrain, heroId: hero.id }).play(result),
+    );
+    if (played === null) return "restart";
+    const lost = result.outcome === "lose";
+    uiStore.present(
+      this.scoreSnapshot(
+        lost ? "gameOver" : "victory",
+        this.score(seed, hero, result),
+        packs.hero(),
+      ),
+    );
     log(`pack ${result.outcome}`, packs.hero());
     return result;
+  }
+
+  /** The pack's fights, counted the same way a run counts them. */
+  private score(seed: number, hero: { id: string; level?: number }, result: PackResult): RunStats {
+    const stats = new RunStatistics(seed, hero.level ?? 1, hero.id);
+    for (const fight of result.fights) stats.addFight(fight.events, fight.mobId);
+    return stats.snapshot();
+  }
+
+  /**
+   * A snapshot the ending screen can read.
+   * This launcher never walks a meadow, so the field is one grass tile.
+   */
+  private scoreSnapshot(mode: "victory" | "gameOver", stats: RunStats, hero: HeroState): Snapshot {
+    const tile = { x: 0, y: 0 };
+    return {
+      mode,
+      hero,
+      field: {
+        map: { width: 1, height: 1, tiles: ["grass"], spawn: tile, miniboss: tile },
+        position: { x: 0.5, y: 0.5 },
+        facing: { x: 0, y: -64 },
+        miniboss: { tile, radius: 0.8, id: stats.killedBy ?? "mob.rust_sentinel" },
+        guardTicks: 0,
+      },
+      stats,
+    };
   }
 
   /** The launch options in the URL. A missing seed rolls a fresh one. */
@@ -198,6 +269,7 @@ export class GameRuntimeController {
       camera: params.get("camera") === "overview" ? "overview" : "follow",
       gameloop: params.get("gameloop") === "ai" ? "ai" : "human",
       combat: combat === null ? null : combat.split(",").filter((id) => id !== ""),
+      fightTerrain: params.get("terrain") === "forest" ? "forest" : "grass",
       forceWebGL: params.has("webgl"),
       assetDelayMs: import.meta.env.DEV ? Number(params.get("assetDelay") ?? 0) || 0 : 0,
     };

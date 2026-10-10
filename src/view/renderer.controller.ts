@@ -2,6 +2,7 @@ import { PerspectiveCamera, type Scene } from "three";
 import { WebGPURenderer } from "three/webgpu";
 import { debugLog } from "../debug/logger.controller";
 import { debugWatches } from "../debug/watch.controller";
+import { pause } from "../ui/components/pause/controller";
 import type { RendererBackend } from "./renderer.types";
 
 const log = debugLog.create("view");
@@ -67,8 +68,10 @@ export class RenderLoopController {
     let frames = 0;
     let windowStart = performance.now();
     await this.renderer.setAnimationLoop((time) => {
-      frame(last === undefined ? 0 : (time - last) / 1000);
+      const elapsed = last === undefined ? 0 : (time - last) / 1000;
       last = time;
+      // A pause keeps the last frame on screen and does not bank the time it was open.
+      frame(pause.isOpen() ? 0 : elapsed);
       this.renderer.render(scene, this.camera);
 
       // Frames counted over half a second, for the dev panel.

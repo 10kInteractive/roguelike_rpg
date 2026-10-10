@@ -1,0 +1,13 @@
+.veil {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s linear;
+}
+
+.veil.covered {
+  opacity: 1;
+}

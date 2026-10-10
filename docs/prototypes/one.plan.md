@@ -31,9 +31,9 @@ Out: deploying to the server, gear and slots, boons, stages, inns, extraction, s
 ## Player experience
 
 1. The loader shows progress, then the hero appears on a meadow.
-2. The hero walks freely with the stick or keys, sliding along water and mountain edges. Walking through grass and forest occasionally triggers a fight. The combat screen opens over the field.
+2. The hero walks freely with the stick or keys, sliding along water and mountain edges. Walking through grass and forest occasionally triggers a fight. The meadow fades to black, then the combat screen fades in. Leaving fades back.
 3. The player picks commands; enemies act on their turns; the log at the base of the view narrates, and clears when the fight ends.
-4. An Ember Imp resists fire but melts to ice. A Frost Moth is fast and fragile and hates fire. Slimes are just slimes.
+4. An Ember Imp resists fire but melts to ice. A Frost Moth is fast and fragile and hates fire. Slimes are just slimes. A Dire Wolf and a Shade show up only in the forest, and both hit harder than those three.
 5. Wins give XP. Level-ups restore HP and MP. Potions drop now and then.
 6. A Rust Sentinel stands on the far side of the map. Walking around it is safe. Touching it starts a fight you can't run from. After about 10 fights the hero should be ready for it.
 7. Beat it: victory screen with run stats. Die: game over screen with the same stats and what killed you. Either way, restart on a new seed.
@@ -70,8 +70,9 @@ src/                        shared engine
                             FixedStepClock, PositionInterpolator, StandInWalkController
     combat/                 CombatViewController, CombatSceneController, CombatSequencerController,
                             TweenController, FloatingTextController
+      backdrops/            one backdrop per fight ground: meadow for grass and path, forest for the woods
   ui/                       React DOM overlay. UiStoreController: the latest snapshot and the events waiting to play
-    components/             CommandWindow, FieldHud, MessageLog, RunEndScreen
+    components/             one folder per component: controller, markup, styles, types
   input/                    KeyboardController and GamepadController: held keys or the pad as a stick, and menu presses
   assets/                   AssetLoaderController: loads a manifest pack with progress. Built URLs for
                             every file under /assets, so production builds ship them
@@ -79,13 +80,13 @@ src/                        shared engine
 prototypes/
   one/
     index.html              entry page
-    index.css               page and overlay styles
+    index.css               page shell: the stage fills the window, and the view and overlay sit in it
     main.tsx                mounts the overlay and starts GameRuntimeController with this bundle
     bundle-source.ts        gathers the bundle's JSON files through bundle.json for the browser
     config.ts               planned: engine features this prototype uses
     bundle/                 content bundle (see below)
 assets/
-  authored/                 planned: hand-built, wins over generated
+  authored/                 hand-built, wins over a generated file of the same name
   generated/                tool output, each file with a `.json` provenance sidecar
 tools/                      Node scripts. Their tests run with the rest under `npm run test`
   sim.ts                    headless sim CLI. The only place that prints.
@@ -308,6 +309,8 @@ Starting numbers. They are first guesses for the balance sweeps to correct.
 | Hero walk speed | 4 tiles per second |
 | Hero collision radius | 0.3 tiles |
 | Minimum distance between encounters | 4 tiles |
+| Encounter hold at the start of a run | 5 seconds |
+| Encounter hold after winning a pack and returning | 2.5 seconds |
 | Level cap | 10 |
 | XP to next level | 6 × level (level 5 after about 60 XP, roughly 10 fights) |
 
@@ -335,6 +338,8 @@ Starts with spells Ember and Frost, and 3 potions.
 | `mob.slime` | 12 | 6 | 2 | 0 | 5 | — | — | — | 3 | attack |
 | `mob.ember_imp` | 14 | 6 | 3 | 0 | 9 | fire | ice | fire | 5 | attack 60, Ember 40 |
 | `mob.frost_moth` | 10 | 5 | 2 | 0 | 12 | ice | fire | ice | 5 | attack 60, Frost 40 |
+| `mob.dire_wolf` | 22 | 9 | 4 | 0 | 8 | — | — | — | 8 | attack |
+| `mob.shade` | 18 | 7 | 3 | 0 | 11 | ice | fire | ice | 8 | attack 55, Frost 45 |
 | `mob.rust_sentinel` (miniboss) | 90 | 13 | 8 | 0 | 6 | — | ice | fire | 40 | attack 70, Grind (×1.5) 30 |
 
 Every regular mob has a 15% potion drop. The Rust Sentinel is a machina, a small first hint of the tech undercurrent. Beating it ends the run, so it has no drops.
@@ -346,7 +351,7 @@ The imp and the moth have no magic, so their Ember and Frost hit for the spell's
 | Terrain | Encounter rate per tile walked | Packs |
 | --- | --- | --- |
 | Grass | 10% | 1–2 slimes (50), slime + imp (25), 1–2 moths (25) |
-| Forest | 15% | 1–2 imps (35), 2 moths (35), imp + moth (30) |
+| Forest | 15% | 1–2 imps (25), 2 moths (25), imp + moth (20), 1 dire wolf (15), 1 shade (15) |
 | Path | 4% | 1 slime (100) |
 
 **Biome: meadow**
@@ -378,15 +383,15 @@ The sim can't measure real minutes, so sweeps report an **estimated play time**:
 | --- | --- | --- |
 | `boot` | immediately | `ui.font.main`, `ui.loader.art` |
 | `core` | after boot | `hero.strider.model`, `ui.window.frame` |
-| `biome.meadow` | lazily, before entering the field | `terrain.{grass,forest,path,water,mountain}.texture`, `mob.{slime,ember_imp,frost_moth,rust_sentinel}.model`, `combat.backdrop.meadow` |
+| `biome.meadow` | lazily, before entering the field | `terrain.{grass,forest,path,water,mountain,skirt}.texture`, `mob.{slime,ember_imp,frost_moth,dire_wolf,shade,rust_sentinel}.model`, `combat.backdrop.meadow` |
 
 All art starts as placeholders: simple shapes plus pixel textures written by `tools/gen-placeholders.ts` into `assets/generated/` with sidecars. Putting the `biome.meadow` assets in their own lazy pack exercises lazy loading from day one.
 
 ## View
 
 - **Renderer:** `WebGPURenderer` with automatic WebGL2 fallback. One render loop owned by the view.
-- **Field scene:** terrain built from the map as merged low-poly tile columns with pixel textures; hero and miniboss as placeholder models; the hero turns to face its movement; 3/4 camera that follows the hero smoothly. Positions interpolate between sim ticks.
-- **Combat scene:** a simple meadow backdrop, hero on one side, enemies on the other.
+- **Field scene:** terrain built from the map as merged low-poly tile columns with pixel textures; a skirt of dark brown earth around the meadow so the follow camera sees ground past the edge; hero and miniboss as placeholder models of six blocks; the hero turns to face its movement; 3/4 camera that follows the hero smoothly. Positions interpolate between sim ticks.
+- **Combat scene:** a backdrop for the ground the fight started on, hero on one side, enemies on the other. Grass and path use the meadow. Forest uses a dark brown floor and tall dark green trees.
 - **Combat sequencer:** consumes sim events in order and plays each one (lunge, flash, damage number, defeat fade) with `await`, then tells the UI it's ready for input.
 - **Lighting:** one sun and one sky light.
 
@@ -397,7 +402,8 @@ React DOM overlay over the canvas, NES-style bordered windows and a pixel font. 
 - Loader screen with progress.
 - Field HUD: level, HP, MP.
 - Combat: command window, spell and item submenus, target selection, enemy names and hero status, message log.
-- Victory and game over screens showing run stats (play time, fights won and fled, level, damage dealt and taken, potions used, distance walked, seed, and on game over what killed you), with a restart option. The sim counts everything except play time, which the UI clocks.
+- Victory and game over screens showing run stats (play time, fights won and fled, level, damage dealt and taken, potions used, distance walked, seed, and on game over what killed you), with a restart option. Confirm is A or Enter. The sim counts everything except play time, which the UI clocks. `?combat=` plays that pack, then the same ending screen, and confirm starts a new seed.
+- Pause, from Escape or Start. The screen titles itself Roguelike RPG, with the line "if dragon warrior was a procedural roguelike", and offers Resume, Restart, and Launcher. The field and the fight do not step while it is open, and that time is left off the play clock. The page does not keep a launcher link up.
 - Menus are fully navigable with actions only.
 
 ## Input
@@ -407,9 +413,10 @@ React DOM overlay over the canvas, NES-style bordered windows and a pixel font. 
 | Move (field) | arrow keys, WASD (eight directions) | left stick (analog, with a dead zone), d-pad |
 | Menu up, down, left, right | arrow keys, WASD | d-pad, left stick |
 | Confirm | Enter, Space, Z | A |
-| Cancel | Escape, Backspace, X | B |
+| Cancel | Backspace, X | B |
+| Pause | Escape | Start |
 
-The input layer turns devices into one quantized move vector per tick plus discrete menu actions. Default bindings only. Rebinding comes later. A menu direction from the stick registers at half deflection, once, until the stick comes back. A direction already held when a menu opens does not count until it is released.
+The input layer turns devices into one quantized move vector per tick plus discrete menu actions. Default bindings only. Rebinding comes later. A key owns its axis, and the pad still moves the other one. A menu direction from the stick registers at half deflection, once, until the stick comes back. A diagonal keeps the stronger axis, and a tie moves the cursor. A direction already held when a menu opens does not count until it is released. Escape pauses instead of canceling a menu. Left and A still cancel.
 
 ## Harness
 
@@ -567,6 +574,9 @@ On the `bozmak/view` branch, not merged yet. The canvas, the WebGPU renderer, an
 - `feat: walk and fight end-to-end test`. An arrow key moves the hero. A forced encounter ends when Fight beats a weak enemy.
 - `feat: ending end-to-end test`. Victory and game over show stats, and restart works.
 - `feat: authored assets win`. A file dropped in `assets/authored/` replaces the placeholder with the same id, with no code change.
+- `feat: meadow skirt`. Grass tiles around the map fill the follow camera, so the edge of the meadow is ground.
+- `feat: brown meadow skirt`. The skirt is dark brown earth, so it reads as past the meadow.
+- `feat: forest fights`. The hero stands waist-deep in forest, and a forest fight uses its own backdrop.
 - `feat: balance pass`. Tune the bundle numbers from the sweep toward the targets.
 
 ## Done when
@@ -576,7 +586,7 @@ On the `bozmak/view` branch, not merged yet. The canvas, the WebGPU renderer, an
 - [x] `npm run check` passes and runs in CI.
 - [x] A 1000-seed sweep with the `grinder` policy completes and reports a summary.
 - [x] A recorded run replays to the same result.
-- [ ] Replacing a placeholder by dropping a same-ID file into `assets/authored/` changes it in game with no code change.
+- [x] Replacing a placeholder by dropping a same-ID file into `assets/authored/` changes it in game with no code change.
 
 ## Open questions
 

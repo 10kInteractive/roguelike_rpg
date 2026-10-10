@@ -204,6 +204,29 @@ test("play time starts with the run and freezes when it ends", () => {
   expect(store.playMs()).toBe(1_500);
 });
 
+test("leaving combat closes a command window", () => {
+  const store = new UiStoreController();
+  store.present({ mode: "combat" } as Snapshot);
+  void store.requestCommand([]);
+  expect(store.api().getState().commands).not.toBeNull();
+
+  store.present({ mode: "field" } as Snapshot);
+  expect(store.api().getState().commands).toBeNull();
+});
+
+test("a pause is left off the play clock", () => {
+  let now = 1_000;
+  const store = new UiStoreController(() => now);
+  store.present({ mode: "field" } as Snapshot);
+  now = 2_000;
+  store.holdClock();
+  now = 5_000;
+  store.releaseClock();
+  now = 9_000;
+  store.present({ mode: "victory" } as Snapshot);
+  expect(store.playMs()).toBe(5_000);
+});
+
 test("a confirm restarts, and one that arrives first still counts", async () => {
   const store = new UiStoreController();
   store.present({ mode: "victory" } as Snapshot);

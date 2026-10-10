@@ -1,0 +1,12 @@
+.hud {
+  margin: 12px;
+}
+
+.hud p {
+  margin: 0;
+}
+
+.hud-progress {
+  width: 240px;
+  margin-top: 6px;
+}

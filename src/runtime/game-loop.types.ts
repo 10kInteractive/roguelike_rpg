@@ -6,8 +6,8 @@ export type GameLoopPhase = "walking" | "fighting" | "won" | "lost";
 
 /** How a run ended. */
 export type RunEnd = {
-  /** Win when the miniboss falls. Lose when the hero does. */
-  outcome: "win" | "lose";
+  /** Win when the miniboss falls. Lose when the hero does. Restart when pause says so. */
+  outcome: "win" | "lose" | "restart";
   /** The hero's level: after the miniboss on a win, going into the last fight on a loss. */
   level: number;
   /** Mobs fought, counting each mob in a pack. */

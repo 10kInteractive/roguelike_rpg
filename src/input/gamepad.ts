@@ -3,12 +3,24 @@ import type { Stick } from "../sim/field/movement.types";
 import { menuThreshold, stickDeadZone } from "./gamepad.constants";
 import type { MenuDirection, PadReading } from "./gamepad.types";
 
-/** Which menu directions are held this sample. Opposite directions cancel. */
+/**
+ * Which menu directions are held this sample.
+ * Opposite directions cancel. A diagonal stick keeps its stronger axis, and a tie moves the cursor.
+ */
 export function menuHeld(reading: PadReading): Record<MenuDirection, boolean> {
-  const up = reading.up || -reading.axisY >= menuThreshold;
-  const down = reading.down || reading.axisY >= menuThreshold;
-  const confirm = reading.confirm || reading.right || reading.axisX >= menuThreshold;
-  const cancel = reading.cancel || reading.left || -reading.axisX >= menuThreshold;
+  const stickUp = -reading.axisY;
+  const stickDown = reading.axisY;
+  const stickConfirm = reading.axisX;
+  const stickCancel = -reading.axisX;
+  const vertical = Math.max(stickUp, stickDown);
+  const horizontal = Math.max(stickConfirm, stickCancel);
+  const stickMoves = vertical >= horizontal;
+
+  const up = reading.up || (stickMoves && stickUp >= menuThreshold);
+  const down = reading.down || (stickMoves && stickDown >= menuThreshold);
+  const confirm =
+    reading.confirm || reading.right || (!stickMoves && stickConfirm >= menuThreshold);
+  const cancel = reading.cancel || reading.left || (!stickMoves && stickCancel >= menuThreshold);
   return {
     up: up && !down,
     down: down && !up,
