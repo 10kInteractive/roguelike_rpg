@@ -387,7 +387,7 @@ All art starts as placeholders: simple shapes plus pixel textures written by `to
 ## View
 
 - **Renderer:** `WebGPURenderer` with automatic WebGL2 fallback. One render loop owned by the view.
-- **Field scene:** terrain built from the map as merged low-poly tile columns with pixel textures; hero and miniboss as placeholder models of six blocks; the hero turns to face its movement; 3/4 camera that follows the hero smoothly. Positions interpolate between sim ticks.
+- **Field scene:** terrain built from the map as merged low-poly tile columns with pixel textures; a skirt of grass tiles around the meadow so the follow camera sees ground past the edge; hero and miniboss as placeholder models of six blocks; the hero turns to face its movement; 3/4 camera that follows the hero smoothly. Positions interpolate between sim ticks.
 - **Combat scene:** a simple meadow backdrop, hero on one side, enemies on the other.
 - **Combat sequencer:** consumes sim events in order and plays each one (lunge, flash, damage number, defeat fade) with `await`, then tells the UI it's ready for input.
 - **Lighting:** one sun and one sky light.
@@ -571,6 +571,7 @@ On the `bozmak/view` branch, not merged yet. The canvas, the WebGPU renderer, an
 - `feat: walk and fight end-to-end test`. An arrow key moves the hero. A forced encounter ends when Fight beats a weak enemy.
 - `feat: ending end-to-end test`. Victory and game over show stats, and restart works.
 - `feat: authored assets win`. A file dropped in `assets/authored/` replaces the placeholder with the same id, with no code change.
+- `feat: meadow skirt`. Grass tiles around the map fill the follow camera, so the edge of the meadow is ground.
 - `feat: balance pass`. Tune the bundle numbers from the sweep toward the targets.
 
 ## Done when

@@ -283,6 +283,7 @@ Not in prototype one.
 - Placeholder art is fine: colored shapes with simple pixel textures.
 - Menus are a DOM overlay in an NES style: bordered windows, pixel font.
 - Simple lighting: a sun and a sky light. No day / night.
+- A skirt of grass tiles surrounds the meadow, wide enough that the follow camera shows ground past the map edge. The sim map is unchanged, and the hero cannot walk onto the skirt.
 - Sound: optional placeholder blips. No music.
 - Input: keyboard and gamepad, default bindings only.
 

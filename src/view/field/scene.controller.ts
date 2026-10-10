@@ -15,7 +15,7 @@ import { addSunAndSky } from "../art/lighting";
 import { skyColor } from "../art/lighting.constants";
 import { buildHeroModel, buildMobModel } from "../art/models";
 import { terrainFallbackColors } from "../art/terrain-textures.constants";
-import { terrainHeights } from "./scene.constants";
+import { fieldSkirtTiles, terrainHeights } from "./scene.constants";
 
 /**
  * The meadow as Three.js objects: tile columns, the hero, the miniboss, and light.
@@ -47,6 +47,7 @@ export class FieldSceneController {
     this.scene.background = new Color(skyColor);
 
     this.addTiles(textures);
+    this.addSkirt(textures.grass);
     addSunAndSky(this.scene, this.center());
     this.addMiniboss(map.miniboss, minibossId);
     this.hero = buildHeroModel();
@@ -99,6 +100,38 @@ export class FieldSceneController {
       columns.name = `tiles.${terrain}`;
       this.scene.add(columns);
     }
+  }
+
+  /**
+   * Grass around the meadow, so the follow camera sees ground past the map edge.
+   *
+   * @param texture The grass texture. Missing, the skirt uses the grass fallback color.
+   */
+  private addSkirt(texture: Texture | undefined): void {
+    const margin = fieldSkirtTiles;
+    const width = this.map.width;
+    const height = this.map.height;
+    const count = (width + margin * 2) * (height + margin * 2) - width * height;
+    const heightTiles = terrainHeights.grass;
+    const geometry = new BoxGeometry(1, heightTiles, 1).translate(0, heightTiles / 2, 0);
+    const material = texture
+      ? new MeshLambertMaterial({ map: texture })
+      : new MeshLambertMaterial({ color: terrainFallbackColors.grass });
+    const columns = new InstancedMesh(geometry, material, count);
+    const place = new Matrix4();
+    let i = 0;
+
+    // Tiles outside the map, from the southwest corner across each row.
+    for (let y = -margin; y < height + margin; y++) {
+      for (let x = -margin; x < width + margin; x++) {
+        if (x >= 0 && x < width && y >= 0 && y < height) continue;
+        columns.setMatrixAt(i, place.makeTranslation(x + 0.5, 0, -(y + 0.5)));
+        i += 1;
+      }
+    }
+
+    columns.name = "tiles.skirt";
+    this.scene.add(columns);
   }
 
   /** The miniboss standing on its tile, facing south toward the camera. */

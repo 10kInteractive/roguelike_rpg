@@ -9,6 +9,7 @@ import type { RenderLoopController } from "../renderer.controller";
 import { FixedStepClock } from "./fixed-step.controller";
 import { FollowCameraController } from "./follow-camera.controller";
 import { PositionInterpolator } from "./interpolation.controller";
+import { fieldSkirtTiles } from "./scene.constants";
 import { FieldSceneController } from "./scene.controller";
 import type { FieldWalker } from "./stand-in-walk.types";
 import { heroTurnRate, overviewOffset } from "./view.constants";
@@ -85,7 +86,7 @@ export class FieldViewController {
     this.follow =
       input.cameraMode === "follow" ? new FollowCameraController(this.loop.camera) : null;
     log(
-      `meadow ${input.map.width}×${input.map.height}, seed ${input.seed}, ${input.cameraMode} camera`,
+      `meadow ${input.map.width}×${input.map.height}, skirt ${fieldSkirtTiles}, seed ${input.seed}, ${input.cameraMode} camera`,
     );
 
     if (import.meta.env.DEV) {
