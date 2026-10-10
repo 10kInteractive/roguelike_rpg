@@ -28,6 +28,7 @@
           "id": "terrain.mountain.texture",
           "file": "assets/generated/terrain.mountain.texture.png"
         },
+        { "id": "terrain.skirt.texture", "file": "assets/generated/terrain.skirt.texture.png" },
         { "id": "mob.slime.model", "file": "assets/generated/mob.slime.model.glb" },
         { "id": "mob.ember_imp.model", "file": "assets/generated/mob.ember_imp.model.glb" },
         { "id": "mob.frost_moth.model", "file": "assets/generated/mob.frost_moth.model.glb" },

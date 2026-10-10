@@ -16,7 +16,8 @@ import { skyColor } from "../art/lighting.constants";
 import { buildHeroModel, buildMobModel } from "../art/models";
 import { heroLook } from "../art/person/model.constants";
 import { terrainFallbackColors } from "../art/terrain-textures.constants";
-import { fieldSkirtTiles, terrainHeights } from "./scene.constants";
+import type { BackdropTextures } from "../combat/backdrops/backdrop.types";
+import { fieldSkirtTiles, skirtFallback, terrainHeights } from "./scene.constants";
 
 /**
  * The meadow as Three.js objects: tile columns, the hero, the miniboss, and light.
@@ -39,16 +40,16 @@ export class FieldSceneController {
 
   /**
    * @param map The seeded meadow.
-   * @param textures Each terrain's texture. A missing one draws its fallback color.
+   * @param textures Each terrain's texture, and the skirt. A missing one draws its fallback color.
    * @param minibossId The mob standing on the miniboss tile, such as `mob.rust_sentinel`.
    */
-  constructor(map: MeadowMap, textures: Partial<Record<Terrain, Texture>>, minibossId: string) {
+  constructor(map: MeadowMap, textures: BackdropTextures, minibossId: string) {
     this.map = map;
     this.heights = map.tiles.map((terrain) => terrainHeights[terrain]);
     this.scene.background = new Color(skyColor);
 
     this.addTiles(textures);
-    this.addSkirt(textures.grass);
+    this.addSkirt(textures.skirt);
     addSunAndSky(this.scene, this.center());
     this.addMiniboss(map.miniboss, minibossId);
     this.hero = buildHeroModel();
@@ -79,7 +80,7 @@ export class FieldSceneController {
   }
 
   /** One instanced column mesh per terrain, so the whole meadow is five draw calls. */
-  private addTiles(textures: Partial<Record<Terrain, Texture>>): void {
+  private addTiles(textures: BackdropTextures): void {
     const byTerrain = new Map<Terrain, TilePoint[]>();
     this.map.tiles.forEach((terrain, index) => {
       const tiles = byTerrain.get(terrain) ?? [];
@@ -106,9 +107,9 @@ export class FieldSceneController {
   }
 
   /**
-   * Grass around the meadow, so the follow camera sees ground past the map edge.
+   * Dark brown earth around the meadow, so the follow camera sees ground past the map edge.
    *
-   * @param texture The grass texture. Missing, the skirt uses the grass fallback color.
+   * @param texture The skirt texture. Missing, the skirt uses its fallback color.
    */
   private addSkirt(texture: Texture | undefined): void {
     const margin = fieldSkirtTiles;
@@ -119,7 +120,7 @@ export class FieldSceneController {
     const geometry = new BoxGeometry(1, heightTiles, 1).translate(0, heightTiles / 2, 0);
     const material = texture
       ? new MeshLambertMaterial({ map: texture })
-      : new MeshLambertMaterial({ color: terrainFallbackColors.grass });
+      : new MeshLambertMaterial({ color: skirtFallback });
     const columns = new InstancedMesh(geometry, material, count);
     const place = new Matrix4();
     let i = 0;

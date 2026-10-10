@@ -1,8 +1,8 @@
-import { InstancedMesh, Matrix4, Vector3 } from "three";
+import { InstancedMesh, Matrix4, MeshLambertMaterial, Vector3 } from "three";
 import { expect, test } from "vitest";
 import type { MeadowMap } from "../../sim/field/map.types";
 import { heroLook } from "../art/person/model.constants";
-import { fieldSkirtTiles, terrainHeights } from "./scene.constants";
+import { fieldSkirtTiles, skirtFallback, terrainHeights } from "./scene.constants";
 import { FieldSceneController } from "./scene.controller";
 
 const meadow: MeadowMap = {
@@ -28,6 +28,11 @@ test("grass tiles surround the meadow, past every edge", () => {
   const corner = new Vector3().setFromMatrixPosition(place);
   expect(corner.x).toBeLessThan(0);
   expect(corner.z).toBeGreaterThan(0);
+
+  // No texture yet, so the skirt is its brown fallback rather than meadow grass.
+  expect(skirt.material).toBeInstanceOf(MeshLambertMaterial);
+  if (!(skirt.material instanceof MeshLambertMaterial)) return;
+  expect(skirt.material.color.getHex()).toBe(skirtFallback);
 });
 
 test("the hero stands waist-deep in forest and on top of grass", () => {

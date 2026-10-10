@@ -9,6 +9,12 @@ import type { Terrain } from "../../sim/field/map.types";
  */
 export const fieldSkirtTiles = 24;
 
+/** The asset id of the dark brown earth around the meadow. */
+export const skirtTextureId = "terrain.skirt.texture";
+
+/** Flat color for the skirt when its texture is missing. */
+export const skirtFallback = 0x5c3e24;
+
 /** How tall each terrain's column stands, in tile widths. Water sits low, mountains tower. */
 export const terrainHeights: Record<Terrain, number> = {
   water: 0.3,

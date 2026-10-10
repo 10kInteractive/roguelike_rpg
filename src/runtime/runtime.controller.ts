@@ -29,6 +29,7 @@ import {
   forestWallTextureId,
 } from "../view/combat/backdrops/forest.constants";
 import { CombatViewController } from "../view/combat/view.controller";
+import { skirtTextureId } from "../view/field/scene.constants";
 import { RenderLoopController } from "../view/renderer.controller";
 import { GameLoopController } from "./game-loop.controller";
 import type { RunEnd } from "./game-loop.types";
@@ -140,6 +141,8 @@ export class GameRuntimeController {
       const texture = pack.textures.get(id);
       if (texture) textures[terrain] = texture;
     }
+    const skirt = pack.textures.get(skirtTextureId);
+    if (skirt) textures.skirt = skirt;
     const forestFloor = pack.textures.get(forestFloorTextureId);
     if (forestFloor) textures.forestFloor = forestFloor;
     const forestWall = pack.textures.get(forestWallTextureId);
