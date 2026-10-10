@@ -746,3 +746,23 @@ test("an escape ends the fight, and acting after the end throws", () => {
   expect(fight.awaitingHero()).toBe(false);
   expect(() => fight.act("fight")).toThrow("The fight is not waiting for the hero");
 });
+
+test("facing another mob keeps the hero's turn", () => {
+  const fight = new OneOnOneFightController({
+    ...fleeRules,
+    hero,
+    enemy: slime,
+    rng: scripted([0.5, 0, 0.5, 0]),
+  });
+  fight.start();
+  fight.act("fight");
+  const wounded = fight.fighters().enemy.hp;
+  expect(wounded).toBeGreaterThan(0);
+  expect(wounded).toBeLessThan(slime.hp);
+
+  fight.face({ id: "imp", hp: 14, str: 6, def: 3, haste: 5 });
+  expect(fight.awaitingHero()).toBe(true);
+  expect(fight.fighters().enemy).toMatchObject({ id: "imp", hp: 14 });
+  expect(fight.upcoming(4)).toContain("imp");
+  expect(fight.upcoming(4)).not.toContain("slime");
+});

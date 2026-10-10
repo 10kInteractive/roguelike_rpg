@@ -44,8 +44,8 @@ import type { HeroProgress } from "./utils/level.types";
 export class OneOnOneFightController {
   /** The player's fighter. A copy, so the caller's hero is left alone. */
   private readonly hero: PreparedFighter;
-  /** The mob. A copy, so the caller's enemy is left alone. */
-  private readonly enemy: PreparedFighter;
+  /** The mob being fought. A copy, so the caller's enemy is left alone. */
+  private enemy: PreparedFighter;
   /** Who acts next. */
   private readonly queue: HasteTurnQueue;
   /** What happened, in order. */
@@ -86,6 +86,24 @@ export class OneOnOneFightController {
     const from = this.events.length;
     this.advance();
     return this.events.slice(from);
+  }
+
+  /**
+   * Swaps in another mob while the hero is choosing.
+   * The hero stays, and this place in the haste queue keeps its time.
+   *
+   * @param enemy The mob now being fought, including any hit points already lost.
+   */
+  face(enemy: Fighter): void {
+    if (!this.heroTurnOpen) throw new Error("The fight is not waiting for the hero");
+
+    const previous = this.enemy.id;
+    this.enemy = this.prepare(enemy);
+    this.queue.replace(previous, {
+      id: this.enemy.id,
+      haste: this.enemy.haste,
+      hero: false,
+    });
   }
 
   /** True while the fight waits for the hero's choice. */

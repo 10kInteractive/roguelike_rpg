@@ -204,6 +204,16 @@ test("play time starts with the run and freezes when it ends", () => {
   expect(store.playMs()).toBe(1_500);
 });
 
+test("cancelling the command window returns no command", async () => {
+  const store = new UiStoreController();
+  const pending = store.requestCommand([{ type: "fight", target: "mob.slime" }]);
+  expect(store.api().getState().commands).not.toBeNull();
+
+  store.cancelCommand();
+  expect(await pending).toBeNull();
+  expect(store.api().getState().commands).toBeNull();
+});
+
 test("leaving combat closes a command window", () => {
   const store = new UiStoreController();
   store.present({ mode: "combat" } as Snapshot);

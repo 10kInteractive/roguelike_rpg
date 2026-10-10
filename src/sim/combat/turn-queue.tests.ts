@@ -87,6 +87,21 @@ test("a fast moth acts ahead of the hero, who acts ahead of a slime", () => {
   ]);
 });
 
+test("replacing the mob keeps that turn's time", () => {
+  const queue = new HasteTurnQueue(
+    [
+      { id: "hero", haste: 1, hero: true },
+      { id: "imp", haste: 1 },
+    ],
+    turnBase,
+  );
+  queue.act();
+  queue.act();
+  queue.replace("imp", { id: "moth", haste: 1 });
+
+  expect(queue.upcoming(2)).toEqual(["hero", "moth"]);
+});
+
 test("upcoming previews turns without spending them", () => {
   const queue = new HasteTurnQueue([hero, imp], turnBase);
   expect(queue.upcoming(4)).toEqual(queue.upcoming(4));

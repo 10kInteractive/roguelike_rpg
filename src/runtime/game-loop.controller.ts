@@ -47,6 +47,9 @@ export class GameLoopController {
   /** Keys for the player's walk. Null when the stand-in is walking. */
   private readonly keys: KeyboardController | null;
 
+  /** The fight on screen. Null while the hero is walking. */
+  private fightView: CombatViewController | null = null;
+
   /** Terrain textures, shared by the field and every fight's backdrop. */
   private readonly textures: BackdropTextures;
 
@@ -166,14 +169,19 @@ export class GameLoopController {
       heroId: this.sim.observe().hero.id,
       onPlayed: () => uiStore.played(),
     });
+    this.fightView = view;
     this.hand(opening);
     await view.show(opening);
     uiStore.present(this.sim.observe());
-    while (this.sim.observe().mode === "combat") {
-      const events = this.sim.act(await this.command());
-      this.hand(events);
-      await view.show(events);
-      uiStore.present(this.sim.observe());
+    try {
+      while (this.sim.observe().mode === "combat") {
+        const events = this.sim.act(await this.command());
+        this.hand(events);
+        await view.show(events);
+        uiStore.present(this.sim.observe());
+      }
+    } finally {
+      this.fightView = null;
     }
   }
 
@@ -185,14 +193,35 @@ export class GameLoopController {
   /** The next combat command: the window's choice, or the grinder's. */
   private command(): Promise<Action> {
     const policy = this.combat;
-    if (!policy) return uiStore.requestCommand(this.sim.legalActions());
+    if (policy) {
+      const snapshot = this.sim.observe();
+      const target = snapshot.combat?.mobId ?? "";
+      const choice = policy.chooseFighter(snapshot.hero);
+      return Promise.resolve(
+        choice === "potion" ? { type: "item", item: "item.potion" } : { type: "fight", target },
+      );
+    }
+    return this.playerCommand();
+  }
 
-    const snapshot = this.sim.observe();
-    const target = snapshot.combat?.mobId ?? "";
-    const choice = policy.chooseFighter(snapshot.hero);
-    return Promise.resolve(
-      choice === "potion" ? { type: "item", item: "item.potion" } : { type: "fight", target },
-    );
+  /** The player locks a mob, then picks a command aimed at that mob. Cancel returns to the pack. */
+  private async playerCommand(): Promise<Action> {
+    const view = this.fightView;
+    if (!view) {
+      const action = await uiStore.requestCommand(this.sim.legalActions());
+      if (!action) throw new Error("That action is not available");
+      return action;
+    }
+
+    for (;;) {
+      const combat = this.sim.observe().combat;
+      const line = combat?.line ?? [0];
+      const index = await view.choose(line, combat?.index ?? line[0] ?? 0);
+      this.sim.face(index);
+      uiStore.present(this.sim.observe());
+      const action = await uiStore.requestCommand(this.sim.legalActions());
+      if (action) return action;
+    }
   }
 
   /** Pause chose Restart. The meadow and the scoreboard stay where they were. */

@@ -123,6 +123,60 @@ test("the first fight of seed 7 opens on the hero's turn and is won", () => {
   expect(end.combat).toBeUndefined();
 });
 
+test("facing another mob keeps the wounds and locks the command onto them", () => {
+  const pack = {
+    weight: 1,
+    groups: [
+      { id: "mob.slime" as const, min: 1, max: 1 },
+      { id: "mob.ember_imp" as const, min: 1, max: 1 },
+    ],
+  };
+  const forced = {
+    ...bundle,
+    encounters: {
+      ...bundle.encounters,
+      terrains: bundle.encounters.terrains.map((terrain) => ({
+        ...terrain,
+        rate: 1,
+        packs: [pack],
+      })),
+    },
+  };
+  const choiceRng = new SeededRandomGenerator(1);
+  const sim = createSim({
+    bundle: forced,
+    seed: 1,
+    rngs: {
+      field: new SeededRandomGenerator(1),
+      choice: choiceRng,
+      combat: new SeededRandomGenerator(1),
+    },
+  });
+  walkToFight(sim, choiceRng);
+
+  const opened = sim.observe().combat;
+  expect(opened?.line).toEqual([0, 1]);
+  expect(opened?.index).toBe(0);
+  expect(opened?.mobId).toBe("mob.slime");
+
+  const leadHp = opened?.enemy.hp ?? 0;
+  sim.act({ type: "fight", target: "mob.slime" });
+  const wounded = sim.observe().combat?.enemy.hp ?? leadHp;
+  expect(sim.observe().mode).toBe("combat");
+  expect(wounded).toBeLessThan(leadHp);
+
+  sim.face(1);
+  expect(sim.observe().combat).toMatchObject({ mobId: "mob.ember_imp", index: 1 });
+  expect(sim.legalActions()[0]).toEqual({ type: "fight", target: "mob.ember_imp" });
+  expect(() => sim.act({ type: "fight", target: "mob.slime" })).toThrow(/not available/);
+  const impHp = sim.observe().combat?.enemy.hp;
+
+  sim.face(0);
+  expect(sim.observe().combat?.enemy.hp).toBe(wounded);
+  sim.face(1);
+  expect(sim.observe().combat?.enemy.hp).toBe(impHp);
+});
+
 test("a seed played one action at a time matches the headless grinder run", () => {
   for (let seed = 1; seed <= 20; seed++) {
     const headless = new GrinderFieldRunController(grinderInput(seed)).play();

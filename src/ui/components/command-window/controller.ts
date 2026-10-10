@@ -12,8 +12,8 @@ import type { CommandWindowView, MenuFrame } from "./types";
  * The combat menus: Fight, Magic, Item, Defend, and Run, and the menus those open.
  *
  * The root opens fresh each turn, so the cursor starts on Fight. Up and down
- * wrap. Cancel closes the menu that was opened. Confirm opens the next menu,
- * or sends the row's action.
+ * wrap. Cancel closes the menu that was opened. Cancel on the root closes the
+ * window without a command. Confirm opens the next menu, or sends the row's action.
  */
 export class CommandWindowController {
   /** The menus that were opened, the root first. */
@@ -52,6 +52,10 @@ export class CommandWindowController {
    * @returns The action confirm chose, or null when the press only moved the cursor.
    */
   apply(action: MenuDirection): Action | null {
+    if (action === "cancel" && this.menus.length <= 1) {
+      uiStore.cancelCommand();
+      return null;
+    }
     if (action === "up") this.menus = this.moved(-1);
     if (action === "down") this.menus = this.moved(1);
     if (action === "cancel") this.menus = this.back();

@@ -175,7 +175,8 @@ export class CombatSequencerController {
     const startX = actor.model.position.x;
     const toward = actor === this.combat.heroActor() ? -1 : 1;
     return this.tweens.run(beatSeconds.lunge, (progress) => {
-      actor.model.position.x = startX + toward * reach * Math.sin(progress * Math.PI);
+      const along = Math.sin(progress * Math.PI);
+      actor.model.position.x = startX + toward * reach * along;
     });
   }
 

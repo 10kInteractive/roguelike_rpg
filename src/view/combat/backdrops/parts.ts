@@ -35,6 +35,35 @@ export function backdropMaterial(
 }
 
 /**
+ * One box standing on the floor. Wider than a column, for a log, a rock, or a bush.
+ *
+ * @param x East of the stage center, in tiles.
+ * @param z North is negative.
+ * @param width East to west.
+ * @param height How tall it stands.
+ * @param depth North to south.
+ * @param material Its texture or flat color.
+ * @param name So a test can tell a near piece from a tree.
+ */
+export function backdropSlab(
+  x: number,
+  z: number,
+  width: number,
+  height: number,
+  depth: number,
+  material: MeshLambertMaterial,
+  name: string,
+): Mesh {
+  const mesh = new Mesh(
+    new BoxGeometry(width, height, depth).translate(0, height / 2, 0),
+    material,
+  );
+  mesh.position.set(x, 0, z);
+  mesh.name = name;
+  return mesh;
+}
+
+/**
  * One column standing on the floor.
  *
  * @param x East of the stage center, in tiles.

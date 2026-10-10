@@ -20,9 +20,9 @@ export type Action =
       ticks?: number;
     }
   | {
-      /** Fight the mob whose turn it is. */
+      /** Fight the mob the player locked in. */
       type: "fight";
-      /** The mob's id. */
+      /** That mob's id. */
       target: string;
     }
   | {
@@ -122,6 +122,10 @@ export type Snapshot = {
     enemy: CombatantView;
     /** Who acts next, the hero's open turn first. */
     turnOrder: string[];
+    /** Where this mob stands in the pack. The lead is 0. */
+    index: number;
+    /** Pack positions still standing, the front of the line first. */
+    line: number[];
   };
   /** The scoreboard so far. */
   stats: RunStats;
