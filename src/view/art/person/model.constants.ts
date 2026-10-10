@@ -1,9 +1,9 @@
 import type { ModelLook } from "../models.types";
 
-/** The placeholder hero: a gold person of six blocks. */
+/** The placeholder hero: a blue person of six blocks. */
 export const heroLook: ModelLook = {
-  color: 0xc4a35a,
-  noseColor: 0xf2e6c4,
+  color: 0x3d6ec9,
+  noseColor: 0xd5e4f7,
   width: 0.45,
   height: 0.7,
   shape: "person",
