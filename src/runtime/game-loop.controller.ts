@@ -12,6 +12,7 @@ import type { Action, SimEvent } from "../sim/game.types";
 import { SeededRandomGenerator } from "../sim/utils/rng.controller";
 import type { Rng } from "../sim/utils/rng.types";
 import { pause } from "../ui/components/pause/controller";
+import { veil } from "../ui/components/veil/controller";
 import { uiStore } from "../ui/store.controller";
 import { CombatViewController } from "../view/combat/view.controller";
 import { PlayerWalkController } from "../view/field/player-walk.controller";
@@ -114,15 +115,22 @@ export class GameLoopController {
       uiStore.present(this.sim.observe());
       for (;;) {
         this.phase = "walking";
-        const started = await pause.race(this.field.walkUntilFight());
+        const walking = this.field.walkUntilFight();
+        if (veil.isCovered()) await veil.reveal();
+        const started = await pause.race(walking);
         if (!started) {
           this.field.abandon();
           return this.left();
         }
 
+        log("fade to combat");
+        await veil.cover();
         this.phase = "fighting";
         const fought = await pause.race(this.playFight(started));
-        if (fought === null) return this.left();
+        if (fought === null) {
+          await veil.reveal();
+          return this.left();
+        }
         const end = this.sim.observe();
         const hero = end.hero;
         log(`${end.mode}, level ${hero.level}, hp ${hero.hp}/${hero.maxHp}`);
@@ -130,6 +138,8 @@ export class GameLoopController {
           this.phase = end.mode === "victory" ? "won" : "lost";
           return this.toRunEnd();
         }
+        log("fade to field");
+        await veil.cover();
       }
     } finally {
       this.keys?.stop();

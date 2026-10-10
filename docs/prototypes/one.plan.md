@@ -31,7 +31,7 @@ Out: deploying to the server, gear and slots, boons, stages, inns, extraction, s
 ## Player experience
 
 1. The loader shows progress, then the hero appears on a meadow.
-2. The hero walks freely with the stick or keys, sliding along water and mountain edges. Walking through grass and forest occasionally triggers a fight. The combat screen opens over the field.
+2. The hero walks freely with the stick or keys, sliding along water and mountain edges. Walking through grass and forest occasionally triggers a fight. The meadow fades to black, then the combat screen fades in. Leaving fades back.
 3. The player picks commands; enemies act on their turns; the log at the base of the view narrates, and clears when the fight ends.
 4. An Ember Imp resists fire but melts to ice. A Frost Moth is fast and fragile and hates fire. Slimes are just slimes. A Dire Wolf and a Shade show up only in the forest, and both hit harder than those three.
 5. Wins give XP. Level-ups restore HP and MP. Potions drop now and then.

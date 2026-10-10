@@ -4,6 +4,7 @@ import { FieldHud } from "../field-hud/markup";
 import { MessageLog } from "../message-log/markup";
 import { PauseScreen } from "../pause/markup";
 import { RunEndScreen } from "../run-end/markup";
+import { VeilScreen } from "../veil/markup";
 import { useOverlay } from "./controller";
 import "./styles.css";
 
@@ -26,6 +27,7 @@ export function Overlay({ status }: { status: RuntimeStatus }) {
         </>
       )}
       <PauseScreen />
+      <VeilScreen />
     </div>
   );
 }

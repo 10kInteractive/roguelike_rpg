@@ -5,6 +5,7 @@ import type { FightEvent } from "../../sim/combat/fight.types";
 import type { Terrain } from "../../sim/field/map.types";
 import type { SimEvent } from "../../sim/game.types";
 import type { PackOutcome, PackResult } from "../../sim/run/pack.types";
+import { veil } from "../../ui/components/veil/controller";
 import type { RenderLoopController } from "../renderer.controller";
 import { FloatingTextController } from "./floating-text.controller";
 import { combatCamera } from "./scene.constants";
@@ -99,6 +100,7 @@ export class CombatViewController {
         this.tweens.advance(elapsed);
         this.combat.animate(elapsed);
       });
+      await veil.reveal();
       await this.tweens.wait(betweenFightsSeconds);
     }
 

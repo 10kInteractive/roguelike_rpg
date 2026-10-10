@@ -133,7 +133,7 @@ Target for a ready, full clear: about 40–60 minutes.
 
 ### Prototype
 
-- A fight opens a **combat screen over the field**. The field pauses. The combat stage is its own simple 3D scene matching the biome.
+- A fight opens a **combat screen over the field**. The meadow fades to black, the combat stage fades in, and the field pauses. Leaving a fight fades back to the meadow. The combat stage is its own simple 3D scene matching the biome.
 - Hero on one side, 1–3 enemies on the other, Final Fantasy style.
 - **Command window:** Fight, Magic, Item, Defend, Run.
 
