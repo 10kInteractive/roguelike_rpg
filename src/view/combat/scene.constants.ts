@@ -23,3 +23,14 @@ export const combatCamera = {
   position: { x: -0.2, y: 2.9, z: 5.6 },
   lookAt: { x: -0.2, y: 0.5, z: 0 },
 };
+
+/**
+ * How far the camera's position drifts on x, in tiles, while a fight is on.
+ *
+ * The look point stays on the center of the field. The drift runs on its own,
+ * not with a swing.
+ */
+export const combatSway = 0.08;
+
+/** Seconds for one trip to the side and back through the center. */
+export const combatSwaySeconds = 12;

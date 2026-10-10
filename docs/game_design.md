@@ -285,7 +285,7 @@ Not in prototype one.
 - Menus are a DOM overlay in an NES style: bordered windows, pixel font.
 - Simple lighting: a sun and a sky light. No day / night.
 - A skirt of dark brown earth surrounds the meadow, wide enough that the follow camera shows ground past the map edge. The brown marks the edge of the grass. The sim map is unchanged, and the hero cannot walk onto the skirt.
-- On a forest tile the hero stands half a body down into the canopy, so the lower half is hidden. A fight that starts there uses a deep-forest backdrop: a dark brown floor and tall dark green trees. Grass and path fights keep the meadow backdrop.
+- On a forest tile the hero stands half a body down into the canopy, so the lower half is hidden. A fight that starts there uses a deep-forest backdrop: a dark brown floor, tall dark green trees, and logs and roots on the near ground. Grass and path fights keep the meadow backdrop: bushes and rocks off to either side, clear of the middle. The camera keeps looking at the center of the field, and its position drifts a short way back and forth on x for the whole fight.
 - Sound: optional placeholder blips. No music.
 - Input: keyboard and gamepad, default bindings only.
 

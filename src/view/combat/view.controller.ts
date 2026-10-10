@@ -16,7 +16,7 @@ import { afterPackSeconds, betweenFightsSeconds, standInThinkSeconds } from "./v
 const log = debugLog.create("view:combat");
 
 /**
- * A pack fight on screen, from a fixed camera.
+ * A pack fight on screen. The camera looks at the center and drifts a little on its own.
  *
  * `show` plays one sim action: the hero's command, the enemy's turns, and
  * the next mob stepping out when this one falls. `play` plays a pack the
@@ -84,6 +84,7 @@ export class CombatViewController {
       debugWatches.watch("beat", () => this.sequencer.playing());
       debugWatches.watch("tweens", () => this.tweens.count());
       debugWatches.watch("outcome", () => this.outcome);
+      debugWatches.watch("camera sway", () => this.combat.sway().toFixed(2));
     }
   }
 
@@ -97,10 +98,7 @@ export class CombatViewController {
     if (!this.shown) {
       this.shown = true;
       this.aim();
-      void this.loop.run(this.combat.scene, (elapsed) => {
-        this.tweens.advance(elapsed);
-        this.combat.animate(elapsed);
-      });
+      void this.loop.run(this.combat.scene, (elapsed) => this.frame(elapsed));
       await veil.reveal();
       await this.tweens.wait(betweenFightsSeconds);
     }
@@ -150,10 +148,7 @@ export class CombatViewController {
    */
   async play(result: PackResult): Promise<void> {
     this.aim();
-    void this.loop.run(this.combat.scene, (elapsed) => {
-      this.tweens.advance(elapsed);
-      this.combat.animate(elapsed);
-    });
+    void this.loop.run(this.combat.scene, (elapsed) => this.frame(elapsed));
 
     for (const [index, fight] of result.fights.entries()) {
       this.combat.focus(index);
@@ -165,10 +160,17 @@ export class CombatViewController {
     await this.tweens.wait(afterPackSeconds);
   }
 
-  /** The fixed combat camera, south of the stage and a little above it. */
+  /** One display frame: beats, the idle bob, then the camera on its sway. */
+  private frame(elapsed: number): void {
+    this.tweens.advance(elapsed);
+    this.combat.animate(elapsed);
+    this.aim();
+  }
+
+  /** The combat camera looks at the center of the field. Its x drifts on its own. */
   private aim(): void {
     const { position, lookAt } = combatCamera;
-    this.loop.camera.position.set(position.x, position.y, position.z);
+    this.loop.camera.position.set(position.x + this.combat.sway(), position.y, position.z);
     this.loop.camera.lookAt(lookAt.x, lookAt.y, lookAt.z);
   }
 }

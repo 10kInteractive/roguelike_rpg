@@ -1,6 +1,6 @@
 import { Box3 } from "three";
 import { expect, test } from "vitest";
-import { combatStage } from "./scene.constants";
+import { combatStage, combatSway, combatSwaySeconds } from "./scene.constants";
 import { CombatSceneController } from "./scene.controller";
 
 /** Children of one name, such as every `tree`. */
@@ -38,6 +38,19 @@ test("focusing another mob sends the first one back", () => {
   expect(combat.focusedIndex()).toBe(1);
 });
 
+test("set pieces sit off to the sides, on the near ground", () => {
+  for (const terrain of ["grass", "forest"] as const) {
+    const combat = new CombatSceneController(["mob.slime"], {}, terrain);
+    const near = named(combat, "near");
+    expect(near.length).toBeGreaterThanOrEqual(2);
+    expect(near.every((piece) => piece.position.z > 1.5)).toBe(true);
+    expect(near.every((piece) => Math.abs(piece.position.x) > 2.5)).toBe(true);
+  }
+  const bushes = named(new CombatSceneController(["mob.slime"], {}), "bush");
+  expect(bushes.length).toBeGreaterThan(0);
+  expect(bushes.every((bush) => Math.abs(bush.position.x) > 2.5)).toBe(true);
+});
+
 test("a meadow fight has a low tree line and mountains behind it", () => {
   const combat = new CombatSceneController(["mob.slime"], {});
   expect(named(combat, "mountain").length).toBeGreaterThan(0);
@@ -48,6 +61,14 @@ test("a forest fight stands among tall trees, with no mountains", () => {
   const combat = new CombatSceneController(["mob.slime"], {}, "forest");
   expect(named(combat, "mountain")).toEqual([]);
   expect(tallest(combat, "tree")).toBeGreaterThan(3);
+});
+
+test("the camera drifts on its own during a fight", () => {
+  const combat = new CombatSceneController(["mob.slime"], {});
+  expect(combat.sway()).toBe(0);
+
+  combat.animate(combatSwaySeconds / 4);
+  expect(combat.sway()).toBeCloseTo(combatSway);
 });
 
 test("the hero faces west and the pack faces east", () => {

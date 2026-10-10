@@ -6,7 +6,7 @@ import { mobLooks } from "../art/models.constants";
 import type { BackdropTextures, FightTerrain } from "./backdrops/backdrop.types";
 import { ForestBackdropController } from "./backdrops/forest.controller";
 import { MeadowBackdropController } from "./backdrops/meadow.controller";
-import { combatStage, idleBob } from "./scene.constants";
+import { combatStage, combatSway, combatSwaySeconds, idleBob } from "./scene.constants";
 import type { StagedActor } from "./scene.types";
 
 /**
@@ -30,7 +30,7 @@ export class CombatSceneController {
   /** Which mob in the pack is being fought. */
   private focused = 0;
 
-  /** Seconds since the scene appeared, for the idle bob. */
+  /** Seconds since the scene appeared, for the idle bob and the camera drift. */
   private seconds = 0;
 
   /**
@@ -88,8 +88,14 @@ export class CombatSceneController {
     return this.pack[this.focused];
   }
 
+  /** How far the camera has drifted on x. Zero at the start of the fight. */
+  sway(): number {
+    const turn = (this.seconds / combatSwaySeconds) * Math.PI * 2;
+    return Math.sin(turn) * combatSway;
+  }
+
   /**
-   * Moves the idle bob along for one display frame.
+   * Moves the idle bob and the camera drift along for one display frame.
    *
    * @param elapsedSeconds Time since the last frame.
    */

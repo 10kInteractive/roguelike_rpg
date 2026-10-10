@@ -391,7 +391,7 @@ All art starts as placeholders: simple shapes plus pixel textures written by `to
 
 - **Renderer:** `WebGPURenderer` with automatic WebGL2 fallback. One render loop owned by the view.
 - **Field scene:** terrain built from the map as merged low-poly tile columns with pixel textures; a skirt of dark brown earth around the meadow so the follow camera sees ground past the edge; hero and miniboss as placeholder models of six blocks; the hero turns to face its movement; 3/4 camera that follows the hero smoothly. Positions interpolate between sim ticks.
-- **Combat scene:** a backdrop for the ground the fight started on, hero on one side, enemies on the other. Grass and path use the meadow. Forest uses a dark brown floor and tall dark green trees.
+- **Combat scene:** a backdrop for the ground the fight started on, hero on one side, enemies on the other. Grass and path use the meadow, with bushes and rocks off to the sides. Forest uses a dark brown floor, tall dark green trees, and logs off to the sides. The camera looks at the center of the field, and its position drifts a short way back and forth on x.
 - **Combat sequencer:** consumes sim events in order and plays each one (lunge, flash, damage number, defeat fade) with `await`, then tells the UI it's ready for input.
 - **Lighting:** one sun and one sky light.
 
@@ -577,6 +577,7 @@ On the `bozmak/view` branch, not merged yet. The canvas, the WebGPU renderer, an
 - `feat: meadow skirt`. Grass tiles around the map fill the follow camera, so the edge of the meadow is ground.
 - `feat: brown meadow skirt`. The skirt is dark brown earth, so it reads as past the meadow.
 - `feat: forest fights`. The hero stands waist-deep in forest, and a forest fight uses its own backdrop.
+- `feat: combat staging`. Near-ground set pieces, and a camera that drifts a little during a fight.
 - `feat: balance pass`. Tune the bundle numbers from the sweep toward the targets.
 
 ## Done when
