@@ -61,7 +61,7 @@ A pack the player asked for with `?combat=` skips the meadow. The same fighter t
 
 The three shapes:
 
-- **person.** Feet, a torso, a head, a nose, and two arms. The hero, the ember imp, and the rust sentinel.
+- **person.** Two legs, a torso, a light head, and two arms. The hero, the ember imp, and the rust sentinel.
 - **blob.** Two feet, a body, a cap, and two eyes on the front. The slime.
 - **moth.** A body, a head, two wings, and two antennae. The frost moth. `hover: 0.5` lifts it, and the combat scene uses that flag for a taller idle bob.
 
